@@ -1,0 +1,6 @@
+#ifndef AEGISMATHLIB_LIBRARY_H
+#define AEGISMATHLIB_LIBRARY_H
+
+void hello();
+
+#endif // AEGISMATHLIB_LIBRARY_H
