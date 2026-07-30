@@ -1,6 +1,6 @@
 #pragma once
 #include <numbers>
-#include "Concepts.h"
+#include "AegisMath/Dynamics/Concepts.h"
 #include "Precision.h"
 
 namespace AegisMath::Constants {

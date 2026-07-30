@@ -1,5 +1,5 @@
 #pragma once
-#include "Concepts.h"
+#include "AegisMath/Dynamics/Concepts.h"
 #include "FrameTags.h"
 #include "Vector3.h"
 #include "RotationMatrix3.h"

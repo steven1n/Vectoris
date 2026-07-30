@@ -1,6 +1,6 @@
 #pragma once
 #include <cstddef> // for offsetof
-#include "Concepts.h"
+#include "AegisMath/Dynamics/Concepts.h"
 #include "FrameTags.h"
 #include "Detail/ABI.h"
 #include "Traits.h"

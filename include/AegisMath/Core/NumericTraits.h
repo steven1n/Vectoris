@@ -2,7 +2,7 @@
 #include <limits>
 #include <cmath>
 #include <algorithm>
-#include "Concepts.h"
+#include "AegisMath/Dynamics/Concepts.h"
 #include "BasicTypes.h"
 
 // 调整：所有数值特征与状态判定统一收拢到 Traits 命名空间下

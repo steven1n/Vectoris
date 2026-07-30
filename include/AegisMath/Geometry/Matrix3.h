@@ -1,6 +1,6 @@
 #pragma once
 #include <cstddef>
-#include "Concepts.h"
+#include "AegisMath/Dynamics/Concepts.h"
 #include "Detail/ABI.h"
 #include "Traits.h"
 #include "Vector3.h"

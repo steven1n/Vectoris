@@ -59,6 +59,17 @@ add_library(AegisMathLib INTERFACE
         include/AegisMath/Geometry/Quaternion.h
         include/AegisMath/Geometry/Transform3.h
         include/AegisMath/Core/MathFunctions.h
+        include/AegisMath/Dynamics/Concepts.h
+        include/AegisMath/Dynamics/DynamicsConvention.h
+        include/AegisMath/Dynamics/Detail/DynamicsABI.h
+        include/AegisMath/Dynamics/Detail/StateTypes.h
+        include/AegisMath/Dynamics/Twist6.h
+        include/AegisMath/Dynamics/Wrench6.h
+        include/AegisMath/Dynamics/InertiaTensor3.h
+        include/AegisMath/Dynamics/RigidBodyParameters.h
+        include/AegisMath/Dynamics/RigidBodyState.h
+        include/AegisMath/Dynamics/EulerIntegrator.h
+        tests/Dynamics/Regression/FreeFallTest.cpp
 )
 
 target_include_directories(AegisMathLib INTERFACE
@@ -100,7 +111,17 @@ endif()
 add_executable(AegisMathLib_Tests
         tests/Core/NumericTraitsTest.cpp
         tests/Units/UnitsTest.cpp
-        tests/Geometry/AttitudeEngineTest.cpp)
+        tests/Geometry/AttitudeEngineTest.cpp
+        tests/Dynamics/DynamicsConceptTest.cpp
+        tests/Dynamics/StateTypesTest.cpp
+        tests/Dynamics/Twist6Test.cpp
+        tests/Dynamics/Wrench6Test.cpp
+        tests/Dynamics/InertiaTensorTest.cpp
+        tests/Dynamics/RigidBodyStateTest.cpp
+        tests/Dynamics/PropagationTest.cpp
+        tests/Dynamics/DynamicsABITest.cpp
+        tests/Dynamics/Regression/FreeFallTest.cpp
+)
 
 # 精准挂载：只要求我们的测试代码做到零警告
 target_compile_options(AegisMathLib_Tests PRIVATE ${AEGIS_STRICT_WARNINGS})
