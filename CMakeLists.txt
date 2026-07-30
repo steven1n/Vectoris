@@ -43,6 +43,22 @@ add_library(AegisMathLib INTERFACE
         include/AegisMath/Units/DerivedUnits/Force.h
         include/AegisMath/Units/Detail/ABI.h
         include/AegisMath/Units/Detail/Ratio.h
+        include/AegisMath/Geometry/Concepts.h
+        include/AegisMath/Geometry/FrameTags.h
+        include/AegisMath/Geometry/Detail/ABI.h
+        include/AegisMath/Geometry/Vector3.h
+        include/AegisMath/Geometry/Point3.h
+        include/AegisMath/Geometry/Traits.h
+        include/AegisMath/Geometry/Matrix3.h
+        include/AegisMath/Geometry/UnitVector3.h
+        include/AegisMath/Core/Math.h
+        include/AegisMath/Geometry/Detail/RotationInvariant.h
+        include/AegisMath/Geometry/RotationMatrix3.h
+        include/AegisMath/Geometry/CoordinateConvention.h
+        include/AegisMath/Core/Result.h
+        include/AegisMath/Geometry/Quaternion.h
+        include/AegisMath/Geometry/Transform3.h
+        include/AegisMath/Core/MathFunctions.h
 )
 
 target_include_directories(AegisMathLib INTERFACE
@@ -83,7 +99,8 @@ endif()
 # 移除旧的 Units 测试，专注当前重构的 Core 测试
 add_executable(AegisMathLib_Tests
         tests/Core/NumericTraitsTest.cpp
-        tests/Units/UnitsTest.cpp)
+        tests/Units/UnitsTest.cpp
+        tests/Geometry/AttitudeEngineTest.cpp)
 
 # 精准挂载：只要求我们的测试代码做到零警告
 target_compile_options(AegisMathLib_Tests PRIVATE ${AEGIS_STRICT_WARNINGS})
