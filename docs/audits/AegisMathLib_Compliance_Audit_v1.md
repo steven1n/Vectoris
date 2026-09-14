@@ -291,6 +291,15 @@ expected_z evaluates to 4.9033249999999997, and
   Ten lower-layer headers across `Core` and `Geometry` `#include "AegisMath/Dynamics/Concepts.h"`. This occurred because the root script `fix_compile_errors.py` systematically rewrote include paths containing `Concepts.h` to point to `Dynamics/Concepts.h`.
 - **Risk**: Violates fundamental software architecture; breaks modular decoupling; causes compilation cycle hazards; prevents extracting `Core` or `Geometry` as standalone packages.
 - **Recommended Direction**: Consolidate primitive concepts in `AegisMath/Core/Concepts.h`; update `Core` and `Geometry` headers to `#include "AegisMath/Core/Concepts.h"`.
+- **Remediation**:
+  - **Status**: REMEDIATED
+  - **Remediation Commit**: `3c1646c`
+  - **Verification**:
+    - `tests/Architecture/DependencyLayerTest.cpp` (`ArchitectureLayeringTest.LowerLayersMustNotIncludeDynamics`).
+    - Lower layer headers (`Core`, `Units`, `Geometry`) verified to have 0 includes of `AegisMath/Dynamics/Concepts.h`.
+  - **Resolution**:
+    - Disconnected 10 Core and Geometry headers from `Dynamics/Concepts.h`, repointing to `Core/Concepts.h` or `Geometry/Concepts.h`.
+    - Added automated architecture dependency test to enforce one-way layering and prevent inverted layer imports.
 
 ---
 
@@ -304,6 +313,22 @@ expected_z evaluates to 4.9033249999999997, and
   5. `include/AegisMath/Core/Math.h:19`: `NumericTraits<T>::Epsilon()` — method is lowercase `epsilon()`, and namespace is `AegisMath::Traits`.
 - **Risk**: These headers compile only because templates are not instantiated in existing test suites. The moment any client attempts to use them, builds break with syntax/type errors.
 - **Recommended Direction**: Implement missing member functions on `Vector3` and `Matrix3`, fix namespace qualification in `Literals.h` and `Math.h`, and add explicit instantiation tests for all public APIs.
+- **Remediation**:
+  - **Status**: REMEDIATED
+  - **Remediation Commit**: `fed216e`
+  - **Verification**:
+    - `tests/Core/PublicTemplateInstantiationTest.cpp`
+    - `tests/Units/PublicTemplateInstantiationTest.cpp`
+    - `tests/Geometry/PublicTemplateInstantiationTest.cpp`
+    - Header self-containment check across all public headers.
+  - **Resolution**:
+    - Added `Vector3::dot(const Vector3&)` member method.
+    - Added `Matrix3::frobenius_norm_squared()` member method.
+    - Repaired `RotationInvariant.h` to use `diff.frobenius_norm_squared() <= tolerance`.
+    - Repaired `Transform3::Identity()` to construct `Vector3<T, FrameTo>{}`.
+    - Repaired `UnitVector3::TryCreate` factories and solved clang `offsetof` comma macro parse limitation.
+    - Corrected namespace qualification in `Units/Literals.h` (`Meter`, `Second`, `Radian`) and `Core/Math.h` (`Traits::NumericTraits<T>::epsilon()`).
+    - Added comprehensive explicit instantiation tests across Core, Units, and Geometry modules.
 
 ---
 
@@ -403,6 +428,14 @@ expected_z evaluates to 4.9033249999999997, and
   A test implementation file is included directly in the `INTERFACE` source list of `AegisMathLib`. Any downstream target linking to `AegisMathLib` will attempt to compile `FreeFallTest.cpp`.
 - **Risk**: Downstream consumer compilation failures and pollution of library headers.
 - **Recommended Direction**: Remove line 72 from `CMakeLists.txt`.
+- **Remediation**:
+  - **Status**: REMEDIATED
+  - **Remediation Commit**: `1bb81c0`
+  - **Verification**:
+    - `CMakeLists.txt` inspection.
+    - Clean configuration and compilation with no test sources in `add_library(AegisMathLib INTERFACE ...)`.
+  - **Resolution**:
+    - Removed `tests/Dynamics/Regression/FreeFallTest.cpp` from `AegisMathLib` INTERFACE target sources.
 
 ---
 
