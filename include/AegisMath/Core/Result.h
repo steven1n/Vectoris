@@ -81,7 +81,11 @@ namespace AegisMath::Core {
             return has_value();
         }
 
-        // 数据提取 (必须先验证 has_value())
+        // --- 契约式数据提取 (Contract-based Accessors) ---
+        // @pre has_value() == true.
+        // 诊断构建 (Debug): 断言校验前置条件，违规时终止并报错。
+        // 发布构建 (Release / NDEBUG): 断言失效，违规调用视为违反编程契约 (Contract Violation)，引发未定义行为。
+        // 若需完全防御性访问，请使用 value_if() 或 value_or()。
         [[nodiscard]] constexpr const T& value() const & noexcept {
             assert(has_value() && "AegisMath Precondition Violation: Result::value() called on failed Result");
             return *std::get_if<0>(&storage_);
@@ -102,7 +106,7 @@ namespace AegisMath::Core {
             return std::move(*std::get_if<0>(&storage_));
         }
 
-        // 兼容性接口
+        // 兼容性接口 (同 value() 契约)
         [[nodiscard]] constexpr const T& Value() const & noexcept {
             return value();
         }
@@ -117,6 +121,28 @@ namespace AegisMath::Core {
 
         [[nodiscard]] constexpr T&& Value() && noexcept {
             return std::move(value());
+        }
+
+        // --- 防御性指针提取接口 (Checked Accessors, 零异常、零未定义行为) ---
+
+        /// @brief 若当前为成功状态则返回指向 T 的常量指针，失败则返回 nullptr
+        [[nodiscard]] constexpr const T* value_if() const noexcept {
+            return std::get_if<0>(&storage_);
+        }
+
+        /// @brief 若当前为成功状态则返回指向 T 的指针，失败则返回 nullptr
+        [[nodiscard]] constexpr T* value_if() noexcept {
+            return std::get_if<0>(&storage_);
+        }
+
+        /// @brief 若当前为失败状态则返回指向 E 的常量指针，成功则返回 nullptr
+        [[nodiscard]] constexpr const E* error_if() const noexcept {
+            return std::get_if<1>(&storage_);
+        }
+
+        /// @brief 若当前为失败状态则返回指向 E 的指针，成功则返回 nullptr
+        [[nodiscard]] constexpr E* error_if() noexcept {
+            return std::get_if<1>(&storage_);
         }
 
         template <typename U>
@@ -135,7 +161,11 @@ namespace AegisMath::Core {
             return static_cast<T>(std::forward<U>(default_value));
         }
 
-        // 错误提取 (必须在 !has_value() 状态下调用)
+        // --- 契约式错误提取 (Contract-based Error Accessors) ---
+        // @pre !has_value() == true.
+        // 诊断构建 (Debug): 断言校验前置条件，违规时终止并报错。
+        // 发布构建 (Release / NDEBUG): 断言失效，违规调用视为违反编程契约 (Contract Violation)，引发未定义行为。
+        // 若需完全防御性访问，请使用 error_if()。
         [[nodiscard]] constexpr const E& error() const & noexcept {
             assert(!has_value() && "AegisMath Precondition Violation: Result::error() called on successful Result");
             return *std::get_if<1>(&storage_);

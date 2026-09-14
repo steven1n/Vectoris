@@ -110,6 +110,9 @@ TEST(ResultTest, ConstexprSuccess) {
     static_assert(r.IsSuccess());
     static_assert(r.value() == 42);
     static_assert(r.Value() == 42);
+    static_assert(r.value_if() != nullptr);
+    static_assert(*r.value_if() == 42);
+    static_assert(r.error_if() == nullptr);
     EXPECT_EQ(r.value(), 42);
 }
 
@@ -118,6 +121,9 @@ TEST(ResultTest, ConstexprFailure) {
     static_assert(!r.has_value());
     static_assert(!r.IsSuccess());
     static_assert(r.error() == MathError::domain_error);
+    static_assert(r.value_if() == nullptr);
+    static_assert(r.error_if() != nullptr);
+    static_assert(*r.error_if() == MathError::domain_error);
     EXPECT_EQ(r.error(), MathError::domain_error);
 }
 
@@ -183,4 +189,48 @@ TEST(ResultTest, SizeAndAlignmentInspection) {
 
     EXPECT_EQ(sizeof(Result<AegisMath::Geometry::Matrix3<double>>), 80);
     EXPECT_EQ(alignof(Result<AegisMath::Geometry::Matrix3<double>>), 8);
+}
+
+TEST(ResultTest, ValueIfSuccess) {
+    auto r = Result<int>::success(100);
+    int* ptr = r.value_if();
+    ASSERT_NE(ptr, nullptr);
+    EXPECT_EQ(*ptr, 100);
+
+    const auto& cr = r;
+    const int* cptr = cr.value_if();
+    ASSERT_NE(cptr, nullptr);
+    EXPECT_EQ(*cptr, 100);
+
+    // 修改值
+    *ptr = 200;
+    EXPECT_EQ(r.value(), 200);
+}
+
+TEST(ResultTest, ValueIfFailure) {
+    auto r = Result<int>::failure(MathError::zero_norm);
+    EXPECT_EQ(r.value_if(), nullptr);
+
+    const auto& cr = r;
+    EXPECT_EQ(cr.value_if(), nullptr);
+}
+
+TEST(ResultTest, ErrorIfFailure) {
+    auto r = Result<int>::failure(MathError::singular_matrix);
+    MathError* err_ptr = r.error_if();
+    ASSERT_NE(err_ptr, nullptr);
+    EXPECT_EQ(*err_ptr, MathError::singular_matrix);
+
+    const auto& cr = r;
+    const MathError* cerr_ptr = cr.error_if();
+    ASSERT_NE(cerr_ptr, nullptr);
+    EXPECT_EQ(*cerr_ptr, MathError::singular_matrix);
+}
+
+TEST(ResultTest, ErrorIfSuccess) {
+    auto r = Result<int>::success(42);
+    EXPECT_EQ(r.error_if(), nullptr);
+
+    const auto& cr = r;
+    EXPECT_EQ(cr.error_if(), nullptr);
 }
