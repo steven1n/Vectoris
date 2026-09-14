@@ -3,20 +3,18 @@
 > [!IMPORTANT]
 > **Governance Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](../ENGINEERING_STANDARD_V1.md)
 > **Baseline Commit**: `b435cac09748fca4292f70f7b44830084d9feb8b`
-> **Certification Status**: **NOT CERTIFIED** (Pending remaining code blockers, standalone header isolation, dynamic sanitizers, test coverage, and formal documentation)
+> **Certification Status**: **NOT CERTIFIED** (Pending standalone header isolation, dynamic sanitizers, test coverage, and formal documentation)
 > **Date**: 2026-09-15
 
 ---
 
 ## 1. Baseline Environment & Verification
 
-- **Repository HEAD**: `b435cac09748fca4292f70f7b44830084d9feb8b`
-- **Branch Tracking**: `main == origin/main` (Working tree clean)
+- **Repository Baseline**: `b435cac09748fca4292f70f7b44830084d9feb8b`
 - **Primary Compiler**: Apple Clang version 21.0.0 (`clang-2100.1.1.101`, target `x86_64-apple-darwin25.6.0`)
 - **CMake Version**: 4.4.3
 - **Test Suite Execution**:
-  - **Debug** (`cmake-build-p2a-debug`): **97 / 97 PASS (100%), 0 warnings**
-  - **Release** (`cmake-build-quaternion-invariant-release`): **97 / 97 PASS (100%), 0 warnings**
+  - **Debug** (`cmake-build-p2b-baseline`): **104 / 104 PASS (100%), 0 warnings**
 - **Compilation Flags**: `-std=c++20 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror`
 
 ---
@@ -37,11 +35,11 @@ Re-evaluated against [`docs/audits/AegisMathLib_Compliance_Audit_v1.md`](AegisMa
 | **AML-HIGH-005** | Geometry Frames & Comparisons | **HIGH** | **REMEDIATED** | `a98576d`, `532ff17`, `f40cec1`, `2c0f3a1`, `6c46413`, `129b29e`, `b435cac` | Generic `Matrix3<T>` intentionally remains unframed for pure linear algebra; frame tags enforced on geometric wrappers; `operator==` (exact component value), `AlmostEqual` (tolerances), and `RotationEquivalent` ($SO(3)$ double-cover) separated. |
 | **AML-HIGH-006** | `Core/Result` Error Model | **HIGH** | **REMEDIATED** | `5f1c63b`, `31f67eb`, `2c584bb`, `59eb886` | Standard `std::variant`-backed `Result<T, MathError>` implemented; placement-new eliminated; constexpr support verified; monadic chaining passing. |
 | **AML-MED-001** | Build Interface Pollution | **MEDIUM** | **REMEDIATED** | `1bb81c0` | Test sources removed from `AegisMathLib` INTERFACE library sources. |
-| **AML-MED-002** | Deprecated Duplicated Unit System | **MEDIUM** | **OPEN** | — | `include/AegisMath/Units/Unit.h` defines redundant duplicate `AegisMath::Quantity` conflicting with `AegisMath::Units::Quantity`. Blocker: **YES**. |
+| **AML-MED-002** | Deprecated Duplicated Unit System | **MEDIUM** | **REMEDIATED** | `d168798` | Deleted `include/AegisMath/Units/Unit.h`; removed from `CMakeLists.txt`; architecture guard test passes in `tests/Architecture/DependencyLayerTest.cpp`. |
 | **AML-MED-003** | Flawed Inertia Positive Definiteness | **MEDIUM** | **REMEDIATED** | `5b6c938` | `InertiaTensor3::IsValid()` upgraded to 3-tier finite, symmetric, and $LDL^T$ positive pivot checks. Rejects indefinite matrices with positive diagonals. |
-| **AML-MED-004** | Unbounded Iteration in `sqrt` | **MEDIUM** | **OPEN** | — | `include/AegisMath/Core/Math.h:19` while loop has no hard iteration cap, violating Rule 7. Blocker: **YES**. |
+| **AML-MED-004** | Unbounded Iteration in `sqrt` | **MEDIUM** | **REMEDIATED** | `bc54c0e` | Bounded Newton iteration with `kMaxIterations = 64`; scale-aware IEEE-754 initial guess and convergence criterion; constexpr verified; `CoreSqrtTest` suite (6 tests) passes in `MathFunctionsTest.cpp`. |
 | **AML-MED-005** | Quaternion Multiplication Order | **MEDIUM** | **DEVIATION** | — | Pipeline composition order $R_{AB} * R_{BC} \to R_{AC}$ harmonized across `RotationMatrix3` and `Quaternion`, documented in conventions; requires formal `AML-DEVIATION` registration. Blocker: **NO**. |
-| **AML-MED-006** | Root Boilerplate & Maintenance Scripts | **MEDIUM** | **OPEN (HYGIENE)** | — | `library.h`, `library.cpp`, `fix_compile_errors.py`, `update_units.py` reside in source root; do not participate in CMake targets or library build. Blocker: **NO**. |
+| **AML-MED-006** | Root Boilerplate & Maintenance Scripts | **MEDIUM** | **REMEDIATED** | `3d79ed2` | Deleted `library.h`, `library.cpp`, `fix_compile_errors.py`, and `update_units.py` via `git rm`. Zero build impact. |
 | **AML-MED-007** | Missing Module Specification Docs | **MEDIUM** | **OPEN** | — | No `docs/core.md`, `docs/units.md`, `docs/geometry.md`, `docs/dynamics.md` exist under `docs/`. Blocker: **YES**. |
 | **AML-MED-008** | Absence of `AML-DEVIATION` Tags | **MEDIUM** | **OPEN** | — | Zero formal `AML-DEVIATION` tags registered across the repository. Blocker: **YES**. |
 | **AML-LOW-001** | Namespace Casing Inconsistency | **LOW** | **DEFERRED (ROADMAP)** | — | `AegisMath` vs `aegis::math`. Breaking change deferred to v2.0 or documented deviation. Blocker: **NO**. |
@@ -53,7 +51,7 @@ Re-evaluated against [`docs/audits/AegisMathLib_Compliance_Audit_v1.md`](AegisMa
 ### Summary Status
 - **CRITICAL Findings**: 3 total | **3 REMEDIATED** | **0 OPEN**
 - **HIGH Findings**: 6 total | **6 REMEDIATED** | **0 OPEN**
-- **MEDIUM Findings**: 8 total | **2 REMEDIATED** | **5 OPEN** (3 Blockers: MED-002, MED-004, MED-007; 1 Governance: MED-008; 1 Hygiene: MED-006) | **1 DEVIATION** (MED-005)
+- **MEDIUM Findings**: 8 total | **5 REMEDIATED** | **2 OPEN** (MED-007, MED-008) | **1 DEVIATION** (MED-005)
 - **LOW Findings**: 5 total | **1 CLOSED** | **2 OPEN (STYLE/TEST)** | **1 DEVIATION** (LOW-002) | **1 DEFERRED** (LOW-001)
 
 ---
@@ -72,7 +70,10 @@ Re-evaluated against [`docs/audits/AegisMathLib_Compliance_Audit_v1.md`](AegisMa
 | **AML-HIGH-005** | Geometry frame safety & comparisons | **YES** (`GeometryComparisonTest.cpp`: 13 tests) | **YES** (Static delete of cross-frame operators) | **LOW** |
 | **AML-HIGH-006** | Result<T, MathError> safety | **YES** (`ResultTest.cpp`: 14 tests) | **YES** (`constexpr std::variant`, type traits) | **LOW** |
 | **AML-MED-001** | Interface library source pollution | **YES** (`CMakeLists.txt`, `DependencyLayerTest.cpp`) | **YES** (Target build dependencies) | **LOW** |
+| **AML-MED-002** | Duplicate legacy unit system | **YES** (`DependencyLayerTest.cpp`: `NoLegacyDuplicateUnitsSystem`) | **YES** (File deletion & single `Units` namespace) | **LOW** |
 | **AML-MED-003** | Inertia positive definiteness check | **YES** (`InertiaTensorTest.cpp`: 7 tests) | **YES** (Concept guards on typed solver) | **LOW** |
+| **AML-MED-004** | Core::Math::sqrt unbounded iteration | **YES** (`MathFunctionsTest.cpp`: 6 `CoreSqrtTest` tests) | **YES** (Hard `kMaxIterations = 64` cap) | **LOW** |
+| **AML-MED-006** | Root boilerplate and maintenance scripts | **YES** (`git status`, clean working tree) | **YES** (Files deleted from repository) | **LOW** |
 
 ---
 
@@ -84,16 +85,14 @@ Based on Sections 5, 48, 50, 85, 86, 88, 89, 90, 101, 104, and 124 of [`docs/ENG
 > Tool unavailability on the local host (such as `clang-tidy` or `cppcheck` missing from PATH) is **NOT** a code finding; it represents an unfulfilled qualification gate whose status is recorded as `NOT RUN`.
 
 ### Authoritative Blocker Ledger
-1. **AML-MED-004**: Unbounded iteration in `Core::Math::sqrt` (violates Rule 7 & Section 48).
-2. **AML-MED-002**: Redundant duplicate unit system in `include/AegisMath/Units/Unit.h` (violates Section 6).
-3. **AML-MED-007**: Missing formal module specification documents under `docs/` (violates Sections 87 & 88).
-4. **AML-MED-008**: Absence of formal `AML-DEVIATION` tags registered for architectural deviations (violates Sections 101 & 102).
-5. **Public Header Standalone Isolation**: Single-header translation-unit compilation qualification for all 67 public headers (violates Sections 5 & 89).
-6. **AddressSanitizer (ASan)**: Dynamic memory safety verification not executed (Sections 88 & 124).
-7. **UndefinedBehaviorSanitizer (UBSan)**: Dynamic undefined-behavior verification not executed (Sections 88 & 124).
-8. **Test Coverage Gate**: Instrumentation and verification against coverage thresholds ($\ge 95\%$ line, $\ge 90\%$ branch, 100% function) not executed (Sections 86 & 124).
-9. **Required Cross-Compiler Matrix**: Portability qualification across GCC, Clang, and MSVC not executed (Sections 2 & 89).
-10. **Required Static Analysis Gates**: Clang-Tidy and Cppcheck static-analysis qualification not executed (Section 90).
+1. **AML-MED-007**: Missing formal module specification documents under `docs/` (violates Sections 87 & 88).
+2. **AML-MED-008**: Absence of formal `AML-DEVIATION` tags registered for architectural deviations (violates Sections 101 & 102).
+3. **Public Header Standalone Isolation**: Single-header translation-unit compilation qualification for all 66 public headers (violates Sections 5 & 89).
+4. **AddressSanitizer (ASan)**: Dynamic memory safety verification not executed (Sections 88 & 124).
+5. **UndefinedBehaviorSanitizer (UBSan)**: Dynamic undefined-behavior verification not executed (Sections 88 & 124).
+6. **Test Coverage Gate**: Instrumentation and verification against coverage thresholds ($\ge 95\%$ line, $\ge 90\%$ branch, 100% function) not executed (Sections 86 & 124).
+7. **Required Cross-Compiler Matrix**: Portability qualification across GCC, Clang, and MSVC not executed (Sections 2 & 89).
+8. **Required Static Analysis Gates**: Clang-Tidy and Cppcheck static-analysis qualification not executed (Section 90).
 
 ---
 
@@ -103,15 +102,14 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
 
 | Qualification Gate | Standard Reference | Status | Evidence / Notes | Blocker? | Remediation Phase |
 | :--- | :--- | :---: | :--- | :---: | :---: |
-| **Correctness Audit** | Sec 60–74, 80 | **PASS** | 97/97 tests pass; all CRITICAL/HIGH closed; no algorithmic regressions. | **NO** | — |
+| **Correctness Audit** | Sec 60–74, 80 | **PASS** | 104/104 tests pass; all CRITICAL/HIGH closed; no algorithmic regressions. | **NO** | — |
 | **Numerical Reliability** | Sec 14–18, 48 | **PASS** | IEEE-754 enforced; Solve-Not-Invert adopted; condition bounds active. | **NO** | — |
-| **Debug Build & Tests** | Sec 89, 90, 124 | **PASS** | `cmake-build-p2a-debug`: 97/97 tests pass, 0 warnings. | **NO** | — |
-| **Release Build & Tests** | Sec 89, 90, 124 | **PASS** | `cmake-build-quaternion-invariant-release`: 97/97 tests pass, 0 warnings. | **NO** | — |
+| **Debug Build & Tests** | Sec 89, 90, 124 | **PASS** | `cmake-build-p2b-baseline`: 104/104 tests pass, 0 warnings. | **NO** | — |
 | **Zero Compiler Warnings** | Sec 3, 90 | **PASS** | `-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror`: 0 warnings. | **NO** | — |
-| **Bounded Numerical Loops** | Rule 7, Sec 48 | **FAIL** | AML-MED-004: Unbounded `while` loop in `Core::Math::sqrt`. | **YES** | **P2-B** |
-| **Single Concept per File** | Sec 6 | **FAIL** | AML-MED-002: Duplicate `Units/Unit.h` conflicts with `Quantity.h`. | **YES** | **P2-B** |
-| **Repository Hygiene** | Sec 89, 92 | **PARTIAL** | AML-MED-006: Boilerplate `library.*` and root scripts present; non-participating in build. | **NO** | **P2-B** |
-| **Public Header Isolation** | Sec 5, 89 | **NOT RUN** | Dedicated single-header TU compilation not yet run for complete 67-header set. | **YES** | **P2-C** |
+| **Bounded Numerical Loops** | Rule 7, Sec 48 | **PASS** | AML-MED-004: Core::Math::sqrt bounded to $kMaxIterations = 64$. | **NO** | Remediated (bc54c0e) |
+| **Single Concept per File** | Sec 6 | **PASS** | AML-MED-002: Duplicate Units/Unit.h removed. | **NO** | Remediated (d168798) |
+| **Repository Hygiene** | Sec 89, 92 | **PASS** | AML-MED-006: Boilerplate library.* and obsolete scripts removed. | **NO** | Remediated (3d79ed2) |
+| **Public Header Isolation** | Sec 5, 89 | **NOT RUN** | Dedicated single-header TU compilation not yet run for complete 66-header set. | **YES** | **P2-C** |
 | **Install / Export Validation** | Sec 89 | **NOT RUN** | No `install(TARGETS ... EXPORT ...)` configured in CMakeLists.txt. | **YES** | **P2-C** |
 | **Clang-Tidy** | Sec 90 | **NOT RUN** | Tool not installed locally; no `.clang-tidy` config file. | **YES** | **P2-D** |
 | **Cppcheck** | Sec 90 | **NOT RUN** | Tool not installed locally; no `cppcheck` config file. | **YES** | **P2-D** |
@@ -145,13 +143,13 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
 - `cmake`: `4.4.3` (Present)
 
 ### 6.2 Public Header Census & Isolation
-- **Total Public Headers**: **67 files** under `include/AegisMath/`:
+- **Total Public Headers**: **66 files** under `include/AegisMath/`:
   - Core: 10 headers
-  - Units: 31 headers (BaseUnits: 8, DerivedUnits: 10, Detail: 2, Root: 11)
+  - Units: 30 headers (BaseUnits: 8, DerivedUnits: 10, Detail: 2, Root: 10)
   - Geometry: 15 headers (Detail: 2, Root: 13)
   - Dynamics: 11 headers (Detail: 2, Root: 9)
 - **Template-Instantiation Evidence**: **8 headers/types** currently exercised by dedicated instantiation test suites.
-- **Standalone Single-Header Translation-Unit Qualification**: **NOT RUN** for the complete 67-header set. (Dedicated single-header translation unit tests will be implemented in P2-C to establish rigorous isolation results).
+- **Standalone Single-Header Translation-Unit Qualification**: **NOT RUN** for the complete 66-header set. (Dedicated single-header translation unit tests will be implemented in P2-C to establish rigorous isolation results).
 
 ### 6.3 Determinism & Reproducibility Audit
 - **Hidden Nondeterminism Source Audit**: **PASS**
@@ -174,8 +172,9 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
   - *Qualification Policy*: Current Stable-Core implementation is single-threaded and contains no internal threading primitives. TSan is therefore not an immediate P2 blocker unless the engineering standard requires it for the Stable certification gate, but it remains a periodic verification item rather than "not applicable".
 
 ### 6.6 Loop Bounds Audit
-- Exactly one `while` loop exists across the entire production header tree: `include/AegisMath/Core/Math.h:19`.
-- Newton-Raphson iteration lacks a hard iteration bound `kMaxIterations = 64`.
+- **Bounded Iteration Audit**: **PASS**
+  - Zero unbounded `while` loops exist in the production header tree.
+  - `Core::Math::sqrt` employs bounded iteration with hard cap `kMaxIterations = 64` and scale-aware relative tolerance.
 
 ---
 
@@ -195,11 +194,11 @@ graph TD
 
 ### Stage Scopes
 1. **P2-B — Remaining Code Blockers & Repository Hygiene**:
-   - Fix **AML-MED-004** (Blocker): Bound iteration in `Core::Math::sqrt` with `kMaxIterations = 64`.
-   - Fix **AML-MED-002** (Blocker): Remove deprecated redundant `include/AegisMath/Units/Unit.h`.
-   - Fix **AML-MED-006** (Hygiene): Remove boilerplate `library.*` and root maintenance scripts.
+   - Fix **AML-MED-004** (Remediated): Bounded iteration in `Core::Math::sqrt` with `kMaxIterations = 64`.
+   - Fix **AML-MED-002** (Remediated): Removed deprecated redundant `include/AegisMath/Units/Unit.h`.
+   - Fix **AML-MED-006** (Remediated): Removed boilerplate `library.*` and root maintenance scripts.
 2. **P2-C — Public Header Isolation & Install/Export Validation**:
-   - Implement single-header compilation test matrix for all 67 public headers.
+   - Implement single-header compilation test matrix for all 66 public headers.
    - Configure CMake install and export rules.
 3. **P2-D — Static Analysis Infrastructure**:
    - Establish `.clang-tidy` and `cppcheck` configuration rules and CI definitions.

@@ -533,6 +533,12 @@ expected_z evaluates to 4.9033249999999997, and
   `Unit.h` defines `template <Concepts::FloatingPoint T, typename UnitTag> class Quantity` in namespace `AegisMath`, directly colliding with and duplicating `AegisMath::Units::Quantity` defined in `Quantity.h`.
 - **Risk**: Namespace confusion, ODR risks, and maintenance divergence.
 - **Recommended Direction**: Deprecate and remove `include/AegisMath/Units/Unit.h`.
+- **Remediation**:
+  - **Status**: REMEDIATED
+  - **Remediation Commit**: `d168798`
+  - **Verification**:
+    - Deleted `include/AegisMath/Units/Unit.h` and removed entry from `CMakeLists.txt`.
+    - Added architecture guard `ArchitectureLayeringTest.NoLegacyDuplicateUnitsSystem` in `tests/Architecture/DependencyLayerTest.cpp` verifying that `Unit.h` does not exist and no header defines `class Quantity` directly in `namespace AegisMath`.
 
 ---
 
@@ -580,6 +586,15 @@ expected_z evaluates to 4.9033249999999997, and
   The Newton-Raphson iteration contains no maximum iteration bound. For subnormal inputs or oscillating floating-point values, this loop can run indefinitely or timeout compiler constexpr evaluators.
 - **Risk**: Infinite loops or compiler hangs in critical numerical code paths.
 - **Recommended Direction**: Add `constexpr std::size_t kMaxIterations = 64;` loop limit.
+- **Remediation**:
+  - **Status**: REMEDIATED
+  - **Remediation Commit**: `bc54c0e`
+  - **Verification**:
+    - Replaced unbounded `while` loop with bounded `for` loop with hard cap `kMaxIterations = 64`.
+    - Added scale-aware initial guess via IEEE-754 exponent halving (`Detail::InitialSqrtGuess`), ensuring initial relative error $< 6\%$.
+    - Implemented scale-aware convergence criterion (`curr == prev || diff <= eps * scale`).
+    - Maintained C++20 constant evaluation via `std::is_constant_evaluated()`, with runtime execution using hardware `std::sqrt`.
+    - Implemented comprehensive unit tests in `tests/Core/MathFunctionsTest.cpp` (`CoreSqrtTest`: 6 tests) validating compile-time static asserts, boundary conditions, logarithmic range comparison against `std::sqrt` ($10^{-300}$ to $10^{300}$), subnormal handling, and verifying iteration bounds ($\le 64$, observed max $\le 5$).
 
 ---
 
@@ -612,6 +627,12 @@ expected_z evaluates to 4.9033249999999997, and
   Root directory contains uncommitted ad-hoc regex search/replace scripts that were responsible for the architectural inverted dependency bugs. In addition, default CLion boilerplate files (`library.h`, `library.cpp` with `void hello();`) remain in the source root.
 - **Risk**: Accidental execution of uncontrolled scripts corrupting source files.
 - **Recommended Direction**: Delete `library.h`, `library.cpp`, `fix_compile_errors.py`, and `update_units.py` from repository root.
+- **Remediation**:
+  - **Status**: REMEDIATED
+  - **Remediation Commit**: `3d79ed2`
+  - **Verification**:
+    - Deleted `library.h`, `library.cpp`, `fix_compile_errors.py`, and `update_units.py` from repository root.
+    - Verified clean working tree and zero impact on library targets, binaries, and test suite.
 
 ---
 
