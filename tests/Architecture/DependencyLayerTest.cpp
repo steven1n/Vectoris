@@ -56,3 +56,32 @@ TEST(ArchitectureLayeringTest, LowerLayersMustNotIncludeDynamics) {
                                          return msg;
                                      }();
 }
+
+TEST(ArchitectureLayeringTest, NoLegacyDuplicateUnitsSystem) {
+    const fs::path include_root = fs::path(__FILE__).parent_path().parent_path().parent_path() / "include" / "AegisMath";
+    const fs::path legacy_unit_h = include_root / "Units" / "Unit.h";
+
+    // 1. Ensure the legacy Unit.h file is completely removed
+    EXPECT_FALSE(fs::exists(legacy_unit_h)) << "Legacy duplicate header Unit.h must not exist: " << legacy_unit_h;
+
+    // 2. Ensure no header declares a duplicate Quantity directly in namespace AegisMath
+    const fs::path units_dir = include_root / "Units";
+    ASSERT_TRUE(fs::exists(units_dir));
+
+    const std::regex illegal_root_quantity_pattern(R"(namespace\s+AegisMath\s*\{\s*template.*class\s+Quantity)");
+    std::vector<std::string> violations;
+
+    for (const auto& entry : fs::recursive_directory_iterator(units_dir)) {
+        if (entry.is_regular_file() && (entry.path().extension() == ".h" || entry.path().extension() == ".hpp")) {
+            std::ifstream file(entry.path());
+            ASSERT_TRUE(file.is_open());
+
+            std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+            if (std::regex_search(content, illegal_root_quantity_pattern)) {
+                violations.push_back(entry.path().filename().string());
+            }
+        }
+    }
+
+    EXPECT_TRUE(violations.empty()) << "Architecture violation: Found duplicate Quantity in namespace AegisMath in Units headers";
+}

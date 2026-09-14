@@ -30,7 +30,6 @@ add_library(AegisMathLib INTERFACE
         include/AegisMath/Units/Dimension.h
         include/AegisMath/Units/Literals.h
         include/AegisMath/Units/Quantity.h
-        include/AegisMath/Units/Unit.h
         include/AegisMath/Units/UnitCast.h
         include/AegisMath/Units/UnitConcepts.h
         include/AegisMath/Units/UnitTraits.h
