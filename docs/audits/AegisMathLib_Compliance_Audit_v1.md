@@ -588,13 +588,16 @@ expected_z evaluates to 4.9033249999999997, and
 - **Recommended Direction**: Add `constexpr std::size_t kMaxIterations = 64;` loop limit.
 - **Remediation**:
   - **Status**: REMEDIATED
-  - **Remediation Commit**: `bc54c0e`
+  - **Remediation Commit**: `bc54c0e`, `fix(core): constrain and verify sqrt scalar domain`
   - **Verification**:
     - Replaced unbounded `while` loop with bounded `for` loop with hard cap `kMaxIterations = 64`.
     - Added scale-aware initial guess via IEEE-754 exponent halving (`Detail::InitialSqrtGuess`), ensuring initial relative error $< 6\%$.
     - Implemented scale-aware convergence criterion (`curr == prev || diff <= eps * scale`).
-    - Maintained C++20 constant evaluation via `std::is_constant_evaluated()`, with runtime execution using hardware `std::sqrt`.
-    - Implemented comprehensive unit tests in `tests/Core/MathFunctionsTest.cpp` (`CoreSqrtTest`: 6 tests) validating compile-time static asserts, boundary conditions, logarithmic range comparison against `std::sqrt` ($10^{-300}$ to $10^{300}$), subnormal handling, and verifying iteration bounds ($\le 64$, observed max $\le 5$).
+    - Explicitly constrained scalar types via `Concepts::SupportedSqrtScalar` to `float` and `double` only; rejected `int`, `long double`, and `bool` at compile-time.
+    - Verified compile-time assertions for IEEE-754 binary32/binary64 memory layouts (`is_iec559` and `sizeof`).
+    - Documented AegisMath Core::sqrt project-specific domain policy (non-positive numbers, signed zero `-0.0`, and $-\infty$ clamped to `+0.0`).
+    - Maintained C++20 constant evaluation via `std::is_constant_evaluated()`, with runtime execution delegating to the standard-library `std::sqrt` implementation.
+    - Implemented comprehensive unit tests in `tests/Core/MathFunctionsTest.cpp` (`CoreSqrtTest`: 8 tests) validating compile-time static asserts, boundary conditions, signed zero, logarithmic range comparison against `std::sqrt` ($10^{-300}$ to $10^{300}$ for double, $10^{-35}\text{f}$ to $10^{35}\text{f}$ for float), subnormal handling, and verifying iteration bounds ($\le 64$, observed max $\le 5$).
 
 ---
 
