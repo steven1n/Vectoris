@@ -17,6 +17,7 @@ namespace AegisMath::Units {
     };
 
     using Kilogram = Quantity<Scalar, KilogramUnit>;
+    using Mass     = Kilogram;
     using Gram     = Quantity<Scalar, GramUnit>;
 
     static_assert(Detail::ValidateQuantityABI<Kilogram>(), "Kilogram ABI contract violation!");

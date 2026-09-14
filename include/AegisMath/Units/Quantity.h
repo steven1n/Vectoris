@@ -50,6 +50,13 @@ namespace AegisMath::Units {
 
         explicit constexpr Quantity(T val) noexcept : m_value(val) {}
 
+        // 同量纲且同比率的导出单位可隐式转换构造 (例如 Force * Length 构造 Torque)
+        template <IsUnitTag OtherUnit>
+        requires (!std::is_same_v<Unit, OtherUnit>) &&
+                 DimensionEqual<typename Unit::Dimension, typename OtherUnit::Dimension> &&
+                 std::is_same_v<typename Unit::Ratio, typename OtherUnit::Ratio>
+        constexpr Quantity(const Quantity<T, OtherUnit>& other) noexcept : m_value(other.value()) {}
+
         [[nodiscard]] static constexpr Quantity Zero() noexcept {
             return Quantity(static_cast<T>(0));
         }

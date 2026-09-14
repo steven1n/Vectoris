@@ -11,6 +11,7 @@ namespace AegisMath::Units {
     };
 
     using Second = Quantity<Scalar, SecondUnit>;
+    using Time   = Second;
 
     static_assert(Detail::ValidateQuantityABI<Second>(), "Second ABI contract violation!");
 

@@ -41,6 +41,12 @@ add_library(AegisMathLib INTERFACE
         include/AegisMath/Units/BaseUnits/Amount.h
         include/AegisMath/Units/BaseUnits/Luminosity.h
         include/AegisMath/Units/DerivedUnits/Force.h
+        include/AegisMath/Units/DerivedUnits/Acceleration.h
+        include/AegisMath/Units/DerivedUnits/AngularVelocity.h
+        include/AegisMath/Units/DerivedUnits/AngularAcceleration.h
+        include/AegisMath/Units/DerivedUnits/Torque.h
+        include/AegisMath/Units/DerivedUnits/MomentOfInertia.h
+        include/AegisMath/Units/DerivedUnits/Power.h
         include/AegisMath/Units/Detail/ABI.h
         include/AegisMath/Units/Detail/Ratio.h
         include/AegisMath/Geometry/Concepts.h
