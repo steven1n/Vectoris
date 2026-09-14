@@ -41,6 +41,7 @@ namespace AegisMath::Units {
     using FrequencyDimension    = Dimension<0, 0, -1, 0, 0, 0, 0, 0>; // 频率量纲 (T^-1)
     using AngularVelocityDimension     = Dimension<0, 0, -1, 0, 0, 0, 0,  1>;
     using AngularAccelerationDimension = Dimension<0, 0, -2, 0, 0, 0, 0,  1>;
+    using AngularMomentumDimension     = Dimension<2, 1, -1, 0, 0, 0, 0, -1>;
     using TorqueDimension              = Dimension<2, 1, -2, 0, 0, 0, 0, -1>;
     using MomentOfInertiaDimension     = Dimension<2, 1,  0, 0, 0, 0, 0, -2>;
     using PowerDimension               = Dimension<2, 1, -3, 0, 0, 0, 0,  0>;
@@ -59,6 +60,7 @@ namespace AegisMath::Units {
     using FrequencyDim  = FrequencyDimension;
     using AngularVelocityDim     = AngularVelocityDimension;
     using AngularAccelerationDim = AngularAccelerationDimension;
+    using AngularMomentumDim     = AngularMomentumDimension;
     using TorqueDim              = TorqueDimension;
     using MomentOfInertiaDim     = MomentOfInertiaDimension;
     using PowerDim               = PowerDimension;

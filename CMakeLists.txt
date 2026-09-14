@@ -47,6 +47,7 @@ add_library(AegisMathLib INTERFACE
         include/AegisMath/Units/DerivedUnits/Torque.h
         include/AegisMath/Units/DerivedUnits/MomentOfInertia.h
         include/AegisMath/Units/DerivedUnits/Power.h
+        include/AegisMath/Units/DerivedUnits/AngularMomentum.h
         include/AegisMath/Units/Detail/ABI.h
         include/AegisMath/Units/Detail/Ratio.h
         include/AegisMath/Geometry/Concepts.h

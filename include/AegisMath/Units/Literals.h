@@ -8,6 +8,7 @@
 #include "DerivedUnits/Power.h"
 #include "DerivedUnits/Velocity.h"
 #include "DerivedUnits/AngularVelocity.h"
+#include "DerivedUnits/AngularMomentum.h"
 
 namespace AegisMath::Units::Literals {
     constexpr Meter operator""_m(long double val) noexcept { return Meter(static_cast<Scalar>(val)); }

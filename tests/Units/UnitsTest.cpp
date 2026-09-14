@@ -59,6 +59,7 @@ TEST(UnitsSystemRevisionB2Test, RotationalAndInertiaUnits) {
     static_assert(IsQuantity<Torque>);
     static_assert(IsQuantity<MomentOfInertia>);
     static_assert(IsQuantity<Power>);
+    static_assert(IsQuantity<AngularMomentum>);
 
     // ABI checks
     static_assert(sizeof(AngularVelocity) == sizeof(double));
@@ -66,6 +67,7 @@ TEST(UnitsSystemRevisionB2Test, RotationalAndInertiaUnits) {
     static_assert(sizeof(Torque) == sizeof(double));
     static_assert(sizeof(MomentOfInertia) == sizeof(double));
     static_assert(sizeof(Power) == sizeof(double));
+    static_assert(sizeof(AngularMomentum) == sizeof(double));
 
     // Force * Length yields Energy (M L^2 T^-2 A^0), dimensionally distinct from Torque (M L^2 T^-2 A^-1)
     Force force{50.0};
@@ -103,6 +105,14 @@ TEST(UnitsSystemRevisionB2Test, RotationalAndInertiaUnits) {
     // Power / AngularVelocity -> Torque
     Torque tau_from_power = p_rot / omega;
     EXPECT_DOUBLE_EQ(tau_from_power.value(), 20.0);
+
+    // Inertia * AngularVelocity -> AngularMomentum
+    AngularMomentum L = inertia * omega;
+    EXPECT_DOUBLE_EQ(L.value(), 10.0);
+    AngularVelocity omega_rec = L / inertia;
+    EXPECT_DOUBLE_EQ(omega_rec.value(), 2.0);
+    MomentOfInertia I_rec_from_L = L / omega;
+    EXPECT_DOUBLE_EQ(I_rec_from_L.value(), 5.0);
 
     // Torque / AngularAcceleration -> MomentOfInertia
     MomentOfInertia inertia_from_tau = dyn_torque / alpha;
