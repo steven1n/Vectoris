@@ -79,9 +79,31 @@ TEST(MathFunctionsTest, AcosFloat32) {
 // AML-MED-004: Core::sqrt Bounded Newton & Contract Tests
 // =========================================================================
 
-TEST(CoreSqrtTest, ConstexprEvaluation) {
+template <typename T>
+concept CanSqrt = requires(T val) {
+    { Core::sqrt(val) };
+};
+
+TEST(CoreSqrtTest, TypeDomainCompileTimeRejection) {
+    // 允许的 IEEE-754 标量类型
+    static_assert(CanSqrt<float>, "float must be supported");
+    static_assert(CanSqrt<double>, "double must be supported");
+    static_assert(CanSqrt<const float>, "const float must be supported");
+    static_assert(CanSqrt<const double>, "const double must be supported");
+
+    // 拒绝整型与布尔型 (禁止数值开方隐式类型推导)
+    static_assert(!CanSqrt<int>, "int must be rejected");
+    static_assert(!CanSqrt<unsigned int>, "unsigned int must be rejected");
+    static_assert(!CanSqrt<std::int64_t>, "int64 must be rejected");
+    static_assert(!CanSqrt<bool>, "bool must be rejected");
+
+    // 拒绝 long double (AegisMath 契约限定标量类型仅为 IEEE-754 binary32 与 binary64)
+    static_assert(!CanSqrt<long double>, "long double must be rejected by contract");
+}
+
+TEST(CoreSqrtTest, ConstexprEvaluationDouble) {
     static_assert(Core::sqrt(0.0) == 0.0, "sqrt(0) must be 0");
-    static_assert(Core::sqrt(-1.0) == 0.0, "sqrt(negative) must be 0 per Aegis contract");
+    static_assert(Core::sqrt(-1.0) == 0.0, "sqrt(negative) must be 0 per Aegis domain policy");
     static_assert(Core::sqrt(4.0) == 2.0, "sqrt(4) must be 2");
     static_assert(Core::sqrt(9.0) == 3.0, "sqrt(9) must be 3");
     static_assert(Core::abs(Core::sqrt(2.0) - 1.4142135623730951) < 1e-14, "sqrt(2) approx failed");
@@ -90,22 +112,50 @@ TEST(CoreSqrtTest, ConstexprEvaluation) {
     EXPECT_DOUBLE_EQ(c_res, 10.0);
 }
 
-TEST(CoreSqrtTest, BoundaryConditions) {
-    // Zero
-    EXPECT_DOUBLE_EQ(Core::sqrt(0.0), 0.0);
-    EXPECT_DOUBLE_EQ(Core::sqrt(-0.0), 0.0);
+TEST(CoreSqrtTest, ConstexprEvaluationFloat) {
+    static_assert(Core::sqrt(0.0f) == 0.0f, "sqrt(0.0f) must be 0");
+    static_assert(Core::sqrt(-1.0f) == 0.0f, "sqrt(-1.0f) must be 0 per Aegis domain policy");
+    static_assert(Core::sqrt(4.0f) == 2.0f, "sqrt(4.0f) must be 2");
+    static_assert(Core::sqrt(9.0f) == 3.0f, "sqrt(9.0f) must be 3");
+    static_assert(Core::abs(Core::sqrt(2.0f) - 1.4142135f) < 1e-6f, "sqrt(2.0f) approx failed");
 
-    // Negative values defensively clamped to 0
+    constexpr float c_res_f = Core::sqrt(100.0f);
+    EXPECT_FLOAT_EQ(c_res_f, 10.0f);
+}
+
+TEST(CoreSqrtTest, SignedZeroAndNegativeDomainPolicy) {
+    // AegisMath Core::sqrt 专属定义域政策：
+    // 非正数一律防御性截断为 +0.0，避免非实数域 NaN 扩散
+    EXPECT_DOUBLE_EQ(Core::sqrt(0.0), 0.0);
+    EXPECT_FALSE(std::signbit(Core::sqrt(0.0)));
+
+    EXPECT_DOUBLE_EQ(Core::sqrt(-0.0), 0.0);
+    EXPECT_FALSE(std::signbit(Core::sqrt(-0.0))); // 保留既有契约：sqrt(-0.0) -> +0.0
+
     EXPECT_DOUBLE_EQ(Core::sqrt(-1.0), 0.0);
     EXPECT_DOUBLE_EQ(Core::sqrt(-1e20), 0.0);
+    EXPECT_DOUBLE_EQ(Core::sqrt(-1e300), 0.0);
     EXPECT_DOUBLE_EQ(Core::sqrt(-std::numeric_limits<double>::infinity()), 0.0);
 
+    // float 对应 signed zero 与负数策略
+    EXPECT_FLOAT_EQ(Core::sqrt(0.0f), 0.0f);
+    EXPECT_FALSE(std::signbit(Core::sqrt(0.0f)));
+    EXPECT_FLOAT_EQ(Core::sqrt(-0.0f), 0.0f);
+    EXPECT_FALSE(std::signbit(Core::sqrt(-0.0f)));
+    EXPECT_FLOAT_EQ(Core::sqrt(-1.0f), 0.0f);
+    EXPECT_FLOAT_EQ(Core::sqrt(-std::numeric_limits<float>::infinity()), 0.0f);
+}
+
+TEST(CoreSqrtTest, BoundaryConditions) {
     // Positive infinity
     EXPECT_TRUE(std::isinf(Core::sqrt(std::numeric_limits<double>::infinity())));
     EXPECT_GT(Core::sqrt(std::numeric_limits<double>::infinity()), 0.0);
+    EXPECT_TRUE(std::isinf(Core::sqrt(std::numeric_limits<float>::infinity())));
+    EXPECT_GT(Core::sqrt(std::numeric_limits<float>::infinity()), 0.0f);
 
     // Quiet NaN
     EXPECT_TRUE(std::isnan(Core::sqrt(std::numeric_limits<double>::quiet_NaN())));
+    EXPECT_TRUE(std::isnan(Core::sqrt(std::numeric_limits<float>::quiet_NaN())));
 }
 
 TEST(CoreSqrtTest, RangeComparisonAgainstReference) {

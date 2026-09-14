@@ -8,6 +8,14 @@
 #include "NumericTraits.h"
 #include "Concepts.h"
 
+// 依据 docs/ENGINEERING_STANDARD_V1.md Section 15 (IEEE-754 语义 baseline):
+// bit-level 指数折半初值算法严格依赖 IEEE-754 binary32 与 binary64 物理内存布局。
+static_assert(std::numeric_limits<float>::is_iec559, "[AegisMath] float must conform to IEEE-754 binary32");
+static_assert(sizeof(float) == 4, "[AegisMath] sizeof(float) must be exactly 4 bytes");
+
+static_assert(std::numeric_limits<double>::is_iec559, "[AegisMath] double must conform to IEEE-754 binary64");
+static_assert(sizeof(double) == 8, "[AegisMath] sizeof(double) must be exactly 8 bytes");
+
 namespace AegisMath::Core {
 
     // 绝对值
@@ -17,7 +25,7 @@ namespace AegisMath::Core {
     }
 
     namespace Detail {
-        template <typename T>
+        template <Concepts::SupportedSqrtScalar T>
         constexpr T InitialSqrtGuess(T x) noexcept {
             if constexpr (std::is_same_v<T, double>) {
                 if (x >= std::numeric_limits<double>::min()) {
@@ -31,7 +39,8 @@ namespace AegisMath::Core {
                     const uint64_t guess_bits = (bits >> 1) + (1023ULL << 51);
                     return std::bit_cast<double>(guess_bits) * 1.4901161193847656e-08; // 2^-26
                 }
-            } else if constexpr (std::is_same_v<T, float>) {
+            } else {
+                // float (binary32)
                 if (x >= std::numeric_limits<float>::min()) {
                     const uint32_t bits = std::bit_cast<uint32_t>(x);
                     const uint32_t guess_bits = (bits >> 1) + (127U << 22);
@@ -43,12 +52,10 @@ namespace AegisMath::Core {
                     const uint32_t guess_bits = (bits >> 1) + (127U << 22);
                     return std::bit_cast<float>(guess_bits) * 0.000244140625f; // 2^-12
                 }
-            } else {
-                return x >= T{1} ? x : T{1};
             }
         }
 
-        template <typename T>
+        template <Concepts::SupportedSqrtScalar T>
         constexpr T BoundedNewtonSqrt(T x, std::size_t* iterations_out = nullptr) noexcept {
             if (Traits::IsNaN(x)) {
                 if (iterations_out != nullptr) {
@@ -56,6 +63,8 @@ namespace AegisMath::Core {
                 }
                 return Traits::NumericTraits<T>::quietNaN();
             }
+            // AegisMath Core::sqrt project-specific domain policy:
+            // 非正数（包括 -0.0、负有限数、-Inf）防御性截断返回 +0.0，避免在非实数域传播 NaN
             if (x <= T{}) {
                 if (iterations_out != nullptr) {
                     *iterations_out = 0;
@@ -93,8 +102,22 @@ namespace AegisMath::Core {
         }
     } // namespace Detail
 
-    // 编译期平方根 (牛顿迭代法实现，具备硬上限与尺度感知收敛)
-    template<typename T>
+    /**
+     * @brief 平方根计算函数 (限定 float / double)
+     *
+     * @domain AegisMath Core::sqrt project-specific domain policy:
+     * - x > 0: 计算并返回平方根
+     * - x == 0: 返回 +0.0 (保留既有契约: sqrt(-0.0) -> +0.0)
+     * - x < 0: 防御性截断返回 +0.0 (避免非实数域 NaN 扩散)
+     * - +Inf: 返回 +Inf
+     * - -Inf: 防御性截断返回 +0.0
+     * - NaN: 返回 quiet_NaN
+     *
+     * @note 编译期求值在 constexpr 条件下调用具备硬迭代上限 (kMaxIterations=64) 的
+     *       牛顿迭代实现 Detail::BoundedNewtonSqrt；
+     *       运行时求值通过 std::is_constant_evaluated() 委派给标准库实现 std::sqrt。
+     */
+    template <Concepts::SupportedSqrtScalar T>
     constexpr T sqrt(T x) noexcept {
         if (std::is_constant_evaluated()) {
             return Detail::BoundedNewtonSqrt(x);
