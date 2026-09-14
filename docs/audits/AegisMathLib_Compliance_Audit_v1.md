@@ -30,6 +30,14 @@ However, the audit identified **critical mathematical bugs, coordinate frame mix
 | **Compiler Warnings** | **0** | Zero warnings under `-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror` |
 | **Documented Intentional Deviations** | **0** | Zero formal `AML-DEVIATION` tags in codebase (true bugs must be fixed, not masked as deviations) |
 
+### Current Remediation Status (P0 Closure)
+
+```text
+Critical Findings Identified: 3
+Critical Findings Remediated: 3
+Critical Findings Open: 0
+```
+
 ---
 
 ## 2. Audit Scope
@@ -180,6 +188,20 @@ expected_z evaluates to 4.9033249999999997, and
   3. **Missing Rotational Kinematics**: `EulerIntegrator` computes `angularVelocity`, but **never integrates `state.attitude`** ($\dot{\mathbf{q}} = \frac{1}{2}\mathbf{q}\otimes\boldsymbol{\omega}$ is completely omitted).
 - **Risk**: Simulation vehicle dynamics will compute physically invalid trajectories, attitude never updates during flight, and automated test suites fail.
 - **Recommended Direction**: Transform body velocity to reference frame before position update (`state.attitude * state.linearVelocity`); integrate quaternion kinematics; adopt RK4 or specify symplectic Euler expectations in test criteria.
+- **Remediation**:
+  - **Status**: REMEDIATED
+  - **Remediation Commit**: `8ecfc3c`
+  - **Verification**:
+    - `PropagationTest.FrameTransformationPropagation`
+    - `PropagationTest.AttitudeKinematicsPropagation`
+    - `RegressionFreeFall` discrete recurrence test
+    - `RegressionFreeFall` first-order convergence test
+    - Full test suite: 33/33 passed
+  - **Resolution**:
+    - Body-frame linear velocity is transformed into the reference frame before position propagation.
+    - Quaternion attitude kinematics are integrated.
+    - Semi-Implicit Euler method remains unchanged.
+    - FreeFall regression contract was corrected to test the discrete method and first-order convergence rather than falsely requiring continuous analytical equality.
 
 ---
 
@@ -199,6 +221,22 @@ expected_z evaluates to 4.9033249999999997, and
   3. **Exact Zero Equality**: Line 126 performs `if (d == T{}) return false;`, violating Rule 9. For near-singular matrices where $0 < |d| < 10^{-300}$, division by $d$ overflows to `Inf`.
 - **Risk**: Silent mathematical corruption in spatial rotations, coordinate projections, and physics equations.
 - **Recommended Direction**: Fix `m[1]` index; compute inverse into a local temporary array before assigning to `out`; compare determinant with condition tolerance `std::abs(d) <= epsilon`.
+- **Remediation**:
+  - **Status**: REMEDIATED
+  - **Remediation Commit**: `c5072ed`
+  - **Verification**:
+    - `Matrix3Test.InverseIdentity`
+    - `Matrix3Test.InverseKnownNonSingular`
+    - `Matrix3Test.CofactorIndexRegression_AML_CRIT_002`
+    - `Matrix3Test.InPlaceAliasingSafety`
+    - `Matrix3Test.SingularMatrixRejection`
+    - `Matrix3Test.NearSingularMatrixHandling`
+    - `Matrix3Test.ScaledWellConditionedMatrix`
+  - **Resolution**:
+    - Corrected cofactor index error.
+    - Removed in-place aliasing corruption.
+    - Added scale-aware singular / near-singular handling.
+    - Added regression coverage.
 
 ---
 
@@ -219,6 +257,20 @@ expected_z evaluates to 4.9033249999999997, and
   The inline developer comment acknowledges: `// 或返回 std::numbers::pi_v<T>，视项目常量定义而定`, but it was never completed.
 - **Risk**: In quaternion SLERP (`Quaternion.h:118`), angular separation, or vector dot-product angle computations, any two anti-parallel vectors ($\mathbf{u} \cdot (-\mathbf{u}) = -1.0$) produce an angle of $10^{308}$ radians, causing instant NaN propagation and simulation explosion.
 - **Recommended Direction**: Return `Constants::Pi<T>` when `value <= -T{1}`.
+- **Remediation**:
+  - **Status**: REMEDIATED
+  - **Remediation Commit**: `b7cb4c3`
+  - **Verification**:
+    - `acos(+1)`
+    - `acos(0)`
+    - `acos(-1)`
+    - near-domain boundary behavior
+    - obvious invalid-domain IEEE-754 NaN behavior
+    - float generic behavior
+  - **Resolution**:
+    - `acos(-1)` now returns $\pi$.
+    - Near-boundary floating-point overshoot is handled with bounded tolerance.
+    - Clearly invalid inputs preserve IEEE-754 domain failure semantics.
 
 ---
 
