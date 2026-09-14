@@ -40,6 +40,15 @@ TEST(GeometryPublicTemplateTest, UnitVector3TryCreate) {
     AegisMath::Geometry::Vector3<double, TestFrameA> zero_v(0.0, 0.0, 0.0);
     auto zero_res = AegisMath::Geometry::UnitVector3<double, TestFrameA>::TryCreate(zero_v);
     EXPECT_FALSE(zero_res.IsSuccess());
+    EXPECT_EQ(zero_res.error(), AegisMath::Core::MathError::zero_norm);
+
+    // Non-finite vector rejection
+    AegisMath::Geometry::Vector3<double, TestFrameA> nan_v(
+        std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0
+    );
+    auto nan_res = AegisMath::Geometry::UnitVector3<double, TestFrameA>::TryCreate(nan_v);
+    EXPECT_FALSE(nan_res.IsSuccess());
+    EXPECT_EQ(nan_res.error(), AegisMath::Core::MathError::non_finite_input);
 
     // 4. Dot product with UnitVector3 and Vector3
     double d_self = uv.dot(uv);
@@ -77,6 +86,17 @@ TEST(GeometryPublicTemplateTest, RotationMatrix3TryCreate) {
     );
     auto bad_res = AegisMath::Geometry::RotationMatrix3<double, TestFrameA, TestFrameB>::TryCreate(bad_mat);
     EXPECT_FALSE(bad_res.IsSuccess());
+    EXPECT_EQ(bad_res.error(), AegisMath::Core::MathError::invalid_state);
+
+    // Non-finite matrix rejection
+    AegisMath::Geometry::Matrix3<double> nan_mat(
+        std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 1.0
+    );
+    auto nan_mat_res = AegisMath::Geometry::RotationMatrix3<double, TestFrameA, TestFrameB>::TryCreate(nan_mat);
+    EXPECT_FALSE(nan_mat_res.IsSuccess());
+    EXPECT_EQ(nan_mat_res.error(), AegisMath::Core::MathError::non_finite_input);
 }
 
 TEST(GeometryPublicTemplateTest, Transform3Identity) {

@@ -38,15 +38,18 @@ namespace AegisMath::Geometry {
         // [GEO-UNIT-003] 泛化输入类型，允许 float32 的 Vector3 生成 double 的 UnitVector3
         template <ScalarArithmetic U>
         static Core::Result<UnitVector3> TryCreate(const Vector3<U, Frame>& input) noexcept {
+            if (!Traits::IsFinite(input.x) || !Traits::IsFinite(input.y) || !Traits::IsFinite(input.z)) {
+                return Core::Result<UnitVector3>::failure(Core::MathError::non_finite_input);
+            }
             using CalcType = decltype(U{} / U{});
             CalcType sq_len = input.dot(input);
 
             if (Traits::IsZero(sq_len)) {
-                return Core::Result<UnitVector3>();
+                return Core::Result<UnitVector3>::failure(Core::MathError::zero_norm);
             }
 
             CalcType inv_len = CalcType{1} / Core::Math::sqrt(sq_len);
-            return Core::Result<UnitVector3>(
+            return Core::Result<UnitVector3>::success(
                 UnitVector3(
                     static_cast<T>(input.x * inv_len),
                     static_cast<T>(input.y * inv_len),

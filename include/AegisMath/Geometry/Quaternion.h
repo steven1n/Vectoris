@@ -40,12 +40,15 @@ namespace AegisMath::Geometry {
         }
 
         static constexpr Core::Result<Quaternion> TryCreate(T w, T x, T y, T z) noexcept {
+            if (!Traits::IsFinite(w) || !Traits::IsFinite(x) || !Traits::IsFinite(y) || !Traits::IsFinite(z)) {
+                return Core::Result<Quaternion>::failure(Core::MathError::non_finite_input);
+            }
             T sq_len = w*w + x*x + y*y + z*z;
             if (Traits::IsZero(sq_len)) {
-                return Core::Result<Quaternion>();
+                return Core::Result<Quaternion>::failure(Core::MathError::zero_norm);
             }
             T inv_len = T{1} / Core::Math::sqrt(sq_len);
-            return Core::Result<Quaternion>(
+            return Core::Result<Quaternion>::success(
                 Quaternion(w * inv_len, x * inv_len, y * inv_len, z * inv_len, ValidatedTag{}).Canonicalized()
             );
         }
@@ -100,6 +103,9 @@ namespace AegisMath::Geometry {
         }
 
         constexpr Core::Result<Quaternion> Slerp(const Quaternion& target, T t) const noexcept {
+            if (!Traits::IsFinite(t)) {
+                return Core::Result<Quaternion>::failure(Core::MathError::non_finite_input);
+            }
             T cos_theta = w*target.w + x*target.x + y*target.y + z*target.z;
             
             Quaternion end = target;

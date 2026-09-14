@@ -32,10 +32,15 @@ namespace AegisMath::Geometry {
 
         // 2. 安全构建 (执行正交性和行列式检查)
         static Core::Result<RotationMatrix3> TryCreate(const Matrix3<T>& raw_matrix) noexcept {
-            if (!Detail::CheckRotationInvariants(raw_matrix)) {
-                return Core::Result<RotationMatrix3>();
+            for (size_t i = 0; i < 9; ++i) {
+                if (!Traits::IsFinite(raw_matrix.m[i])) {
+                    return Core::Result<RotationMatrix3>::failure(Core::MathError::non_finite_input);
+                }
             }
-            return Core::Result<RotationMatrix3>(RotationMatrix3(raw_matrix));
+            if (!Detail::CheckRotationInvariants(raw_matrix)) {
+                return Core::Result<RotationMatrix3>::failure(Core::MathError::invalid_state);
+            }
+            return Core::Result<RotationMatrix3>::success(RotationMatrix3(raw_matrix));
         }
 
         static constexpr bool TryCreate(const Matrix3<T>& raw_matrix, RotationMatrix3& out) noexcept {

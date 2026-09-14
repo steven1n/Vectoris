@@ -20,9 +20,8 @@ namespace AegisMath::Core {
         using value_type = T;
         using error_type = E;
 
-        // 临时兼容默认构造失败状态 (将在 Commit 2 迁移调用方后彻底删除)
-        constexpr Result() noexcept(std::is_nothrow_default_constructible_v<E>)
-            : storage_(std::in_place_index<1>, E::invalid_state) {}
+        // 禁止无参数默认构造，强制每个 Result 必须明确携带有效值或具体错误原因
+        constexpr Result() = delete;
 
         // 值构造
         template <typename U = T>
