@@ -397,3 +397,35 @@ This compile-time separation prevents assigning translational energy or work dir
 Quaternion components are dimensionless scalars in $\mathbb{R}^4$ with unit constraint $\|\mathbf{q}\| = 1$. In quaternion kinematic integration ($\dot{\mathbf{q}} = \frac{1}{2} \mathbf{q} \otimes \boldsymbol{\omega}$), rotational rates typed in $[\text{rad}/\text{s}]$ ($[A \cdot T^{-1}]$) are explicitly extracted as numerical scalars in radians per second at the local, auditable boundary to drive quaternion integration without implicit dimensionless demotion.
 
 ---
+
+# 19. Dimensionful Angle and SO(3) Lie Algebra
+
+When Plane Angle is treated as an independent physical dimension ($A$), the ordinary Cartesian cross product and the $\mathfrak{so}(3)$ Lie bracket / adjoint operation represent dimensionally distinct operations.
+
+### 19.1 Ordinary Cross Product vs. Lie Bracket
+- **Ordinary Vector Cross Product**:
+  For general 3D vectors $\mathbf{u}, \mathbf{v}$, the cross product computes Cartesian components via $\mathbf{u} \times \mathbf{v}$. Its dimension is the strict product of the operand dimensions:
+  $$[\mathbf{u} \times \mathbf{v}] = [\mathbf{u}] \cdot [\mathbf{v}]$$
+- **Rotational Lie Bracket / Adjoint Operation ($\mathfrak{so}(3)$)**:
+  In rigid body dynamics, the gyroscopic cross-coupling term $\boldsymbol{\omega} \times \mathbf{L}$ arises from the Lie algebra adjoint action $\operatorname{ad}_{\boldsymbol{\omega}} \mathbf{L} = [\boldsymbol{\omega}, \mathbf{L}]_{\mathfrak{so}(3)}$.
+  Evaluating dimensions with Angle $A$:
+  $$[\boldsymbol{\omega}] = [A \cdot T^{-1}], \quad [\mathbf{L}] = [M \cdot L^2 \cdot A^{-1} \cdot T^{-1}]$$
+  The ordinary component-wise cross product yields:
+  $$[\boldsymbol{\omega} \times \mathbf{L}] = [A \cdot T^{-1}] \cdot [M \cdot L^2 \cdot A^{-1} \cdot T^{-1}] = [M \cdot L^2 \cdot T^{-2}]$$
+  This has dimension of **Energy / Work ($A^0$)**, NOT **Torque ($A^{-1}$)**.
+
+### 19.2 Explicit Radian Normalization Factor
+Standard engineering textbooks treat the radian as dimensionless ($1$), implicitly suppressing the normalization factor $1 / \text{rad}$. Under AegisMathLib's rigorous 8-dimensional type system, this hidden convention is forbidden.
+
+The true Lie bracket operation in dimensionful mechanics carries an explicit normalization by $1\text{ rad}$ ($[A^1]$):
+$$\operatorname{RotationalCross}(\boldsymbol{\omega}, \mathbf{L}) \triangleq \frac{\boldsymbol{\omega} \times \mathbf{L}}{1\text{ rad}}$$
+Dimensionally:
+$$[\operatorname{RotationalCross}(\boldsymbol{\omega}, \mathbf{L})] = \frac{[M \cdot L^2 \cdot T^{-2}]}{[A^1]} = [M \cdot L^2 \cdot A^{-1} \cdot T^{-2}] \equiv [\boldsymbol{\tau}]$$
+
+### 19.3 Compile-Time Type Safety Directives
+1. **Generic Cross Product Preservation**: `Cross(a, b)` remains a pure Cartesian vector product. It must never implicitly divide by radians.
+2. **Dedicated Rotational Operator**: Rotational dynamics code MUST call `RotationalCross(omega, L)` (or `LieBracket(omega, L)`).
+3. **Compile-Time Static Guard**: The type system statically prevents subtracting `Cross(omega, L)` from `Torque3`, because $[M \cdot L^2 \cdot T^{-2} \cdot A^0] \neq [M \cdot L^2 \cdot T^{-2} \cdot A^{-1}]$.
+4. **Consistency with Quaternion Boundary**: $SO(3)$ rotational kinematics similarly consume dimensionless coordinates by explicitly extracting radian scalars at the integration boundary, ensuring total consistency across the library.
+
+---

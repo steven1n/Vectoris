@@ -86,6 +86,24 @@ static_assert(!std::is_assignable_v<MomentOfInertia&, MassLengthSquared>,
 static_assert(!std::is_constructible_v<MomentOfInertia, MassLengthSquared>,
     "Compile error expected: MomentOfInertia must not be constructible from Mass * Length^2.");
 
+// Negative Test 10: 普通向量叉乘 Cross(omega, L) 生成 EnergyDimension [M L^2 T^-2 A^0]，而非力矩 [M L^2 T^-2 A^-1]
+using RawCrossType = decltype(Cross(std::declval<AngularVelocity3<TestBodyFrame>>(), std::declval<AngularMomentum3<TestBodyFrame>>()));
+static_assert(DimensionEqual<typename RawCrossType::UnitType::Dimension, EnergyDimension>,
+    "Ordinary cross(omega, L) must yield EnergyDimension [M L^2 T^-2 A^0]");
+static_assert(!DimensionEqual<typename RawCrossType::UnitType::Dimension, TorqueDimension>,
+    "Ordinary cross(omega, L) must NOT yield TorqueDimension [M L^2 T^-2 A^-1]");
+static_assert(!std::is_constructible_v<Torque3<TestBodyFrame>, RawCrossType>,
+    "Compile error expected: Torque3 must NOT be constructible from ordinary cross(omega, L).");
+static_assert(!std::is_assignable_v<Torque3<TestBodyFrame>&, RawCrossType>,
+    "Compile error expected: Torque3 must NOT be assignable from ordinary cross(omega, L).");
+
+template <typename T3, typename RC>
+concept CanSubtractRawCrossFromTorque = requires(T3 t, RC r) {
+    { t - r };
+};
+static_assert(!CanSubtractRawCrossFromTorque<Torque3<TestBodyFrame>, RawCrossType>,
+    "Compile error expected: Torque3 cannot subtract ordinary cross(omega, L) without Radian normalization.");
+
 // ==============================================================================
 // 2. 编译期转动量纲恒等式测试 (Model B Compile-Time Identities)
 // ==============================================================================
@@ -117,6 +135,23 @@ static_assert(DimensionEqual<typename DivTauAlpha::DimensionType, MomentOfInerti
     "Identity 4 violation: Torque / AngularAcceleration must yield MomentOfInertia dimension.");
 static_assert(std::is_constructible_v<MomentOfInertia, DivTauAlpha>,
     "Identity 4 violation: MomentOfInertia must be constructible from Torque / AngularAcceleration.");
+
+// Identity 5: MomentOfInertia * AngularVelocity -> AngularMomentum
+using ProdIOmega = decltype(std::declval<MomentOfInertia>() * std::declval<AngularVelocity>());
+static_assert(DimensionEqual<typename ProdIOmega::DimensionType, AngularMomentumDimension>,
+    "Identity 5 violation: MomentOfInertia * AngularVelocity must yield AngularMomentum dimension.");
+static_assert(std::is_constructible_v<AngularMomentum, ProdIOmega>,
+    "Identity 5 violation: AngularMomentum must be constructible from MomentOfInertia * AngularVelocity.");
+
+// Identity 6: RotationalCross(AngularVelocity3, AngularMomentum3) -> Torque3
+using RotCrossResult = decltype(RotationalCross(std::declval<AngularVelocity3<TestBodyFrame>>(), std::declval<AngularMomentum3<TestBodyFrame>>()));
+static_assert(std::is_same_v<RotCrossResult, Torque3<TestBodyFrame>>,
+    "Identity 6 violation: RotationalCross must yield Torque3.");
+
+// Identity 7: Torque3 - RotationalCross(omega, I*omega) -> Torque3
+using NetTorqueResult = decltype(std::declval<Torque3<TestBodyFrame>>() - std::declval<RotCrossResult>());
+static_assert(std::is_same_v<NetTorqueResult, Torque3<TestBodyFrame>>,
+    "Identity 7 violation: Net torque subtraction must yield Torque3.");
 
 // ==============================================================================
 // 3. 运行期与正向物理代数测试 (Positive Algebraic & Frame Tests)
@@ -171,6 +206,23 @@ TEST(DynamicsUnitsTest, DimensionalAlgebraAssertions) {
     EXPECT_DOUBLE_EQ(tau_rec.value(), 50.0);
     MomentOfInertia I_rec = tau / alpha;
     EXPECT_DOUBLE_EQ(I_rec.value(), 10.0);
+
+    // 7. angular momentum: I * omega -> L
+    AngularMomentum L = I * omega;
+    EXPECT_DOUBLE_EQ(L.value(), 30.0);
+
+    // 8. rotational Lie bracket: RotationalCross(omega, L) -> Torque
+    AngularVelocity3<TestBodyFrame> w_vec(AngularVelocity(1.0), AngularVelocity::Zero(), AngularVelocity::Zero());
+    AngularMomentum3<TestBodyFrame> L_vec(AngularMomentum::Zero(), AngularMomentum(4.0), AngularMomentum::Zero());
+    Torque3<TestBodyFrame> tau_gyro = RotationalCross(w_vec, L_vec);
+    EXPECT_DOUBLE_EQ(tau_gyro.x.value(), 0.0);
+    EXPECT_DOUBLE_EQ(tau_gyro.y.value(), 0.0);
+    EXPECT_DOUBLE_EQ(tau_gyro.z.value(), 4.0);
+
+    // 9. net torque subtraction: Torque - RotationalCross -> Torque
+    Torque3<TestBodyFrame> tau_ext(Torque::Zero(), Torque::Zero(), Torque(10.0));
+    Torque3<TestBodyFrame> tau_net = tau_ext - tau_gyro;
+    EXPECT_DOUBLE_EQ(tau_net.z.value(), 6.0);
 }
 
 TEST(DynamicsUnitsTest, CombinedFrameAndUnitSafety) {

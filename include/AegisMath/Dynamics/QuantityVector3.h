@@ -20,6 +20,8 @@
 #include "AegisMath/Units/DerivedUnits/Torque.h"
 #include "AegisMath/Units/DerivedUnits/MomentOfInertia.h"
 #include "AegisMath/Units/DerivedUnits/Power.h"
+#include "AegisMath/Units/DerivedUnits/AngularMomentum.h"
+#include "AegisMath/Units/BaseUnits/Angle.h"
 
 namespace AegisMath::Dynamics {
 
@@ -213,6 +215,30 @@ namespace AegisMath::Dynamics {
 
     template <Geometry::FrameTag Frame, typename T = Scalar>
     using Torque3 = QuantityVector3<Units::Quantity<T, Units::NewtonMeterUnit>, Frame>;
+
+    template <Geometry::FrameTag Frame, typename T = Scalar>
+    using AngularMomentum3 = QuantityVector3<Units::Quantity<T, Units::AngularMomentumUnit>, Frame>;
+
+    // 旋转 Lie 括号与动力学截面算子 (Rotational Cross / so(3) Lie Bracket):
+    // tau = omega x L / (1 rad)
+    // 在 Angle 作为独立基本量纲时，旋转截面算子包含显式 1/rad 规范化因子
+    template <Geometry::FrameTag Frame, typename T = Scalar>
+    [[nodiscard]] constexpr Torque3<Frame, T> RotationalCross(
+        const AngularVelocity3<Frame, T>& w,
+        const AngularMomentum3<Frame, T>& L) noexcept
+    {
+        auto raw_cross = Cross(w, L);
+        Units::Quantity<T, Units::RadianUnit> one_rad(static_cast<T>(1.0));
+        return raw_cross / one_rad;
+    }
+
+    template <Geometry::FrameTag Frame, typename T = Scalar>
+    [[nodiscard]] constexpr Torque3<Frame, T> LieBracket(
+        const AngularVelocity3<Frame, T>& w,
+        const AngularMomentum3<Frame, T>& L) noexcept
+    {
+        return RotationalCross(w, L);
+    }
 
     // 弧度作为角度量纲在科氏力项交叉时的自然无量纲解算:
     // omega (AngularVelocity) x v (Velocity) -> Acceleration

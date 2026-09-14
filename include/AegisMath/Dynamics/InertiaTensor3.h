@@ -3,14 +3,11 @@
 #include "AegisMath/Dynamics/Concepts.h"
 #include "AegisMath/Dynamics/QuantityVector3.h"
 #include "AegisMath/Units/DerivedUnits/MomentOfInertia.h"
+#include "AegisMath/Units/DerivedUnits/AngularMomentum.h"
 
 namespace AegisMath::Dynamics {
 
-    struct AngularMomentumUnit {
-        using Dimension = Units::Dimension<2, 1, -1, 0, 0, 0, 0, -1>;
-        using Ratio     = std::ratio<1>;
-        static constexpr bool IsBaseUnit = false;
-    };
+    using AngularMomentumUnit = Units::AngularMomentumUnit;
 
     // 刚体惯量张量（强类型 MomentOfInertia 物理量约束，保证对称性与物理正定性）
     template <DynamicsScalar T, Geometry::FrameTag Frame>
@@ -39,11 +36,11 @@ namespace AegisMath::Dynamics {
             return symmetric && positive_diag;
         }
 
-        // 惯量张量乘角速度：I * omega (返回角动量耦合项)
-        constexpr QuantityVector3<Units::Quantity<T, AngularMomentumUnit>, Frame>
+        // 惯量张量乘角速度：I * omega (返回角动量)
+        constexpr AngularMomentum3<Frame, T>
         Multiply(const AngularVelocity3<Frame, T>& w) const noexcept {
             using ResQ = Units::Quantity<T, AngularMomentumUnit>;
-            return QuantityVector3<ResQ, Frame>(
+            return AngularMomentum3<Frame, T>(
                 ResQ(ixx * w.x + ixy * w.y + ixz * w.z),
                 ResQ(iyx * w.x + iyy * w.y + iyz * w.z),
                 ResQ(izx * w.x + izy * w.y + izz * w.z)
