@@ -69,7 +69,6 @@ add_library(AegisMathLib INTERFACE
         include/AegisMath/Dynamics/RigidBodyParameters.h
         include/AegisMath/Dynamics/RigidBodyState.h
         include/AegisMath/Dynamics/EulerIntegrator.h
-        tests/Dynamics/Regression/FreeFallTest.cpp
 )
 
 target_include_directories(AegisMathLib INTERFACE
