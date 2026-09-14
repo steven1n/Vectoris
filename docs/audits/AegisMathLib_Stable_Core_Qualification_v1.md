@@ -3,7 +3,7 @@
 > [!IMPORTANT]
 > **Governance Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](../ENGINEERING_STANDARD_V1.md)
 > **Baseline Commit**: `b435cac09748fca4292f70f7b44830084d9feb8b`
-> **Certification Status**: **NOT CERTIFIED** (Pending remaining Medium findings, static analysis, sanitizers, and coverage verification)
+> **Certification Status**: **NOT CERTIFIED** (Pending remaining code blockers, standalone header isolation, dynamic sanitizers, test coverage, and formal documentation)
 > **Date**: 2026-09-15
 
 ---
@@ -37,24 +37,24 @@ Re-evaluated against [`docs/audits/AegisMathLib_Compliance_Audit_v1.md`](AegisMa
 | **AML-HIGH-005** | Geometry Frames & Comparisons | **HIGH** | **REMEDIATED** | `a98576d`, `532ff17`, `f40cec1`, `2c0f3a1`, `6c46413`, `129b29e`, `b435cac` | Generic `Matrix3<T>` intentionally remains unframed for pure linear algebra; frame tags enforced on geometric wrappers; `operator==` (exact component value), `AlmostEqual` (tolerances), and `RotationEquivalent` ($SO(3)$ double-cover) separated. |
 | **AML-HIGH-006** | `Core/Result` Error Model | **HIGH** | **REMEDIATED** | `5f1c63b`, `31f67eb`, `2c584bb`, `59eb886` | Standard `std::variant`-backed `Result<T, MathError>` implemented; placement-new eliminated; constexpr support verified; monadic chaining passing. |
 | **AML-MED-001** | Build Interface Pollution | **MEDIUM** | **REMEDIATED** | `1bb81c0` | Test sources removed from `AegisMathLib` INTERFACE library sources. |
-| **AML-MED-002** | Deprecated Duplicated Unit System | **MEDIUM** | **OPEN** | — | `include/AegisMath/Units/Unit.h` defines redundant duplicate `AegisMath::Quantity` conflicting with `AegisMath::Units::Quantity`. |
+| **AML-MED-002** | Deprecated Duplicated Unit System | **MEDIUM** | **OPEN** | — | `include/AegisMath/Units/Unit.h` defines redundant duplicate `AegisMath::Quantity` conflicting with `AegisMath::Units::Quantity`. Blocker: **YES**. |
 | **AML-MED-003** | Flawed Inertia Positive Definiteness | **MEDIUM** | **REMEDIATED** | `5b6c938` | `InertiaTensor3::IsValid()` upgraded to 3-tier finite, symmetric, and $LDL^T$ positive pivot checks. Rejects indefinite matrices with positive diagonals. |
-| **AML-MED-004** | Unbounded Iteration in `sqrt` | **MEDIUM** | **OPEN** | — | `include/AegisMath/Core/Math.h:19` while loop has no hard iteration cap, violating Rule 7. |
-| **AML-MED-005** | Quaternion Multiplication Order | **MEDIUM** | **DESIGN DEBT / DEVIATION** | — | Pipeline composition order $R_{AB} * R_{BC} \to R_{AC}$ harmonized across `RotationMatrix3` and `Quaternion`, documented in conventions; requires formal `AML-DEVIATION` registration. |
-| **AML-MED-006** | Root Boilerplate & Maintenance Scripts | **MEDIUM** | **OPEN (LOW RISK)** | — | `library.h`, `library.cpp`, `fix_compile_errors.py`, `update_units.py` reside in source root. |
-| **AML-MED-007** | Missing Module Specification Docs | **MEDIUM** | **OPEN** | — | No `docs/core.md`, `docs/units.md`, `docs/geometry.md`, `docs/dynamics.md` exist under `docs/`. |
-| **AML-MED-008** | Absence of `AML-DEVIATION` Tags | **MEDIUM** | **OPEN** | — | Zero formal `AML-DEVIATION` tags registered across the repository. |
-| **AML-LOW-001** | Namespace Casing Inconsistency | **LOW** | **OPEN (ROADMAP)** | — | `AegisMath` vs `aegis::math`. Breaking change deferred to v2.0 or documented deviation. |
-| **AML-LOW-002** | Member Variable Naming | **LOW** | **DESIGN DEBT** | — | `x, y, z` public for standard-layout ABI. Documented in conventions; requires `AML-DEVIATION`. |
-| **AML-LOW-003** | Function Casing Inconsistencies | **LOW** | **OPEN (STYLE DEBT)** | — | Mixed casing across legacy methods (`TryInverse` vs `transposed`). Non-blocking style debt. |
-| **AML-LOW-004** | Weak Test Assertions | **LOW** | **OPEN (TEST HYGIENE)**| — | Isolated tests execute `SUCCEED();` without runtime verification after compile-time static asserts. |
-| **AML-LOW-005** | Historical Non-Conventional Commits | **LOW** | **HISTORICAL (CLOSED)**| — | Historical pre-governance commits preserved immutable. Current commit discipline is strictly conventional. |
+| **AML-MED-004** | Unbounded Iteration in `sqrt` | **MEDIUM** | **OPEN** | — | `include/AegisMath/Core/Math.h:19` while loop has no hard iteration cap, violating Rule 7. Blocker: **YES**. |
+| **AML-MED-005** | Quaternion Multiplication Order | **MEDIUM** | **DEVIATION** | — | Pipeline composition order $R_{AB} * R_{BC} \to R_{AC}$ harmonized across `RotationMatrix3` and `Quaternion`, documented in conventions; requires formal `AML-DEVIATION` registration. Blocker: **NO**. |
+| **AML-MED-006** | Root Boilerplate & Maintenance Scripts | **MEDIUM** | **OPEN (HYGIENE)** | — | `library.h`, `library.cpp`, `fix_compile_errors.py`, `update_units.py` reside in source root; do not participate in CMake targets or library build. Blocker: **NO**. |
+| **AML-MED-007** | Missing Module Specification Docs | **MEDIUM** | **OPEN** | — | No `docs/core.md`, `docs/units.md`, `docs/geometry.md`, `docs/dynamics.md` exist under `docs/`. Blocker: **YES**. |
+| **AML-MED-008** | Absence of `AML-DEVIATION` Tags | **MEDIUM** | **OPEN** | — | Zero formal `AML-DEVIATION` tags registered across the repository. Blocker: **YES**. |
+| **AML-LOW-001** | Namespace Casing Inconsistency | **LOW** | **DEFERRED (ROADMAP)** | — | `AegisMath` vs `aegis::math`. Breaking change deferred to v2.0 or documented deviation. Blocker: **NO**. |
+| **AML-LOW-002** | Member Variable Naming | **LOW** | **DEVIATION** | — | `x, y, z` public for standard-layout ABI. Documented in conventions; requires `AML-DEVIATION`. Blocker: **NO**. |
+| **AML-LOW-003** | Function Casing Inconsistencies | **LOW** | **OPEN (STYLE DEBT)** | — | Mixed casing across legacy methods (`TryInverse` vs `transposed`). Non-blocking style debt. Blocker: **NO**. |
+| **AML-LOW-004** | Weak Test Assertions | **LOW** | **OPEN (TEST HYGIENE)**| — | Isolated tests execute `SUCCEED();` without runtime verification after compile-time static asserts. Blocker: **NO**. |
+| **AML-LOW-005** | Historical Non-Conventional Commits | **LOW** | **CLOSED** | — | Historical pre-governance commits preserved immutable. Current commit discipline is strictly conventional. Blocker: **NO**. |
 
 ### Summary Status
 - **CRITICAL Findings**: 3 total | **3 REMEDIATED** | **0 OPEN**
 - **HIGH Findings**: 6 total | **6 REMEDIATED** | **0 OPEN**
-- **MEDIUM Findings**: 8 total | **2 REMEDIATED** | **5 OPEN** | **1 DESIGN DEBT / DEVIATION**
-- **LOW Findings**: 5 total | **1 HISTORICAL CLOSED** | **4 OPEN / ROADMAP**
+- **MEDIUM Findings**: 8 total | **2 REMEDIATED** | **5 OPEN** (3 Blockers: MED-002, MED-004, MED-007; 1 Governance: MED-008; 1 Hygiene: MED-006) | **1 DEVIATION** (MED-005)
+- **LOW Findings**: 5 total | **1 CLOSED** | **2 OPEN (STYLE/TEST)** | **1 DEVIATION** (LOW-002) | **1 DEFERRED** (LOW-001)
 
 ---
 
@@ -78,30 +78,30 @@ Re-evaluated against [`docs/audits/AegisMathLib_Compliance_Audit_v1.md`](AegisMa
 
 ## 4. Stable-Core Qualification Blockers
 
-Based on Sections 48, 50, 86, 88, 101, 104, and 124 of [`docs/ENGINEERING_STANDARD_V1.md`](../ENGINEERING_STANDARD_V1.md), an issue is classified as a **Stable-Core Blocker** if and only if it compromises:
-1. **Mathematical correctness or numerical stability**.
-2. **Hard iteration bounds** (Rule 7: Unbounded iteration in critical kernels is strictly prohibited).
-3. **Core API ambiguity or redundant conflicting types** (Section 6: No redundant duplicate concepts).
-4. **Formal deviation governance** (Section 101/102: Zero undocumented deviations permitted).
-5. **Formal module specifications** (Section 87/88: Complete module documentation required for DoD).
-6. **Public header self-containment** (Every public header must compile independently).
-7. **Sanitizer and dynamic safety verification** (ASan/UBSan clean execution).
-8. **Test coverage thresholds** (100% function, $\ge 95\%$ line, $\ge 90\%$ branch).
+Based on Sections 5, 48, 50, 85, 86, 88, 89, 90, 101, 104, and 124 of [`docs/ENGINEERING_STANDARD_V1.md`](../ENGINEERING_STANDARD_V1.md), an issue is classified as an authoritative **Stable-Core Blocker** if and only if it compromises mathematical correctness, safety bounds, modular self-containment, or mandatory qualification gates.
 
-Cosmetic naming (`AML-LOW-001`, `AML-LOW-003`) and historical git commits (`AML-LOW-005`) are explicitly **non-blockers**.
+> [!NOTE]
+> Tool unavailability on the local host (such as `clang-tidy` or `cppcheck` missing from PATH) is **NOT** a code finding; it represents an unfulfilled qualification gate whose status is recorded as `NOT RUN`.
 
-### Current Identified Stable-Core Blockers
-1. **AML-MED-004**: Unbounded `while` iteration in `Core::Math::sqrt`.
-2. **AML-MED-002**: Redundant duplicate `Units/Unit.h` header and conflicting `Quantity` definition.
-3. **AML-MED-008**: Zero formal `AML-DEVIATION` tags for documented architectural choices.
-4. **AML-MED-007**: Absence of formal `docs/<module>.md` module specification documents.
-5. **Quality Gates Not Yet Run**: Public header isolation (all 67 headers), ASan/UBSan execution, and test coverage measurement.
+### Authoritative Blocker Ledger
+1. **AML-MED-004**: Unbounded iteration in `Core::Math::sqrt` (violates Rule 7 & Section 48).
+2. **AML-MED-002**: Redundant duplicate unit system in `include/AegisMath/Units/Unit.h` (violates Section 6).
+3. **AML-MED-007**: Missing formal module specification documents under `docs/` (violates Sections 87 & 88).
+4. **AML-MED-008**: Absence of formal `AML-DEVIATION` tags registered for architectural deviations (violates Sections 101 & 102).
+5. **Public Header Standalone Isolation**: Single-header translation-unit compilation qualification for all 67 public headers (violates Sections 5 & 89).
+6. **AddressSanitizer (ASan)**: Dynamic memory safety verification not executed (Sections 88 & 124).
+7. **UndefinedBehaviorSanitizer (UBSan)**: Dynamic undefined-behavior verification not executed (Sections 88 & 124).
+8. **Test Coverage Gate**: Instrumentation and verification against coverage thresholds ($\ge 95\%$ line, $\ge 90\%$ branch, 100% function) not executed (Sections 86 & 124).
+9. **Required Cross-Compiler Matrix**: Portability qualification across GCC, Clang, and MSVC not executed (Sections 2 & 89).
+10. **Required Static Analysis Gates**: Clang-Tidy and Cppcheck static-analysis qualification not executed (Section 90).
 
 ---
 
 ## 5. Qualification Matrix
 
-| Qualification Gate | Standard Reference | Current Status | Evidence / Notes | Blocker? | Remediation Phase |
+Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTIAL`, `DEFERRED`, `NOT APPLICABLE`.
+
+| Qualification Gate | Standard Reference | Status | Evidence / Notes | Blocker? | Remediation Phase |
 | :--- | :--- | :---: | :--- | :---: | :---: |
 | **Correctness Audit** | Sec 60–74, 80 | **PASS** | 97/97 tests pass; all CRITICAL/HIGH closed; no algorithmic regressions. | **NO** | — |
 | **Numerical Reliability** | Sec 14–18, 48 | **PASS** | IEEE-754 enforced; Solve-Not-Invert adopted; condition bounds active. | **NO** | — |
@@ -110,24 +110,24 @@ Cosmetic naming (`AML-LOW-001`, `AML-LOW-003`) and historical git commits (`AML-
 | **Zero Compiler Warnings** | Sec 3, 90 | **PASS** | `-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror`: 0 warnings. | **NO** | — |
 | **Bounded Numerical Loops** | Rule 7, Sec 48 | **FAIL** | AML-MED-004: Unbounded `while` loop in `Core::Math::sqrt`. | **YES** | **P2-B** |
 | **Single Concept per File** | Sec 6 | **FAIL** | AML-MED-002: Duplicate `Units/Unit.h` conflicts with `Quantity.h`. | **YES** | **P2-B** |
-| **Formal Deviation Records** | Sec 101, 102 | **FAIL** | AML-MED-008: Zero `AML-DEVIATION` tags registered. | **YES** | **P2-B** |
-| **Repository Hygiene** | Sec 89, 92 | **FAIL** | AML-MED-006: Boilerplate `library.*` and root scripts present. | **NO** | **P2-B** |
-| **Public Header Isolation** | Sec 5, 89 | **PARTIAL** | Only 8 / 67 public headers covered by standalone compile tests. | **YES** | **P2-C** |
+| **Repository Hygiene** | Sec 89, 92 | **PARTIAL** | AML-MED-006: Boilerplate `library.*` and root scripts present; non-participating in build. | **NO** | **P2-B** |
+| **Public Header Isolation** | Sec 5, 89 | **NOT RUN** | Dedicated single-header TU compilation not yet run for complete 67-header set. | **YES** | **P2-C** |
 | **Install / Export Validation** | Sec 89 | **NOT RUN** | No `install(TARGETS ... EXPORT ...)` configured in CMakeLists.txt. | **YES** | **P2-C** |
 | **Clang-Tidy** | Sec 90 | **NOT RUN** | Tool not installed locally; no `.clang-tidy` config file. | **YES** | **P2-D** |
 | **Cppcheck** | Sec 90 | **NOT RUN** | Tool not installed locally; no `cppcheck` config file. | **YES** | **P2-D** |
-| **AddressSanitizer (ASan)** | Sec 85, 124 | **NOT RUN** | No `-fsanitize=address` CMake configuration active. | **YES** | **P2-E** |
-| **UndefinedBehaviorSanitizer (UBSan)** | Sec 85, 124 | **NOT RUN** | No `-fsanitize=undefined` CMake configuration active. | **YES** | **P2-E** |
-| **ThreadSanitizer (TSan)** | Sec 85 | **NOT APPLICABLE** | Stable Core mathematical kernels are pure single-threaded functions. | **NO** | — |
+| **AddressSanitizer (ASan)** | Sec 88, 124 | **NOT RUN** | No `-fsanitize=address` CMake configuration active. | **YES** | **P2-E** |
+| **UndefinedBehaviorSanitizer (UBSan)** | Sec 88, 124 | **NOT RUN** | No `-fsanitize=undefined` CMake configuration active. | **YES** | **P2-E** |
+| **ThreadSanitizer (TSan)** | Sec 88 | **NOT RUN** | Single-threaded kernels; periodic verification item; not an immediate P2 blocker. | **NO** | Periodic |
 | **Test Coverage Gate** | Sec 86, 124 | **NOT RUN** | No coverage instrumentation or reports generated. | **YES** | **P2-F** |
 | **Module Specification Docs** | Sec 87, 88 | **FAIL** | AML-MED-007: Zero `docs/<module>.md` documents exist. | **YES** | **P2-G** |
-| **Cross-Compiler Matrix: GCC** | Sec 2, 89 | **NOT RUN** | Local `/usr/bin/g++` is AppleClang shim; true GCC not executed. | **YES** | **P2-H** |
+| **Formal Deviation Records** | Sec 101, 102 | **FAIL** | AML-MED-008: Zero `AML-DEVIATION` tags registered. | **YES** | **P2-G** |
+| **Cross-Compiler Matrix: GCC** | Sec 2, 89 | **NOT RUN** | Local `/usr/bin/g++` is AppleClang wrapper; true GNU GCC not executed. | **YES** | **P2-H** |
 | **Cross-Compiler: Upstream Clang** | Sec 2, 89 | **PARTIAL** | AppleClang 21.0.0 PASS; Linux upstream LLVM Clang not executed. | **YES** | **P2-H** |
 | **Cross-Compiler: MSVC** | Sec 2, 89 | **NOT RUN** | Windows MSVC environment not available locally. | **YES** | **P2-H** |
-| **No Fast-Math Enforced** | Sec 14, 89 | **PASS** | Grep confirms zero `-ffast-math`, `/fp:fast`, or `-Ofast` flags. | **NO** | — |
-| **Determinism & No Wall-Clock** | Rule 3, Sec 44 | **PASS** | Grep confirms zero `random_device`, `steady_clock`, `now()`, `rand()`. | **NO** | — |
-| **Zero Dynamic Allocation in Kernels** | Rule 5, Sec 29 | **PASS** | Grep confirms zero `malloc`, `new`, `std::vector`, `std::string` in math. | **NO** | — |
-| **Zero Exceptions in Core Math** | Sec 36, 44 | **PASS** | Grep confirms zero `throw`, `try`, `catch` in mathematical kernels. | **NO** | — |
+| **No Fast-Math Enforced** | Sec 14, 89 | **PASS** | Zero `-ffast-math`, `/fp:fast`, or `-Ofast` flags configured. | **NO** | — |
+| **Determinism Source Audit** | Rule 3, Sec 44 | **PASS** | No hidden RNG, wall clock, or mutable global nondeterministic sources in headers. | **NO** | — |
+| **Explicit Allocation Audit** | Rule 5, Sec 29 | **PASS** | No explicit `new`/`delete`/`malloc`/dynamic containers in `include/AegisMath/`. | **NO** | — |
+| **Zero Exceptions in Core Math** | Sec 36, 44 | **PASS** | Zero `throw`, `try`, `catch` in mathematical kernels. | **NO** | — |
 | **Strict ISO C++20 Compliance** | Sec 2, 90 | **PASS** | Strict C++20 mode; zero C++23 features (`std::expected`, `std::print`). | **NO** | — |
 | **Benchmark Baseline** | Rule 8, Sec 81 | **NOT RUN** | No formal benchmark runner configured or baseline recorded. | **NO** | **P2-H** |
 
@@ -144,25 +144,36 @@ Cosmetic naming (`AML-LOW-001`, `AML-LOW-003`) and historical git commits (`AML-
 - `gcov`: `/usr/bin/gcov` (Present, wrapper around Apple LLVM coverage)
 - `cmake`: `4.4.3` (Present)
 
-### 6.2 Public Header Census
-- Total public headers in `include/AegisMath`: **67 files**
+### 6.2 Public Header Census & Isolation
+- **Total Public Headers**: **67 files** under `include/AegisMath/`:
   - Core: 10 headers
   - Units: 31 headers (BaseUnits: 8, DerivedUnits: 10, Detail: 2, Root: 11)
   - Geometry: 15 headers (Detail: 2, Root: 13)
   - Dynamics: 11 headers (Detail: 2, Root: 9)
-- Headers with standalone compile isolation tests: **8 headers**
-- Untested public headers in isolation: **59 headers**
+- **Template-Instantiation Evidence**: **8 headers/types** currently exercised by dedicated instantiation test suites.
+- **Standalone Single-Header Translation-Unit Qualification**: **NOT RUN** for the complete 67-header set. (Dedicated single-header translation unit tests will be implemented in P2-C to establish rigorous isolation results).
 
-### 6.3 Determinism & State Purity
-- Zero mutable global state detected.
-- Zero non-deterministic random or clock calls in mathematical kernels.
-- Pure functions and immutable value semantics strictly maintained.
+### 6.3 Determinism & Reproducibility Audit
+- **Hidden Nondeterminism Source Audit**: **PASS**
+  - No hidden RNG (`rand`, `std::random_device`), wall-clock dependency (`std::chrono::system_clock`), or mutable global nondeterministic source was detected in Stable-Core production headers.
+  - Algorithms follow pure functional state-in / state-out contracts.
+- **Cross-Build / Cross-Compiler Reproducibility**: **NOT RUN**
+  - Bitwise reproducibility across compilers, target architectures, or varying floating-point environments has not been benchmarked with reference checksums.
 
-### 6.4 Allocation Audit
-- Zero dynamic allocations (`new`, `malloc`, heap containers) in `include/AegisMath/`.
-- All types strictly utilize standard-layout POD, stack-based value semantics, and fixed compile-time arrays.
+### 6.4 Memory Allocation Audit
+- **Explicit Allocation / API Audit**: **PASS**
+  - No explicit `new`, `delete`, `malloc`, `free`, or dynamic standard containers (`std::vector`, `std::string`, `std::map`) were detected in `include/AegisMath/`.
+  - Stable kernel value types strictly use fixed-size storage and standard-layout value semantics.
+- **Runtime Allocation Instrumentation**: **NOT RUN**
+  - Zero-allocation execution paths have not yet been dynamically validated via operator-new interception or heap profilers under full workload stress.
 
-### 6.5 Loop Bounds Audit
+### 6.5 Dynamic Sanitizers (ASan / UBSan / TSan)
+- **AddressSanitizer (ASan)**: **NOT CONFIGURED**, **NOT RUN** (Blocker).
+- **UndefinedBehaviorSanitizer (UBSan)**: **NOT CONFIGURED**, **NOT RUN** (Blocker).
+- **ThreadSanitizer (TSan)**: **NOT CONFIGURED**, **NOT RUN**.
+  - *Qualification Policy*: Current Stable-Core implementation is single-threaded and contains no internal threading primitives. TSan is therefore not an immediate P2 blocker unless the engineering standard requires it for the Stable certification gate, but it remains a periodic verification item rather than "not applicable".
+
+### 6.6 Loop Bounds Audit
 - Exactly one `while` loop exists across the entire production header tree: `include/AegisMath/Core/Math.h:19`.
 - Newton-Raphson iteration lacks a hard iteration bound `kMaxIterations = 64`.
 
@@ -172,34 +183,34 @@ Cosmetic naming (`AML-LOW-001`, `AML-LOW-003`) and historical git commits (`AML-
 
 ```mermaid
 graph TD
-    P2A[P2-A: Stable-Core Qualification Rebaseline] --> P2B[P2-B: Code & Invariant Remediation]
+    P2A[P2-A: Stable-Core Qualification Rebaseline] --> P2B[P2-B: Remaining Code Blockers & Repository Hygiene]
     P2B --> P2C[P2-C: Public Header Isolation & Install/Export]
-    P2C --> P2D[P2-D: Static Analysis Config]
+    P2C --> P2D[P2-D: Static Analysis Infrastructure]
     P2D --> P2E[P2-E: ASan & UBSan Dynamic Safety]
     P2E --> P2F[P2-F: Test Coverage Gate >=95% Line]
-    P2F --> P2G[P2-G: Module Specifications docs/module.md]
+    P2F --> P2G[P2-G: Module Documentation & Deviation Ledger]
     P2G --> P2H[P2-H: Cross-Compiler Matrix & Benchmark Baseline]
     P2H --> P2I[P2-I: Formal Stable-Core Certification]
 ```
 
-### Stage Details
-1. **P2-B — Remaining Code Correctness & Invariant Remediation**:
-   - Fix AML-MED-004: Bound iteration in `Core::Math::sqrt` with `kMaxIterations = 64`.
-   - Fix AML-MED-002: Remove deprecated redundant `include/AegisMath/Units/Unit.h`.
-   - Fix AML-MED-006: Remove boilerplate `library.*` and root maintenance scripts.
-   - Fix AML-MED-008: Register formal `AML-DEVIATION` tags in codebase.
+### Stage Scopes
+1. **P2-B — Remaining Code Blockers & Repository Hygiene**:
+   - Fix **AML-MED-004** (Blocker): Bound iteration in `Core::Math::sqrt` with `kMaxIterations = 64`.
+   - Fix **AML-MED-002** (Blocker): Remove deprecated redundant `include/AegisMath/Units/Unit.h`.
+   - Fix **AML-MED-006** (Hygiene): Remove boilerplate `library.*` and root maintenance scripts.
 2. **P2-C — Public Header Isolation & Install/Export Validation**:
-   - Implement single-header compilation tests for all 67 public headers.
-   - Configure CMake install/export target rules.
+   - Implement single-header compilation test matrix for all 67 public headers.
+   - Configure CMake install and export rules.
 3. **P2-D — Static Analysis Infrastructure**:
-   - Establish `.clang-tidy` and `cppcheck` configuration rules.
+   - Establish `.clang-tidy` and `cppcheck` configuration rules and CI definitions.
 4. **P2-E — Dynamic Sanitizers (ASan / UBSan)**:
    - Configure `-fsanitize=address,undefined` in CMake; verify 100% clean test execution.
 5. **P2-F — Test Coverage Gate**:
    - Instrument build with gcov/llvm-cov; verify 100% function, $\ge 95\%$ line, $\ge 90\%$ branch coverage.
-6. **P2-G — Module Specifications**:
-   - Author formal documents: `docs/core.md`, `docs/units.md`, `docs/geometry.md`, `docs/dynamics.md`.
+6. **P2-G — Module Documentation & Deviation Ledger**:
+   - Author formal documents: `docs/core.md`, `docs/units.md`, `docs/geometry.md`, `docs/dynamics.md` (**AML-MED-007**).
+   - Register all formal `AML-DEVIATION` tags in codebase (**AML-MED-008**).
 7. **P2-H — Cross-Compiler Matrix & Benchmark Baseline**:
-   - Document cross-compiler portability matrix and microbenchmark baseline.
+   - Establish cross-compiler portability matrix (GCC, Clang, MSVC) and microbenchmark baseline.
 8. **P2-I — Stable-Core Certification**:
    - Final audit check against Section 124 Definition of Done; formal sign-off.
