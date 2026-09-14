@@ -13,10 +13,16 @@ namespace AegisMath::Dynamics {
         Force3<Frame, T> force;    // [Fx, Fy, Fz] (N)
         Torque3<Frame, T> moment;  // [Mx, My, Mz] (N·m)
 
+        constexpr Wrench6() noexcept : force{}, moment{} {}
+
         constexpr Wrench6(
             const Force3<Frame, T>& f,
             const Torque3<Frame, T>& m
         ) noexcept : force(f), moment(m) {}
+
+        static constexpr Wrench6 Zero() noexcept {
+            return Wrench6();
+        }
 
         // 共轭对偶功率计算: P = F^T * xi = f·v + tau·omega (返回强类型 Watt 功率)
         constexpr Units::Quantity<T, Units::WattUnit> Power(const Twist6<T, Frame>& twist) const noexcept {

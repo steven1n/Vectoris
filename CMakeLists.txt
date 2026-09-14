@@ -135,6 +135,7 @@ add_executable(AegisMathLib_Tests
         tests/Dynamics/InertiaTensorTest.cpp
         tests/Dynamics/RigidBodyStateTest.cpp
         tests/Dynamics/PropagationTest.cpp
+        tests/Dynamics/EulerDynamicsTest.cpp
         tests/Dynamics/DynamicsABITest.cpp
         tests/Dynamics/DynamicsUnitsTest.cpp
         tests/Dynamics/Regression/FreeFallTest.cpp

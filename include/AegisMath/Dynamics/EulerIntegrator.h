@@ -1,5 +1,7 @@
 #pragma once
 
+#include "AegisMath/Core/Result.h"
+#include "AegisMath/Core/MathError.h"
 #include "AegisMath/Dynamics/Detail/StateTypes.h"
 #include "AegisMath/Dynamics/RigidBodyParameters.h"
 #include "AegisMath/Dynamics/Wrench6.h"
@@ -13,7 +15,7 @@ namespace AegisMath::Dynamics {
     class EulerIntegrator final {
     public:
         template <DynamicsScalar T, Geometry::FrameTag RefFrame, Geometry::FrameTag BodyFrame>
-        static constexpr void Step(
+        static constexpr Core::Result<bool, Core::MathError> Step(
             KinematicState<T, RefFrame, BodyFrame>& state,
             const RigidBodyParameters<T, BodyFrame>& params,
             const Wrench6<T, BodyFrame>& wrench,
@@ -22,9 +24,12 @@ namespace AegisMath::Dynamics {
             Acceleration3<BodyFrame, T> lin_accel;
             AngularAcceleration3<BodyFrame, T> ang_accel;
 
-            RigidBodyDynamicsKernel<T, RefFrame, BodyFrame>::ComputeDerivative(
+            auto deriv_res = RigidBodyDynamicsKernel<T, RefFrame, BodyFrame>::ComputeDerivative(
                 state, params, wrench, lin_accel, ang_accel
             );
+            if (!deriv_res.has_value()) {
+                return Core::Result<bool, Core::MathError>(deriv_res.error());
+            }
 
             // 1. 半隐式欧拉：优先更新机体线速度与角速度 (v += a * dt, w += alpha * dt)
             state.linearVelocity += lin_accel * dt;
@@ -43,28 +48,36 @@ namespace AegisMath::Dynamics {
             // [Quaternion Kinematics Boundary]:
             // Quaternion components are dimensionless unit scalars representing SO(3) rotations.
             // Rotational rate (angularVelocity: rad/s, [A T^-1]) is explicitly extracted as
-            // a numerical scalar in SI radians (via .value()) at this local, auditable boundary
-            // to drive the dimensionless quaternion kinematic integration.
-            T dt_sec = dt.value();
-            T half_dt = static_cast<T>(0.5) * dt_sec;
-            T qw = state.attitude.w;
-            T qx = state.attitude.x;
-            T qy = state.attitude.y;
-            T qz = state.attitude.z;
+            // dimensionless radian scalar rates at this audited kinematic boundary.
+            const T wx = state.angularVelocity.x.value();
+            const T wy = state.angularVelocity.y.value();
+            const T wz = state.angularVelocity.z.value();
+            const T dt_val = dt.value();
 
-            T wx = state.angularVelocity.x.value(); // explicit radian/s scalar
-            T wy = state.angularVelocity.y.value(); // explicit radian/s scalar
-            T wz = state.angularVelocity.z.value(); // explicit radian/s scalar
+            const T qw = state.attitude.w;
+            const T qx = state.attitude.x;
+            const T qy = state.attitude.y;
+            const T qz = state.attitude.z;
 
-            T new_w = qw + half_dt * (-qx * wx - qy * wy - qz * wz);
-            T new_x = qx + half_dt * ( qw * wx + qy * wz - qz * wy);
-            T new_y = qy + half_dt * ( qw * wy + qz * wx - qx * wz);
-            T new_z = qz + half_dt * ( qw * wz + qx * wy - qy * wx);
+            const T half_dt = static_cast<T>(0.5) * dt_val;
 
-            auto q_res = Geometry::Quaternion<T, BodyFrame, RefFrame>::TryCreate(new_w, new_x, new_y, new_z);
-            if (q_res.IsSuccess()) {
-                state.attitude = q_res.Value();
+            // q_dot = 0.5 * q * omega
+            const T dqw = half_dt * (-qx * wx - qy * wy - qz * wz);
+            const T dqx = half_dt * ( qw * wx + qy * wz - qz * wy);
+            const T dqy = half_dt * ( qw * wy - qx * wz + qz * wx);
+            const T dqz = half_dt * ( qw * wz + qx * wy - qy * wx);
+
+            const T new_w = qw + dqw;
+            const T new_x = qx + dqx;
+            const T new_y = qy + dqy;
+            const T new_z = qz + dqz;
+
+            auto new_att = Geometry::Quaternion<T, BodyFrame, RefFrame>::TryCreate(new_w, new_x, new_y, new_z);
+            if (new_att.has_value()) {
+                state.attitude = new_att.value();
             }
+
+            return Core::Result<bool, Core::MathError>::success(true);
         }
     };
 
