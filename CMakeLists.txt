@@ -57,6 +57,7 @@ add_library(AegisMathLib INTERFACE
         include/AegisMath/Geometry/Point3.h
         include/AegisMath/Geometry/Traits.h
         include/AegisMath/Geometry/Matrix3.h
+        include/AegisMath/Geometry/SymmetricLinearSolver3.h
         include/AegisMath/Geometry/UnitVector3.h
         include/AegisMath/Core/Math.h
         include/AegisMath/Geometry/Detail/RotationInvariant.h
@@ -125,6 +126,7 @@ add_executable(AegisMathLib_Tests
         tests/Units/PublicTemplateInstantiationTest.cpp
         tests/Geometry/AttitudeEngineTest.cpp
         tests/Geometry/Matrix3Test.cpp
+        tests/Geometry/SymmetricLinearSolver3Test.cpp
         tests/Geometry/PublicTemplateInstantiationTest.cpp
         tests/Dynamics/DynamicsConceptTest.cpp
         tests/Dynamics/StateTypesTest.cpp
