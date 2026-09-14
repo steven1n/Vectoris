@@ -20,13 +20,9 @@ namespace AegisMath::Dynamics {
 
         // 共轭对偶功率计算: P = F^T * xi = f·v + tau·omega (返回强类型 Watt 功率)
         constexpr Units::Quantity<T, Units::WattUnit> Power(const Twist6<T, Frame>& twist) const noexcept {
-            T p_trans = force.x.value() * twist.linear.x.value() +
-                        force.y.value() * twist.linear.y.value() +
-                        force.z.value() * twist.linear.z.value();
-            T p_rot   = moment.x.value() * twist.angular.x.value() +
-                        moment.y.value() * twist.angular.y.value() +
-                        moment.z.value() * twist.angular.z.value();
-            return Units::Quantity<T, Units::WattUnit>(p_trans + p_rot);
+            Units::Quantity<T, Units::WattUnit> p_trans = Dot(force, twist.linear);
+            Units::Quantity<T, Units::WattUnit> p_rot   = Dot(moment, twist.angular);
+            return p_trans + p_rot;
         }
     };
 

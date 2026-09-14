@@ -39,11 +39,12 @@ namespace AegisMath::Units {
     using AccelerationDimension = Dimension<1, 0, -2, 0, 0, 0, 0, 0>;
     using ForceDimension        = Dimension<1, 1, -2, 0, 0, 0, 0, 0>;
     using FrequencyDimension    = Dimension<0, 0, -1, 0, 0, 0, 0, 0>; // 频率量纲 (T^-1)
-    using AngularVelocityDimension     = Dimension<0, 0, -1, 0, 0, 0, 0, 1>;
-    using AngularAccelerationDimension = Dimension<0, 0, -2, 0, 0, 0, 0, 1>;
-    using TorqueDimension              = Dimension<2, 1, -2, 0, 0, 0, 0, 0>;
-    using MomentOfInertiaDimension     = Dimension<2, 1,  0, 0, 0, 0, 0, 0>;
-    using PowerDimension               = Dimension<2, 1, -3, 0, 0, 0, 0, 0>;
+    using AngularVelocityDimension     = Dimension<0, 0, -1, 0, 0, 0, 0,  1>;
+    using AngularAccelerationDimension = Dimension<0, 0, -2, 0, 0, 0, 0,  1>;
+    using TorqueDimension              = Dimension<2, 1, -2, 0, 0, 0, 0, -1>;
+    using MomentOfInertiaDimension     = Dimension<2, 1,  0, 0, 0, 0, 0, -2>;
+    using PowerDimension               = Dimension<2, 1, -3, 0, 0, 0, 0,  0>;
+    using EnergyDimension              = Dimension<2, 1, -2, 0, 0, 0, 0,  0>;
 
     using LengthDim = LengthDimension;
     using MassDim   = MassDimension;
@@ -61,6 +62,7 @@ namespace AegisMath::Units {
     using TorqueDim              = TorqueDimension;
     using MomentOfInertiaDim     = MomentOfInertiaDimension;
     using PowerDim               = PowerDimension;
+    using EnergyDim              = EnergyDimension;
 
     template <typename D1, typename D2>
     struct DimensionAdd {

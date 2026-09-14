@@ -360,3 +360,40 @@ Scalar	double
 These conventions are mandatory for all future modules.
 
 ---
+
+# 18. Rotational Dimensional Analysis & Angle Base Dimension Convention
+
+Per Engineering Standard Section 10–13, AegisMathLib treats Plane Angle ($A = \text{Angle}$) as an independent semantic physical base dimension within its 8-dimensional system (`Length`, `Mass`, `Time`, `Current`, `Temperature`, `Amount`, `Luminosity`, `Angle`).
+
+To preserve dimensional closure across rotational kinematics, dynamics, kinetic energy, work, torque, and power without algebraic inconsistency, rotational mechanical quantities carry compensating inverse-angle exponents:
+
+1. **Angular Velocity ($\boldsymbol{\omega}$)**:
+   - Dimension: $[A \cdot T^{-1}]$
+   - Unit: $\text{rad}/\text{s}$
+2. **Angular Acceleration ($\boldsymbol{\alpha}$)**:
+   - Dimension: $[A \cdot T^{-2}]$
+   - Unit: $\text{rad}/\text{s}^2$
+3. **Rotational Kinetic Energy ($E = \frac{1}{2} I \omega^2$)**:
+   - Dimension: $[M \cdot L^2 \cdot T^{-2}]$ (Joule)
+   - Since $[\omega^2] = [A^2 \cdot T^{-2}]$, Moment of Inertia must carry $A^{-2}$:
+4. **Moment of Inertia ($I$)**:
+   - Dimension: $[M \cdot L^2 \cdot A^{-2}]$
+   - Unit: $\text{kg}\cdot\text{m}^2/\text{rad}^2$
+5. **Torque ($\tau = dE / d\theta = I \alpha$)**:
+   - Dimension: $[M \cdot L^2 \cdot T^{-2} \cdot A^{-1}]$
+   - Unit: $\text{N}\cdot\text{m}/\text{rad}$
+6. **Rotational Mechanical Power ($P = \boldsymbol{\tau} \cdot \boldsymbol{\omega}$)**:
+   - $[P] = [\tau] \cdot [\omega] = [M \cdot L^2 \cdot T^{-2} \cdot A^{-1}] \cdot [A \cdot T^{-1}] = [M \cdot L^2 \cdot T^{-3}]$ (Watt)
+7. **Newton-Euler Rotational Law**:
+   - $[I \cdot \alpha] = [M \cdot L^2 \cdot A^{-2}] \cdot [A \cdot T^{-2}] = [M \cdot L^2 \cdot T^{-2} \cdot A^{-1}] = [\tau]$
+
+### Dimensional Separation of Torque and Energy
+In standard SI dimensional systems where angle is treated as dimensionless (1), Torque and Energy share the identical dimension $[M \cdot L^2 \cdot T^{-2}]$. Under AegisMathLib's 8-dimensional Model B:
+- **Energy / Work**: $[M \cdot L^2 \cdot T^{-2} \cdot A^0]$ ($\text{J}$)
+- **Torque**: $[M \cdot L^2 \cdot T^{-2} \cdot A^{-1}]$ ($\text{N}\cdot\text{m}/\text{rad}$)
+This compile-time separation prevents assigning translational energy or work directly to torque (or vice versa), eliminating common dimensional errors in aerospace GNC code.
+
+### Quaternion Kinematics Boundary
+Quaternion components are dimensionless scalars in $\mathbb{R}^4$ with unit constraint $\|\mathbf{q}\| = 1$. In quaternion kinematic integration ($\dot{\mathbf{q}} = \frac{1}{2} \mathbf{q} \otimes \boldsymbol{\omega}$), rotational rates typed in $[\text{rad}/\text{s}]$ ($[A \cdot T^{-1}]$) are explicitly extracted as numerical scalars in radians per second at the local, auditable boundary to drive quaternion integration without implicit dimensionless demotion.
+
+---

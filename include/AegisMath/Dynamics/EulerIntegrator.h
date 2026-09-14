@@ -39,6 +39,12 @@ namespace AegisMath::Dynamics {
             // 4. 刚体姿态四元数一阶运动学推进：
             // dq/dt = 0.5 * q ⊗ omega_body
             // q_{k+1} = normalize(q_k + dq/dt * dt)
+            //
+            // [Quaternion Kinematics Boundary]:
+            // Quaternion components are dimensionless unit scalars representing SO(3) rotations.
+            // Rotational rate (angularVelocity: rad/s, [A T^-1]) is explicitly extracted as
+            // a numerical scalar in SI radians (via .value()) at this local, auditable boundary
+            // to drive the dimensionless quaternion kinematic integration.
             T dt_sec = dt.value();
             T half_dt = static_cast<T>(0.5) * dt_sec;
             T qw = state.attitude.w;
@@ -46,9 +52,9 @@ namespace AegisMath::Dynamics {
             T qy = state.attitude.y;
             T qz = state.attitude.z;
 
-            T wx = state.angularVelocity.x.value();
-            T wy = state.angularVelocity.y.value();
-            T wz = state.angularVelocity.z.value();
+            T wx = state.angularVelocity.x.value(); // explicit radian/s scalar
+            T wy = state.angularVelocity.y.value(); // explicit radian/s scalar
+            T wz = state.angularVelocity.z.value(); // explicit radian/s scalar
 
             T new_w = qw + half_dt * (-qx * wx - qy * wy - qz * wz);
             T new_x = qx + half_dt * ( qw * wx + qy * wz - qz * wy);

@@ -28,7 +28,7 @@ namespace AegisMath::Units {
         const Quantity<T, NewtonMeterUnit>& tau,
         const Quantity<T, RadianPerSecondUnit>& omega) noexcept
     {
-        return Quantity<T, WattUnit>(tau.value() * omega.value());
+        return tau * omega;
     }
 
 } // namespace AegisMath::Units

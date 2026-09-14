@@ -25,7 +25,7 @@ namespace AegisMath::Units {
         const Quantity<T, KilogramMeterSquaredUnit>& I,
         const Quantity<T, RadianPerSecondSquaredUnit>& alpha) noexcept
     {
-        return Quantity<T, NewtonMeterUnit>(I.value() * alpha.value());
+        return I * alpha;
     }
 
     template <Concepts::FloatingPoint T>
@@ -33,7 +33,7 @@ namespace AegisMath::Units {
         const Quantity<T, NewtonMeterUnit>& tau,
         const Quantity<T, KilogramMeterSquaredUnit>& I) noexcept
     {
-        return Quantity<T, RadianPerSecondSquaredUnit>(tau.value() / I.value());
+        return tau / I;
     }
 
     template <Concepts::FloatingPoint T>
@@ -41,7 +41,7 @@ namespace AegisMath::Units {
         const Quantity<T, NewtonMeterUnit>& tau,
         const Quantity<T, RadianPerSecondSquaredUnit>& alpha) noexcept
     {
-        return Quantity<T, KilogramMeterSquaredUnit>(tau.value() / alpha.value());
+        return tau / alpha;
     }
 
 } // namespace AegisMath::Units

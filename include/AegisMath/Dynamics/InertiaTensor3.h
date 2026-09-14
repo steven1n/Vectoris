@@ -7,7 +7,7 @@
 namespace AegisMath::Dynamics {
 
     struct AngularMomentumUnit {
-        using Dimension = Units::Dimension<2, 1, -1, 0, 0, 0, 0, 1>;
+        using Dimension = Units::Dimension<2, 1, -1, 0, 0, 0, 0, -1>;
         using Ratio     = std::ratio<1>;
         static constexpr bool IsBaseUnit = false;
     };
@@ -44,9 +44,9 @@ namespace AegisMath::Dynamics {
         Multiply(const AngularVelocity3<Frame, T>& w) const noexcept {
             using ResQ = Units::Quantity<T, AngularMomentumUnit>;
             return QuantityVector3<ResQ, Frame>(
-                ResQ(ixx.value() * w.x.value() + ixy.value() * w.y.value() + ixz.value() * w.z.value()),
-                ResQ(iyx.value() * w.x.value() + iyy.value() * w.y.value() + iyz.value() * w.z.value()),
-                ResQ(izx.value() * w.x.value() + izy.value() * w.y.value() + izz.value() * w.z.value())
+                ResQ(ixx * w.x + ixy * w.y + ixz * w.z),
+                ResQ(iyx * w.x + iyy * w.y + iyz * w.z),
+                ResQ(izx * w.x + izy * w.y + izz * w.z)
             );
         }
     };
