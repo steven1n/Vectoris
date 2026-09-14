@@ -55,6 +55,7 @@ add_library(AegisMathLib INTERFACE
         include/AegisMath/Geometry/Detail/RotationInvariant.h
         include/AegisMath/Geometry/RotationMatrix3.h
         include/AegisMath/Geometry/CoordinateConvention.h
+        include/AegisMath/Core/MathError.h
         include/AegisMath/Core/Result.h
         include/AegisMath/Geometry/Quaternion.h
         include/AegisMath/Geometry/Transform3.h
@@ -111,6 +112,7 @@ add_executable(AegisMathLib_Tests
         tests/Core/NumericTraitsTest.cpp
         tests/Core/MathFunctionsTest.cpp
         tests/Core/PublicTemplateInstantiationTest.cpp
+        tests/Core/ResultTest.cpp
         tests/Units/UnitsTest.cpp
         tests/Units/PublicTemplateInstantiationTest.cpp
         tests/Geometry/AttitudeEngineTest.cpp

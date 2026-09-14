@@ -24,13 +24,28 @@ namespace AegisMath::Traits {
     // 状态检测辅助函数
     // =========================================================================
     template <Concepts::FloatingPoint T>
-    [[nodiscard]] inline Bool IsNaN(T value) noexcept { return std::isnan(value); }
+    [[nodiscard]] constexpr Bool IsNaN(T value) noexcept {
+        if (std::is_constant_evaluated()) {
+            return value != value;
+        }
+        return std::isnan(value);
+    }
 
     template <Concepts::FloatingPoint T>
-    [[nodiscard]] inline Bool IsInfinity(T value) noexcept { return std::isinf(value); }
+    [[nodiscard]] constexpr Bool IsInfinity(T value) noexcept {
+        if (std::is_constant_evaluated()) {
+            return (value == NumericTraits<T>::infinity()) || (value == -NumericTraits<T>::infinity());
+        }
+        return std::isinf(value);
+    }
 
     template <Concepts::FloatingPoint T>
-    [[nodiscard]] inline Bool IsFinite(T value) noexcept { return std::isfinite(value); }
+    [[nodiscard]] constexpr Bool IsFinite(T value) noexcept {
+        if (std::is_constant_evaluated()) {
+            return (value == value) && (value <= NumericTraits<T>::max()) && (value >= -NumericTraits<T>::max());
+        }
+        return std::isfinite(value);
+    }
 
     template <Concepts::FloatingPoint T>
     [[nodiscard]] inline Bool IsZero(T value, T tolerance = NumericTraits<T>::epsilon()) noexcept {

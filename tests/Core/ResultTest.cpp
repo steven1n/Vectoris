@@ -1,0 +1,186 @@
+#include <gtest/gtest.h>
+#include "AegisMath/Core/Result.h"
+#include "AegisMath/Core/MathError.h"
+#include "AegisMath/Geometry/Matrix3.h"
+
+using namespace AegisMath::Core;
+
+namespace {
+
+    struct Tracked {
+        static inline int constructions = 0;
+        static inline int destructions = 0;
+        static inline int copies = 0;
+        static inline int moves = 0;
+
+        static void reset() {
+            constructions = 0;
+            destructions = 0;
+            copies = 0;
+            moves = 0;
+        }
+
+        int id{0};
+
+        explicit Tracked(int i) : id(i) {
+            ++constructions;
+        }
+
+        Tracked(const Tracked& other) : id(other.id) {
+            ++copies;
+        }
+
+        Tracked(Tracked&& other) noexcept : id(other.id) {
+            other.id = -1;
+            ++moves;
+        }
+
+        Tracked& operator=(const Tracked& other) {
+            id = other.id;
+            ++copies;
+            return *this;
+        }
+
+        Tracked& operator=(Tracked&& other) noexcept {
+            id = other.id;
+            other.id = -1;
+            ++moves;
+            return *this;
+        }
+
+        ~Tracked() {
+            ++destructions;
+        }
+    };
+
+} // namespace
+
+TEST(ResultTest, Success) {
+    auto r = Result<int>::success(42);
+    EXPECT_TRUE(r.has_value());
+    EXPECT_TRUE(r.IsSuccess());
+    EXPECT_TRUE(static_cast<bool>(r));
+    EXPECT_EQ(r.value(), 42);
+    EXPECT_EQ(r.Value(), 42);
+
+    r.value() = 99;
+    EXPECT_EQ(r.value(), 99);
+}
+
+TEST(ResultTest, Failure) {
+    auto r = Result<int>::failure(MathError::domain_error);
+    EXPECT_FALSE(r.has_value());
+    EXPECT_FALSE(r.IsSuccess());
+    EXPECT_FALSE(static_cast<bool>(r));
+    EXPECT_EQ(r.error(), MathError::domain_error);
+}
+
+TEST(ResultTest, ErrorPayload) {
+    auto r1 = Result<double>::failure(MathError::singular_matrix);
+    EXPECT_EQ(r1.error(), MathError::singular_matrix);
+    EXPECT_STREQ(to_string(r1.error()), "singular_matrix");
+
+    auto r2 = Result<double>::failure(MathError::zero_norm);
+    EXPECT_EQ(r2.error(), MathError::zero_norm);
+    EXPECT_STREQ(to_string(r2.error()), "zero_norm");
+
+    auto r3 = Result<double>::failure(MathError::non_finite_input);
+    EXPECT_EQ(r3.error(), MathError::non_finite_input);
+    EXPECT_STREQ(to_string(r3.error()), "non_finite_input");
+
+    auto r4 = Result<double>::failure(MathError::ill_conditioned);
+    EXPECT_EQ(r4.error(), MathError::ill_conditioned);
+
+    auto r5 = Result<double>::failure(MathError::normalization_failure);
+    EXPECT_EQ(r5.error(), MathError::normalization_failure);
+
+    auto r6 = Result<double>::failure(MathError::non_convergence);
+    EXPECT_EQ(r6.error(), MathError::non_convergence);
+
+    auto r7 = Result<double>::failure(MathError::max_iterations);
+    EXPECT_EQ(r7.error(), MathError::max_iterations);
+
+    auto r8 = Result<double>::failure(MathError::invalid_state);
+    EXPECT_EQ(r8.error(), MathError::invalid_state);
+}
+
+TEST(ResultTest, ConstexprSuccess) {
+    constexpr auto r = Result<int>::success(42);
+    static_assert(r.has_value());
+    static_assert(r.IsSuccess());
+    static_assert(r.value() == 42);
+    static_assert(r.Value() == 42);
+    EXPECT_EQ(r.value(), 42);
+}
+
+TEST(ResultTest, ConstexprFailure) {
+    constexpr auto r = Result<int>::failure(MathError::domain_error);
+    static_assert(!r.has_value());
+    static_assert(!r.IsSuccess());
+    static_assert(r.error() == MathError::domain_error);
+    EXPECT_EQ(r.error(), MathError::domain_error);
+}
+
+TEST(ResultTest, Copy) {
+    auto r1 = Result<int>::success(123);
+    Result<int> r2 = r1;
+    EXPECT_TRUE(r2.has_value());
+    EXPECT_EQ(r2.value(), 123);
+
+    auto f1 = Result<int>::failure(MathError::ill_conditioned);
+    Result<int> f2 = f1;
+    EXPECT_FALSE(f2.has_value());
+    EXPECT_EQ(f2.error(), MathError::ill_conditioned);
+}
+
+TEST(ResultTest, Move) {
+    auto r1 = Result<std::string>::success("hello");
+    Result<std::string> r2 = std::move(r1);
+    EXPECT_TRUE(r2.has_value());
+    EXPECT_EQ(r2.value(), "hello");
+
+    auto f1 = Result<std::string>::failure(MathError::invalid_argument);
+    Result<std::string> f2 = std::move(f1);
+    EXPECT_FALSE(f2.has_value());
+    EXPECT_EQ(f2.error(), MathError::invalid_argument);
+}
+
+TEST(ResultTest, NonTrivialLifetime) {
+    Tracked::reset();
+    {
+        Result<Tracked> r = Result<Tracked>::success(Tracked(10));
+        EXPECT_TRUE(r.has_value());
+        EXPECT_EQ(r.value().id, 10);
+    }
+    // Tracked(10) constructed, moved into Result, temporary destructed, Result destructed
+    EXPECT_EQ(Tracked::constructions, 1);
+    EXPECT_EQ(Tracked::moves, 1);
+    EXPECT_EQ(Tracked::destructions, 2);
+
+    Tracked::reset();
+    {
+        Result<Tracked> r_err = Result<Tracked>::failure(MathError::zero_norm);
+        EXPECT_FALSE(r_err.has_value());
+        EXPECT_EQ(r_err.error(), MathError::zero_norm);
+    }
+    // No Tracked instances should be constructed or destructed in failure state
+    EXPECT_EQ(Tracked::constructions, 0);
+    EXPECT_EQ(Tracked::destructions, 0);
+}
+
+TEST(ResultTest, ValueOr) {
+    auto r_ok = Result<int>::success(10);
+    EXPECT_EQ(r_ok.value_or(20), 10);
+
+    auto r_fail = Result<int>::failure(MathError::domain_error);
+    EXPECT_EQ(r_fail.value_or(20), 20);
+}
+
+TEST(ResultTest, SizeAndAlignmentInspection) {
+    // Phase 11: 记录常用数值类型包装下的布局与内存开销
+    EXPECT_EQ(sizeof(Result<double>), 16);
+    EXPECT_EQ(alignof(Result<double>), 8);
+
+    EXPECT_EQ(sizeof(Result<AegisMath::Geometry::Matrix3<double>>), 80);
+    EXPECT_EQ(alignof(Result<AegisMath::Geometry::Matrix3<double>>), 8);
+}
