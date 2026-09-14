@@ -157,7 +157,8 @@ TEST(GeometryComparisonTest, QuaternionEqualityAndRotationalEquivalence) {
         std::cos(half_angle), 0.0, std::sin(half_angle), 0.0
     ).Value();
 
-    // Phase 6 Preferred A: Construct true non-canonical -q double-cover representative
+    // Phase 5 Transitional Policy: Intentionally constructs a non-canonical legacy representation
+    // to test RotationEquivalent robustness without claiming this instance satisfies canonical invariant
     auto minus_q = q_rot;
     minus_q.w = -q_rot.w;
     minus_q.x = -q_rot.x;
@@ -320,4 +321,67 @@ TEST(GeometryComparisonTest, GenericMatrix3UnframedInteroperability) {
     auto res = SolveSymmetricPositiveDefinite3x3(A, b);
     ASSERT_TRUE(res.has_value());
     EXPECT_TRUE(AlmostEqual(res.value(), b));
+}
+
+// ----------------------------------------------------------------------------
+// 12. Quaternion 180-Degree Edge Case (theta = pi, w = 0)
+// ----------------------------------------------------------------------------
+TEST(GeometryComparisonTest, Quaternion180DegreeEdgeCase) {
+    // 180-degree rotation about X: q = [0, 1, 0, 0] and -q = [0, -1, 0, 0]
+    auto q1 = Quaternion<double, FrameA, FrameB>::TryCreate(0.0, 1.0, 0.0, 0.0).Value();
+    auto q2 = Quaternion<double, FrameA, FrameB>::TryCreate(0.0, -1.0, 0.0, 0.0).Value();
+
+    // Under Option A, w == 0 is preserved without forced vector negation
+    EXPECT_DOUBLE_EQ(q1.w, 0.0);
+    EXPECT_DOUBLE_EQ(q2.w, 0.0);
+    EXPECT_DOUBLE_EQ(q1.x, 1.0);
+    EXPECT_DOUBLE_EQ(q2.x, -1.0);
+
+    // Exact value equality fails between q and -q
+    EXPECT_FALSE(q1 == q2);
+    EXPECT_TRUE(q1 != q2);
+
+    // Tolerance-aware component-wise AlmostEqual fails
+    EXPECT_FALSE(AlmostEqual(q1, q2));
+
+    // SO(3) Rotational Equivalence succeeds (both represent 180-deg flip about X)
+    EXPECT_TRUE(RotationEquivalent(q1, q2));
+
+    // Verify physical rotation equivalence on vectors
+    Vector3<double, FrameA> v(1.0, 2.0, 3.0);
+    Vector3<double, FrameB> v1 = q1 * v;
+    Vector3<double, FrameB> v2 = q2 * v;
+    EXPECT_TRUE(AlmostEqual(v1, v2, 1e-14, 1e-14));
+}
+
+// ----------------------------------------------------------------------------
+// 13. Quaternion Near-Zero w Determinism
+// ----------------------------------------------------------------------------
+TEST(GeometryComparisonTest, QuaternionNearZeroWDeterminism) {
+    // 1. Given q and its true opposite -q with near-zero w (w = +/- 1e-16):
+    // q = [+1e-16, 1, 0, 0], -q = [-1e-16, -1, 0, 0]
+    auto q = Quaternion<double, FrameA, FrameB>::TryCreate(1e-16, 1.0, 0.0, 0.0).Value();
+    auto minus_q = Quaternion<double, FrameA, FrameB>::TryCreate(-1e-16, -1.0, 0.0, 0.0).Value();
+
+    // Canonicalization uses exact w < 0 to deterministically collapse sign:
+    // minus_q is negated into [+1e-16, 1, 0, 0]
+    EXPECT_GE(q.w, 0.0);
+    EXPECT_GE(minus_q.w, 0.0);
+    EXPECT_TRUE(AlmostEqual(q, minus_q, 1e-14, 1e-14));
+    EXPECT_TRUE(RotationEquivalent(q, minus_q));
+
+    // 2. Numerical sign noise on near-zero w where vector part is identical:
+    // q_pos = [+1e-16, 1, 0, 0], q_noisy = [-1e-16, 1, 0, 0]
+    auto q_pos = Quaternion<double, FrameA, FrameB>::TryCreate(1e-16, 1.0, 0.0, 0.0).Value();
+    auto q_noisy = Quaternion<double, FrameA, FrameB>::TryCreate(-1e-16, 1.0, 0.0, 0.0).Value();
+
+    // Canonicalization negates q_noisy into [+1e-16, -1, 0, 0]
+    EXPECT_GE(q_pos.w, 0.0);
+    EXPECT_GE(q_noisy.w, 0.0);
+
+    // Component-wise AlmostEqual fails because x is +1 vs -1
+    EXPECT_FALSE(AlmostEqual(q_pos, q_noisy));
+
+    // SO(3) RotationEquivalent succeeds because both represent 180-deg flip about X axis
+    EXPECT_TRUE(RotationEquivalent(q_pos, q_noisy));
 }

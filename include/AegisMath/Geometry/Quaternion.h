@@ -15,6 +15,9 @@ namespace AegisMath::Geometry {
     template <ScalarArithmetic T, FrameTag FrameFrom, FrameTag FrameTo>
     struct Quaternion final {
     public:
+        // 组件采用公开成员以满足嵌入式 GNC 与遥测体系的 Standard Layout / Trivially Copyable ABI 约束。
+        // 符号规范化 (Canonicalization) 是构造期约定 (TryCreate 保证 w >= 0 when w != 0)，
+        // 而非对象生命周期强制不变式 (Lifetime Invariant)。
         T w;
         T x;
         T y;
@@ -53,6 +56,9 @@ namespace AegisMath::Geometry {
             );
         }
 
+        // 构造期符号规范化: 采用精确 w < T{0} 判定，杜绝平台相关浮点容差噪声。
+        // 保证非零实部满足 w >= 0；对于 w == 0 (180度纯向量旋转)，符号不作强制翻转 (Option A 约定)。
+        // 空间旋转的严格等价性由 RotationEquivalent 双覆盖判定承担。
         constexpr Quaternion Canonicalized() const noexcept {
             if (w < T{0}) {
                 return Quaternion(-w, -x, -y, -z, ValidatedTag{});
