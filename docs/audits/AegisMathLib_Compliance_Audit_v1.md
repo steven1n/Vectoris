@@ -348,6 +348,26 @@ expected_z evaluates to 4.9033249999999997, and
   The kernel computes rotational acceleration by dividing net torque directly by principal diagonal entries $I_{xx}, I_{yy}, I_{zz}$. For non-diagonal inertia tensors (common in asymmetric flight vehicles or multi-body systems), this ignores off-diagonal inertia coupling ($I_{xy}, I_{xz}, I_{yz}$).
 - **Risk**: Severe rotational simulation inaccuracy for any vehicle with products of inertia; silent mathematical distortion of angular dynamics.
 - **Recommended Direction**: Solve the $3 \times 3$ linear system $\mathbf{I} \boldsymbol{\alpha} = \boldsymbol{\tau} - \boldsymbol{\omega} \times (\mathbf{I} \boldsymbol{\omega})$ using $3 \times 3$ linear solver (e.g. $LDL^T$ or adjugate solve), rather than assuming diagonal inertia.
+- **Remediation**:
+  - **Status**: REMEDIATED
+  - **Remediation Commit**: `3671816`, `5b6c938`, `761ee58`
+  - **Verification**:
+    - `tests/Dynamics/RigidBodyStateTest.cpp`:
+      - `DiagonalInertiaRegression`: Backward compatibility for diagonal inertia confirmed.
+      - `NonDiagonalInertiaCouplingMatchesReference`: FAIL BEFORE FIX reproduced (legacy diagonal approximation produced 100% relative error on y-axis, computing 0 vs reference -0.43939 rad/s^2); new 3x3 SPD solve matches reference within machine precision ($\le 10^{-14}$).
+      - `ZeroAngularVelocityDegeneration`: Degenerates exactly to $\mathbf{I}\boldsymbol{\alpha} = \boldsymbol{\tau}_{\text{ext}}$.
+      - `TorqueFreeAsymmetricBodyNonZeroAcceleration`: Non-principal axis rotation produces non-zero angular acceleration purely from internal gyroscopic coupling ($[-1.0, 1.0, -1/3]\ \text{rad/s}^2$).
+      - `SingularInertiaReturnsError`: Singular inertia matrix cleanly returns `MathError::singular_matrix` without silent fallback or corrupting state.
+      - Static assert concept verification guarding coordinate frame safety.
+    - `tests/Dynamics/EulerDynamicsTest.cpp`:
+      - `TorqueFreeConservationAndConvergence`: Verified bounded drift and $\mathcal{O}(\Delta t^1)$ convergence on rotational kinetic energy and angular momentum norm under $dt$ refinement ($dt = 0.01\to 0.001$).
+      - `IntegratorAbortsOnSingularInertiaWithoutCorruptingState`: Verified zero state corruption on solver failure.
+    - Full test suite: 81/81 tests passing in both clean Debug and Release builds with 0 compiler warnings.
+  - **Resolution**:
+    - Implemented analytical, square-root-free $LDL^T$ 3x3 symmetric positive definite linear solver in `include/AegisMath/Geometry/SymmetricLinearSolver3.h` (`SolveSymmetricPositiveDefinite3x3`).
+    - Integrated exact Newton-Euler rotational dynamics $\mathbf{I}\boldsymbol{\alpha} = \boldsymbol{\tau}_{\text{ext}} - \operatorname{LieBracket}(\boldsymbol{\omega}, \mathbf{I}\boldsymbol{\omega})$ in `include/AegisMath/Dynamics/RigidBodyState.h` without `.value()` bypasses.
+    - Provided `DynamicsDerivative` struct and safe, functional `Result<DynamicsDerivative, MathError>` API alongside backward-compatible out-parameter overloads.
+    - Updated `EulerIntegrator` to propagate errors and prevent state corruption on numerical failure.
 
 ---
 
@@ -501,6 +521,22 @@ expected_z evaluates to 4.9033249999999997, and
   Positive diagonal elements are a necessary, but **not sufficient**, condition for positive definiteness of a $3 \times 3$ matrix. Sylvester's criterion requires all leading principal minors to be strictly positive ($I_{xx} > 0$, $I_{xx}I_{yy} - I_{xy}^2 > 0$, and $\det(\mathbf{I}) > 0$). Furthermore, physical realizability requires triangle inequalities ($I_{xx} + I_{yy} \ge I_{zz}$, etc.).
 - **Risk**: Physically impossible or indefinite inertia tensors can pass validation, causing inverted or chaotic dynamics.
 - **Recommended Direction**: Implement Sylvester's criterion and triangle inequalities in `IsValid()`.
+- **Remediation**:
+  - **Status**: REMEDIATED
+  - **Remediation Commit**: `5b6c938`
+  - **Verification**:
+    - `tests/Dynamics/InertiaTensorTest.cpp`:
+      - `ValidSPDInertia`: Verified valid non-diagonal SPD tensor passes.
+      - `IndefiniteWithPositiveDiagonalRejected`: Verified indefinite matrix with positive diagonal entries ($[[1,2,0],[2,1,0],[0,0,1]]$ has $\det = -3 < 0$) is strictly rejected (fixing AML-MED-003).
+      - `NegativeDiagonalRejected`, `AsymmetryRejected`, `SingularRejected`, `NonFiniteRejected`: Verified all edge conditions and malformed inputs are rejected.
+      - `TypedSolveSPD`: Verified typed solver method and free function match reference within $10^{-14}$.
+      - Compile-time concept checking rejecting cross-frame torque inputs.
+  - **Resolution**:
+    - Updated `InertiaTensor3::IsValid()` to enforce:
+      1. All 9 entries finite via `Traits::IsFinite`.
+      2. Scale-aware symmetry check ($|I_{ij} - I_{ji}| \le \text{scale} \times \epsilon \times 100$).
+      3. Scale-aware $LDL^T$ pivot positivity check ($d_1 > 0, d_2 > 0, d_3 > 0$), mathematically equivalent to Sylvester's criterion while operating in identical physical dimensions and avoiding high-order scalar powers.
+    - Note on physical realizability: When the inertia tensor is not expressed in principal-axis coordinates, applying raw diagonal triangle inequalities is mathematically invalid. Rigorous principal-moment physical realizability is deferred pending an analytical eigenvalue solver in a future milestone.
 
 ---
 
