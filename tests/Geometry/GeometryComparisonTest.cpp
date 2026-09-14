@@ -1,5 +1,8 @@
 #include <gtest/gtest.h>
 #include <type_traits>
+#include <cmath>
+#include <numbers>
+#include <limits>
 #include "AegisMath/Geometry/AlmostEqual.h"
 #include "AegisMath/Geometry/SymmetricLinearSolver3.h"
 
@@ -29,6 +32,18 @@ TEST(GeometryComparisonTest, Vector3EqualityAndAlmostEqual) {
     EXPECT_TRUE(AlmostEqual(v1, v2));
     EXPECT_TRUE(AlmostEqual(v1, v3, 1e-2, 1e-2));
     EXPECT_FALSE(AlmostEqual(v1, v3, 1e-4, 1e-4));
+
+    // Phase 3 Regression: operator== is exact component-wise value equality, NOT bitwise equality
+    // +0.0 == -0.0 evaluates to true under C++ floating-point == semantics despite differing sign bits
+    Vector3<double, FrameA> pz(+0.0, 1.0, 2.0);
+    Vector3<double, FrameA> nz(-0.0, 1.0, 2.0);
+    EXPECT_TRUE(pz == nz);
+    EXPECT_FALSE(pz != nz);
+
+    // NaN != NaN under standard IEEE-754 / C++ floating-point == semantics
+    Vector3<double, FrameA> nan_vec(std::numeric_limits<double>::quiet_NaN(), 1.0, 2.0);
+    EXPECT_FALSE(nan_vec == nan_vec);
+    EXPECT_TRUE(nan_vec != nan_vec);
 }
 
 // ----------------------------------------------------------------------------
@@ -126,21 +141,44 @@ TEST(GeometryComparisonTest, Transform3EqualityAndAlmostEqual) {
 TEST(GeometryComparisonTest, QuaternionEqualityAndRotationalEquivalence) {
     auto q1 = Quaternion<double, FrameA, FrameB>::TryCreate(1.0, 0.0, 0.0, 0.0).Value();
     auto q2 = Quaternion<double, FrameA, FrameB>::TryCreate(1.0, 0.0, 0.0, 0.0).Value();
-    // -q represents the exact same physical rotation in SO(3)
-    auto q_neg = Quaternion<double, FrameA, FrameB>::TryCreate(-1.0, 0.0, 0.0, 0.0).Value();
 
     EXPECT_TRUE(q1 == q2);
     EXPECT_FALSE(q1 != q2);
 
-    // TryCreate automatically canonicalizes (w >= 0), so q_neg canonicalized has w = +1
-    EXPECT_TRUE(RotationEquivalent(q1, q2));
-    EXPECT_TRUE(RotationEquivalent(q1, q_neg));
-    EXPECT_TRUE(AlmostEqual(q1, q2));
+    // Audit Canonicalization: Public TryCreate normalizes sign to w >= 0
+    // TryCreate(-1, 0, 0, 0) collapses to w = +1.0 canonical representative
+    auto q_neg_input = Quaternion<double, FrameA, FrameB>::TryCreate(-1.0, 0.0, 0.0, 0.0).Value();
+    EXPECT_DOUBLE_EQ(q_neg_input.w, 1.0);
+    EXPECT_TRUE(q1 == q_neg_input);
 
-    // Non-canonical quaternion test: manually inverted rotation
-    auto q_rot = Quaternion<double, FrameA, FrameB>::TryCreate(0.70710678, 0.70710678, 0.0, 0.0).Value();
-    auto q_rot_clone = Quaternion<double, FrameA, FrameB>::TryCreate(0.70710678, 0.70710678, 0.0, 0.0).Value();
-    EXPECT_TRUE(RotationEquivalent(q_rot, q_rot_clone));
+    // Phase 7: Nontrivial rotation case (90 degrees about Y axis, theta != 0)
+    const double half_angle = std::numbers::pi / 4.0;
+    auto q_rot = Quaternion<double, FrameA, FrameB>::TryCreate(
+        std::cos(half_angle), 0.0, std::sin(half_angle), 0.0
+    ).Value();
+
+    // Phase 6 Preferred A: Construct true non-canonical -q double-cover representative
+    auto minus_q = q_rot;
+    minus_q.w = -q_rot.w;
+    minus_q.x = -q_rot.x;
+    minus_q.y = -q_rot.y;
+    minus_q.z = -q_rot.z;
+
+    // 1. Exact value equality fails:
+    EXPECT_FALSE(q_rot == minus_q);
+    EXPECT_TRUE(q_rot != minus_q);
+
+    // 2. Tolerance-aware component-wise AlmostEqual fails:
+    EXPECT_FALSE(AlmostEqual(q_rot, minus_q));
+
+    // 3. SO(3) Rotational Equivalence succeeds (verifying the double cover q ~ -q):
+    EXPECT_TRUE(RotationEquivalent(q_rot, minus_q));
+
+    // 4. Perturbed quaternion beyond tolerance fails:
+    auto perturbed_q = q_rot;
+    perturbed_q.y += 0.01;
+    EXPECT_FALSE(RotationEquivalent(q_rot, perturbed_q, 1e-4, 1e-4));
+    EXPECT_TRUE(RotationEquivalent(q_rot, perturbed_q, 0.05, 0.05));
 }
 
 // ----------------------------------------------------------------------------
@@ -174,6 +212,15 @@ TEST(GeometryComparisonTest, QuaternionToRotationMatrixAgreement) {
 // 9. RotationMatrix3 Composition Property Test
 // ----------------------------------------------------------------------------
 TEST(GeometryComparisonTest, RotationCompositionProperty) {
+    // Phase 9: Verify composition result type statically matches RotationMatrix3<double, FrameA, FrameC>
+    static_assert(std::same_as<
+        decltype(
+            std::declval<RotationMatrix3<double, FrameA, FrameB>>() *
+            std::declval<RotationMatrix3<double, FrameB, FrameC>>()
+        ),
+        RotationMatrix3<double, FrameA, FrameC>
+    >, "Composition result type must evaluate to RotationMatrix3<T, FrameA, FrameC>");
+
     // R_AB: 90 deg about Z
     auto q_AB = Quaternion<double, FrameA, FrameB>::TryCreate(0.7071067811865476, 0.0, 0.0, 0.7071067811865476).Value();
     auto R_AB = q_AB.ToRotationMatrix();

@@ -79,7 +79,7 @@ namespace AegisMath::Geometry {
             return Transform3<T, FrameTo, FrameFrom>::Create(inv_rot, inv_offset);
         }
 
-        // 精确结构相等性判定
+        // 精确逐分量数值相等性判定 (Exact component-wise stored-value equality under C++ == semantics)
         constexpr bool operator==(const Transform3& rhs) const noexcept {
             return rotation_ == rhs.rotation_ && originOffset_ == rhs.originOffset_;
         }

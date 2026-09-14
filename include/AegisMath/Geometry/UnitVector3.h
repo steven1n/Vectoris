@@ -129,7 +129,7 @@ namespace AegisMath::Geometry {
             return Vector3<ResT, Frame>{x - rhs.x, y - rhs.y, z - rhs.z};
         }
 
-        // 精确结构相等性判定
+        // 精确逐分量数值相等性判定 (Exact component-wise stored-value equality under C++ == semantics)
         constexpr bool operator==(const UnitVector3& rhs) const noexcept {
             return x == rhs.x && y == rhs.y && z == rhs.z;
         }

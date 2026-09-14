@@ -37,7 +37,7 @@ namespace AegisMath::Geometry {
         requires (!std::same_as<OtherFrame, Frame>)
         constexpr auto operator-(const Point3<U, OtherFrame>&) const = delete;
 
-        // 精确结构相等性判定
+        // 精确逐分量数值相等性判定 (Exact component-wise stored-value equality under C++ == semantics)
         constexpr bool operator==(const Point3& rhs) const noexcept {
             return x == rhs.x && y == rhs.y && z == rhs.z;
         }

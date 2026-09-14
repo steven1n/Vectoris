@@ -159,7 +159,7 @@ namespace AegisMath::Geometry {
             );
         }
 
-        // 精确结构相等性判定
+        // 精确逐分量数值相等性判定 (Exact component-wise stored-value equality under C++ == semantics)
         constexpr bool operator==(const Quaternion& rhs) const noexcept {
             return w == rhs.w && x == rhs.x && y == rhs.y && z == rhs.z;
         }

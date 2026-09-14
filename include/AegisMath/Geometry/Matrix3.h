@@ -191,7 +191,7 @@ namespace AegisMath::Geometry {
             return true;
         }
 
-        // 精确结构相等性判定 (用于精确状态比对，数值摄动比较请使用 AlmostEqual)
+        // 精确逐分量数值相等性判定 (Exact component-wise stored-value equality under C++ == semantics)
         constexpr bool operator==(const Matrix3& rhs) const noexcept {
             for (size_t i = 0; i < 9; ++i) {
                 if (m[i] != rhs.m[i]) {
