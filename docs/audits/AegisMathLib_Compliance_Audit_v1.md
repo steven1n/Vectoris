@@ -366,6 +366,27 @@ expected_z evaluates to 4.9033249999999997, and
   The library provides a sophisticated compile-time Units system (`AegisMath::Units`), yet the Dynamics module bypasses it completely, using raw floating-point types with informal comments (`// 质量 (kg)`).
 - **Risk**: Dimensional errors (e.g. pounds vs kilograms, degrees/s vs rad/s) can pass through API boundaries undetected, replicating historical aerospace catastrophic failures (e.g., Mars Climate Orbiter).
 - **Recommended Direction**: Integrate `Units::Mass` and typed quantity vectors into `RigidBodyParameters` and `KinematicState`.
+- **Remediation**:
+  - **Status**: REMEDIATED
+  - **Remediation Commit**: `2418e94`, `a612ddf`
+  - **Verification**:
+    - `tests/Dynamics/DynamicsUnitsTest.cpp` (compile-time negative concept/`static_assert` assertions preventing raw scalar assignment and dimensional mixing; positive rotational dynamic algebra verification).
+    - `tests/Units/UnitsSystemRevisionB2Test.cpp` (`RotationalAndInertiaUnits` validating compile-time dimensional exponents, SI ratios, and user-defined literals `_rad_s`, `_rad_s2`, `_Nm`, `_kg_m2`, `_W`).
+    - `tests/Dynamics/DynamicsABITest.cpp` (zero-cost abstraction verified: `sizeof(QuantityVector3) == 24`, standard layout, trivial copyability matching standard C arrays).
+    - `tests/Dynamics/PropagationTest.cpp`, `RigidBodyStateTest.cpp`, `Twist6Test.cpp`, `Wrench6Test.cpp`, `InertiaTensorTest.cpp`, `RegressionFreeFallTest.cpp` all migrated to strongly-typed dimensional quantities.
+    - Full test suite: 60/60 tests passing in both Debug and Release (`-DNDEBUG`) builds with 0 compiler warnings.
+  - **Resolution**:
+    - Expanded `AegisMath::Units` with rotational, inertia, and power dimensions and SI base units (`AngularVelocity`, `AngularAcceleration`, `Torque`, `MomentOfInertia`, `Power`) and user-defined literals.
+    - Implemented `QuantityVector3<QuantityType, Frame>` in `include/AegisMath/Dynamics/QuantityVector3.h` to couple typed dimensional quantities with coordinate frame tags without polluting `Geometry::Vector3` or violating architectural layering.
+    - Provided standard type aliases `Position3`, `Velocity3`, `Acceleration3`, `AngularVelocity3`, `AngularAcceleration3`, `Force3`, `Torque3`.
+    - Integrated Hamiltonian active rotation operator `operator*(const Quaternion<T>&, const QuantityVector3<Quantity<T, Unit>, Frame>&)` into `QuantityVector3.h`.
+    - Migrated all Dynamics API boundaries to strong units:
+      - `RigidBodyParameters`: `Units::Kilogram<T> mass`, `Position3<T, BodyFrame> centerOfMass`, `InertiaTensor3<T, BodyFrame> inertia` (holding `Units::KilogramMeterSquared<T>`).
+      - `KinematicState`: `Position3<T, ReferenceFrame> position`, `Velocity3<T, BodyFrame> linearVelocity`, `AngularVelocity3<T, BodyFrame> angularVelocity`.
+      - `Twist6`: `Velocity3<T, Frame> linear`, `AngularVelocity3<T, Frame> angular`.
+      - `Wrench6`: `Force3<T, Frame> force`, `Torque3<T, Frame> moment`, `dot(Twist6)` returning `Units::Watt<T>`.
+      - `RigidBodyDynamicsKernel`: input forces/moments typed as `Force3` and `Torque3`, returning `Acceleration3` and `AngularAcceleration3`.
+      - `EulerIntegrator`: time step explicitly typed as `Units::Second<T> dt`.
 
 ---
 
