@@ -67,6 +67,31 @@ TEST(EulerDynamicsTest, TorqueFreeConservationAndConvergence) {
     EXPECT_LT(dL_sq_fine, dL_sq_coarse * 0.15);
 }
 
+namespace {
+    template <typename T, AegisMath::Geometry::FrameTag RefFrame, AegisMath::Geometry::FrameTag BodyFrame>
+    void ExpectStateExactlyEqual(
+        const KinematicState<T, RefFrame, BodyFrame>& before,
+        const KinematicState<T, RefFrame, BodyFrame>& after
+    ) {
+        EXPECT_EQ(before.position.x.value(), after.position.x.value());
+        EXPECT_EQ(before.position.y.value(), after.position.y.value());
+        EXPECT_EQ(before.position.z.value(), after.position.z.value());
+
+        EXPECT_EQ(before.linearVelocity.x.value(), after.linearVelocity.x.value());
+        EXPECT_EQ(before.linearVelocity.y.value(), after.linearVelocity.y.value());
+        EXPECT_EQ(before.linearVelocity.z.value(), after.linearVelocity.z.value());
+
+        EXPECT_EQ(before.angularVelocity.x.value(), after.angularVelocity.x.value());
+        EXPECT_EQ(before.angularVelocity.y.value(), after.angularVelocity.y.value());
+        EXPECT_EQ(before.angularVelocity.z.value(), after.angularVelocity.z.value());
+
+        EXPECT_EQ(before.attitude.w, after.attitude.w);
+        EXPECT_EQ(before.attitude.x, after.attitude.x);
+        EXPECT_EQ(before.attitude.y, after.attitude.y);
+        EXPECT_EQ(before.attitude.z, after.attitude.z);
+    }
+} // namespace
+
 TEST(EulerDynamicsTest, TransactionalSafetyOnSingularInertia) {
     using MI = MomentOfInertia;
     InertiaTensor3<double, BodyFrame> singular_inertia(
@@ -77,7 +102,7 @@ TEST(EulerDynamicsTest, TransactionalSafetyOnSingularInertia) {
     RigidBodyParameters<double, BodyFrame> params(Kilogram(10.0), Position3<BodyFrame>{}, singular_inertia);
 
     Position3<WorldFrame> pos(Meter(10.0), Meter(20.0), Meter(30.0));
-    auto att = AegisMath::Geometry::Quaternion<double, BodyFrame, WorldFrame>::TryCreate(1.0, 0.0, 0.0, 0.0).Value();
+    auto att = AegisMath::Geometry::Quaternion<double, BodyFrame, WorldFrame>::TryCreate(0.5, 0.5, 0.5, 0.5).Value();
     Velocity3<BodyFrame> vel(Velocity(1.0), Velocity(2.0), Velocity(3.0));
     AngularVelocity3<BodyFrame> omega(AngularVelocity(0.1), AngularVelocity(0.2), AngularVelocity(0.3));
 
@@ -86,22 +111,15 @@ TEST(EulerDynamicsTest, TransactionalSafetyOnSingularInertia) {
     Torque3<BodyFrame> tau(Torque(5.0), Torque(5.0), Torque(5.0));
     Wrench6<double, BodyFrame> wrench(Force3<BodyFrame>{}, tau);
 
+    const auto before = state;
+
     // 积分器单步推进遭遇奇异惯量
     auto step_res = EulerIntegrator::Step(state, params, wrench, Second(0.01));
     ASSERT_FALSE(step_res.has_value());
     EXPECT_EQ(step_res.error(), AegisMath::Core::MathError::singular_matrix);
 
-    // 验证状态未受任何破坏 (原子事务回滚保障)
-    EXPECT_DOUBLE_EQ(state.position.x.value(), 10.0);
-    EXPECT_DOUBLE_EQ(state.position.y.value(), 20.0);
-    EXPECT_DOUBLE_EQ(state.position.z.value(), 30.0);
-    EXPECT_DOUBLE_EQ(state.linearVelocity.x.value(), 1.0);
-    EXPECT_DOUBLE_EQ(state.linearVelocity.y.value(), 2.0);
-    EXPECT_DOUBLE_EQ(state.linearVelocity.z.value(), 3.0);
-    EXPECT_DOUBLE_EQ(state.angularVelocity.x.value(), 0.1);
-    EXPECT_DOUBLE_EQ(state.angularVelocity.y.value(), 0.2);
-    EXPECT_DOUBLE_EQ(state.angularVelocity.z.value(), 0.3);
-    EXPECT_DOUBLE_EQ(state.attitude.w, 1.0);
+    // 验证状态未受任何破坏 (原子事务回滚保障，全字段逐项严格恒等)
+    ExpectStateExactlyEqual(before, state);
 }
 
 TEST(EulerDynamicsTest, TimestepValidationAndTransactionalSafety) {
@@ -114,7 +132,7 @@ TEST(EulerDynamicsTest, TimestepValidationAndTransactionalSafety) {
     RigidBodyParameters<double, BodyFrame> params(Kilogram(10.0), Position3<BodyFrame>{}, inertia);
 
     Position3<WorldFrame> pos(Meter(1.0), Meter(2.0), Meter(3.0));
-    auto att = AegisMath::Geometry::Quaternion<double, BodyFrame, WorldFrame>::TryCreate(1.0, 0.0, 0.0, 0.0).Value();
+    auto att = AegisMath::Geometry::Quaternion<double, BodyFrame, WorldFrame>::TryCreate(0.5, 0.5, 0.5, 0.5).Value();
     Velocity3<BodyFrame> vel(Velocity(4.0), Velocity(5.0), Velocity(6.0));
     AngularVelocity3<BodyFrame> omega(AngularVelocity(0.1), AngularVelocity(0.2), AngularVelocity(0.3));
 
@@ -122,23 +140,23 @@ TEST(EulerDynamicsTest, TimestepValidationAndTransactionalSafety) {
     Wrench6<double, BodyFrame> wrench;
 
     // 1. 负时间步拦截
+    const auto before_neg = state;
     auto res_neg = EulerIntegrator::Step(state, params, wrench, Second(-0.01));
     ASSERT_FALSE(res_neg.has_value());
     EXPECT_EQ(res_neg.error(), AegisMath::Core::MathError::invalid_argument);
+    ExpectStateExactlyEqual(before_neg, state);
 
     // 2. 零时间步拦截
+    const auto before_zero = state;
     auto res_zero = EulerIntegrator::Step(state, params, wrench, Second(0.0));
     ASSERT_FALSE(res_zero.has_value());
     EXPECT_EQ(res_zero.error(), AegisMath::Core::MathError::invalid_argument);
+    ExpectStateExactlyEqual(before_zero, state);
 
     // 3. 非有限时间步拦截
+    const auto before_nan = state;
     auto res_nan = EulerIntegrator::Step(state, params, wrench, Second(std::numeric_limits<double>::quiet_NaN()));
     ASSERT_FALSE(res_nan.has_value());
     EXPECT_EQ(res_nan.error(), AegisMath::Core::MathError::non_finite_input);
-
-    // 验证状态保持完全一致未被修改
-    EXPECT_DOUBLE_EQ(state.position.x.value(), 1.0);
-    EXPECT_DOUBLE_EQ(state.linearVelocity.x.value(), 4.0);
-    EXPECT_DOUBLE_EQ(state.angularVelocity.x.value(), 0.1);
-    EXPECT_DOUBLE_EQ(state.attitude.w, 1.0);
+    ExpectStateExactlyEqual(before_nan, state);
 }
