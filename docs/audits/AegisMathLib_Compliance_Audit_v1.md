@@ -350,24 +350,28 @@ expected_z evaluates to 4.9033249999999997, and
 - **Recommended Direction**: Solve the $3 \times 3$ linear system $\mathbf{I} \boldsymbol{\alpha} = \boldsymbol{\tau} - \boldsymbol{\omega} \times (\mathbf{I} \boldsymbol{\omega})$ using $3 \times 3$ linear solver (e.g. $LDL^T$ or adjugate solve), rather than assuming diagonal inertia.
 - **Remediation**:
   - **Status**: REMEDIATED
-  - **Remediation Commit**: `3671816`, `5b6c938`, `761ee58`
+  - **Remediation Commit**: `3671816`, `5b6c938`, `761ee58`, `f086976`, `0b07a55`, `a17e77d`
   - **Verification**:
     - `tests/Dynamics/RigidBodyStateTest.cpp`:
       - `DiagonalInertiaRegression`: Backward compatibility for diagonal inertia confirmed.
       - `NonDiagonalInertiaCouplingMatchesReference`: FAIL BEFORE FIX reproduced (legacy diagonal approximation produced 100% relative error on y-axis, computing 0 vs reference -0.43939 rad/s^2); new 3x3 SPD solve matches reference within machine precision ($\le 10^{-14}$).
-      - `ZeroAngularVelocityDegeneration`: Degenerates exactly to $\mathbf{I}\boldsymbol{\alpha} = \boldsymbol{\tau}_{\text{ext}}$.
+      - `ZeroAngularVelocityDegeneration`: Degenerates exactly to $\mathbf{I}\boldsymbol{\alpha} = \boldsymbol{\tau}_{\text{ext}}$, verified using strongly typed `InertiaTensor3::Multiply(alpha)` without `.value()` dimensional reinterpretation.
       - `TorqueFreeAsymmetricBodyNonZeroAcceleration`: Non-principal axis rotation produces non-zero angular acceleration purely from internal gyroscopic coupling ($[-1.0, 1.0, -1/3]\ \text{rad/s}^2$).
       - `SingularInertiaReturnsError`: Singular inertia matrix cleanly returns `MathError::singular_matrix` without silent fallback or corrupting state.
       - Static assert concept verification guarding coordinate frame safety.
     - `tests/Dynamics/EulerDynamicsTest.cpp`:
-      - `TorqueFreeConservationAndConvergence`: Verified bounded drift and $\mathcal{O}(\Delta t^1)$ convergence on rotational kinetic energy and angular momentum norm under $dt$ refinement ($dt = 0.01\to 0.001$).
-      - `IntegratorAbortsOnSingularInertiaWithoutCorruptingState`: Verified zero state corruption on solver failure.
-    - Full test suite: 81/81 tests passing in both clean Debug and Release builds with 0 compiler warnings.
+      - `TorqueFreeConservationAndConvergence`: Verified bounded drift and $\mathcal{O}(\Delta t^1)$ convergence on rotational kinetic energy ($0.5\,\boldsymbol{\omega}\cdot\mathbf{L}$) and squared angular momentum ($\mathbf{L}\cdot\mathbf{L}$) under $dt$ refinement ($dt = 0.01\to 0.001$), completely using native typed Quantity algebra.
+      - `TransactionalSafetyOnSingularInertia`: Verified zero state corruption on solver failure via transactional rollback.
+      - `TimestepValidationAndTransactionalSafety`: Verified rejection of $dt \le 0$ and non-finite $dt$ with zero state mutation.
+    - `tests/Geometry/SymmetricLinearSolver3Test.cpp`:
+      - 11 unit, error diagnostics, and property tests covering double and float precisions, backward error control ($\eta \le 100 \epsilon$), and float moderate matrix acceptance.
+    - Full test suite: 84/84 tests passing in both clean Debug and Release builds with 0 compiler warnings.
   - **Resolution**:
-    - Implemented analytical, square-root-free $LDL^T$ 3x3 symmetric positive definite linear solver in `include/AegisMath/Geometry/SymmetricLinearSolver3.h` (`SolveSymmetricPositiveDefinite3x3`).
+    - Implemented analytical, square-root-free $LDL^T$ 3x3 symmetric positive definite linear solver in `include/AegisMath/Geometry/SymmetricLinearSolver3.h` (`SolveSymmetricPositiveDefinite3x3`) with Oettli-Prager backward error control and precision-scaled pivot-spread safeguard.
     - Integrated exact Newton-Euler rotational dynamics $\mathbf{I}\boldsymbol{\alpha} = \boldsymbol{\tau}_{\text{ext}} - \operatorname{LieBracket}(\boldsymbol{\omega}, \mathbf{I}\boldsymbol{\omega})$ in `include/AegisMath/Dynamics/RigidBodyState.h` without `.value()` bypasses.
+    - Added strongly-typed `InertiaTensor3::Multiply(alpha) -> Torque3` and `operator*` overloads.
     - Provided `DynamicsDerivative` struct and safe, functional `Result<DynamicsDerivative, MathError>` API alongside backward-compatible out-parameter overloads.
-    - Updated `EulerIntegrator` to propagate errors and prevent state corruption on numerical failure.
+    - Refactored `EulerIntegrator::Step` with copy-on-write transactional safety semantics and strict $dt$ parameter validation ($dt > 0$, finite).
 
 ---
 
