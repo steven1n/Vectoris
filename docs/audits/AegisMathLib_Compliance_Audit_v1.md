@@ -367,13 +367,13 @@ expected_z evaluates to 4.9033249999999997, and
 - **Risk**: Dimensional errors (e.g. pounds vs kilograms, degrees/s vs rad/s) can pass through API boundaries undetected, replicating historical aerospace catastrophic failures (e.g., Mars Climate Orbiter).
 - **Recommended Direction**: Integrate `Units::Mass` and typed quantity vectors into `RigidBodyParameters` and `KinematicState`.
 - **Remediation**:
-  - **Status**: REMEDIATED
-  - **Remediation Commit**: `2418e94`, `a612ddf`
+  - **Status**: REMEDIATION UNDER DIMENSIONAL REVIEW
+  - **Remediation Commit**: `2418e94`, `a612ddf`, `cc95094`
   - **Verification**:
-    - `tests/Dynamics/DynamicsUnitsTest.cpp` (compile-time negative concept/`static_assert` assertions preventing raw scalar assignment and dimensional mixing; positive rotational dynamic algebra verification).
-    - `tests/Units/UnitsSystemRevisionB2Test.cpp` (`RotationalAndInertiaUnits` validating compile-time dimensional exponents, SI ratios, and user-defined literals `_rad_s`, `_rad_s2`, `_Nm`, `_kg_m2`, `_W`).
+    - `tests/Dynamics/DynamicsUnitsTest.cpp` (compile-time negative concept/`static_assert` assertions preventing raw scalar assignment, dimensional mixing, force-to-torque conversion, torque-to-energy conversion, and inertia-to-mass*length^2 conversion; compile-time identities for $I\alpha=\tau$, $\tau\omega=P$, $P/\omega=\tau$, $\tau/\alpha=I$; positive rotational dynamic algebra verification).
+    - `tests/Units/UnitsTest.cpp` (`RotationalAndInertiaUnits` validating Model B compile-time dimensional exponents, SI ratios, native `operator*`/`operator/` without `.value()`, and user-defined literals `_rad_s`, `_rad_s2`, `_Nm`, `_kg_m2`, `_W`).
     - `tests/Dynamics/DynamicsABITest.cpp` (zero-cost abstraction verified: `sizeof(QuantityVector3) == 24`, standard layout, trivial copyability matching standard C arrays).
-    - `tests/Dynamics/PropagationTest.cpp`, `RigidBodyStateTest.cpp`, `Twist6Test.cpp`, `Wrench6Test.cpp`, `InertiaTensorTest.cpp`, `RegressionFreeFallTest.cpp` all migrated to strongly-typed dimensional quantities.
+    - `tests/Dynamics/PropagationTest.cpp`, `RigidBodyStateTest.cpp`, `Twist6Test.cpp`, `Wrench6Test.cpp`, `InertiaTensorTest.cpp`, `RegressionFreeFallTest.cpp` all passing without manual scalar bypass.
     - Full test suite: 60/60 tests passing in both Debug and Release (`-DNDEBUG`) builds with 0 compiler warnings.
   - **Resolution**:
     - Expanded `AegisMath::Units` with rotational, inertia, and power dimensions and SI base units (`AngularVelocity`, `AngularAcceleration`, `Torque`, `MomentOfInertia`, `Power`) and user-defined literals.
