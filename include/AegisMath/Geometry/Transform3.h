@@ -78,7 +78,28 @@ namespace AegisMath::Geometry {
             auto inv_offset = -(inv_rot * originOffset_);
             return Transform3<T, FrameTo, FrameFrom>::Create(inv_rot, inv_offset);
         }
+
+        // 精确结构相等性判定
+        constexpr bool operator==(const Transform3& rhs) const noexcept {
+            return rotation_ == rhs.rotation_ && originOffset_ == rhs.originOffset_;
+        }
+
+        constexpr bool operator!=(const Transform3& rhs) const noexcept {
+            return !(*this == rhs);
+        }
     };
+
+    // 容差自适应近似相等 (Tolerance-Aware Numerical Comparison)
+    template <ScalarArithmetic T, FrameTag FrameFrom, FrameTag FrameTo>
+    [[nodiscard]] inline bool AlmostEqual(
+        const Transform3<T, FrameFrom, FrameTo>& a,
+        const Transform3<T, FrameFrom, FrameTo>& b,
+        T absoluteTolerance = Traits::NumericTraits<T>::epsilon() * T{100},
+        T relativeTolerance = Traits::NumericTraits<T>::epsilon() * T{100}
+    ) noexcept {
+        return AlmostEqual(a.rotation_, b.rotation_, absoluteTolerance, relativeTolerance) &&
+               AlmostEqual(a.originOffset_, b.originOffset_, absoluteTolerance, relativeTolerance);
+    }
 
     // --- Geometry Traits 与 ABI 联合注册 ---
     template<typename T, FrameTag FrameFrom, FrameTag FrameTo>

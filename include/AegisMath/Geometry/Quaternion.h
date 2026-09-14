@@ -102,6 +102,33 @@ namespace AegisMath::Geometry {
             );
         }
 
+        // 拦截跨坐标系非法向量乘法
+        template <ScalarArithmetic U, FrameTag OtherFrame>
+        requires (!std::same_as<OtherFrame, FrameFrom>)
+        constexpr auto operator*(const Vector3<U, OtherFrame>&) const = delete;
+
+        // 导出方向余弦旋转矩阵 (DCM)
+        [[nodiscard]] constexpr RotationMatrix3<T, FrameFrom, FrameTo> ToRotationMatrix() const noexcept {
+            const T w2 = w * w;
+            const T x2 = x * x;
+            const T y2 = y * y;
+            const T z2 = z * z;
+
+            const T xy = x * y;
+            const T xz = x * z;
+            const T yz = y * z;
+            const T wx = w * x;
+            const T wy = w * y;
+            const T wz = w * z;
+
+            Matrix3<T> m(
+                w2 + x2 - y2 - z2,  T{2} * (xy - wz),    T{2} * (xz + wy),
+                T{2} * (xy + wz),   w2 - x2 + y2 - z2,  T{2} * (yz - wx),
+                T{2} * (xz - wy),   T{2} * (yz + wx),   w2 - x2 - y2 + z2
+            );
+            return RotationMatrix3<T, FrameFrom, FrameTo>::TryCreate(m).Value();
+        }
+
         constexpr Core::Result<Quaternion> Slerp(const Quaternion& target, T t) const noexcept {
             if (!Traits::IsFinite(t)) {
                 return Core::Result<Quaternion>::failure(Core::MathError::non_finite_input);
@@ -131,7 +158,52 @@ namespace AegisMath::Geometry {
                 scale_0*y + scale_1*end.y, scale_0*z + scale_1*end.z
             );
         }
+
+        // 精确结构相等性判定
+        constexpr bool operator==(const Quaternion& rhs) const noexcept {
+            return w == rhs.w && x == rhs.x && y == rhs.y && z == rhs.z;
+        }
+
+        constexpr bool operator!=(const Quaternion& rhs) const noexcept {
+            return !(*this == rhs);
+        }
     };
+
+    // 容差自适应逐分量近似相等
+    template <ScalarArithmetic T, FrameTag FrameFrom, FrameTag FrameTo>
+    [[nodiscard]] inline bool AlmostEqual(
+        const Quaternion<T, FrameFrom, FrameTo>& a,
+        const Quaternion<T, FrameFrom, FrameTo>& b,
+        T absoluteTolerance = Traits::NumericTraits<T>::epsilon() * T{100},
+        T relativeTolerance = Traits::NumericTraits<T>::epsilon() * T{100}
+    ) noexcept {
+        return Traits::AlmostEqual(a.w, b.w, absoluteTolerance, relativeTolerance) &&
+               Traits::AlmostEqual(a.x, b.x, absoluteTolerance, relativeTolerance) &&
+               Traits::AlmostEqual(a.y, b.y, absoluteTolerance, relativeTolerance) &&
+               Traits::AlmostEqual(a.z, b.z, absoluteTolerance, relativeTolerance);
+    }
+
+    // SO(3) 旋转几何等价判定 (双覆盖性质: q 与 -q 表达空间同一旋转)
+    template <ScalarArithmetic T, FrameTag FrameFrom, FrameTag FrameTo>
+    [[nodiscard]] inline bool RotationEquivalent(
+        const Quaternion<T, FrameFrom, FrameTo>& a,
+        const Quaternion<T, FrameFrom, FrameTo>& b,
+        T absoluteTolerance = Traits::NumericTraits<T>::epsilon() * T{100},
+        T relativeTolerance = Traits::NumericTraits<T>::epsilon() * T{100}
+    ) noexcept {
+        const bool pos_match =
+            Traits::AlmostEqual(a.w, b.w, absoluteTolerance, relativeTolerance) &&
+            Traits::AlmostEqual(a.x, b.x, absoluteTolerance, relativeTolerance) &&
+            Traits::AlmostEqual(a.y, b.y, absoluteTolerance, relativeTolerance) &&
+            Traits::AlmostEqual(a.z, b.z, absoluteTolerance, relativeTolerance);
+        if (pos_match) {
+            return true;
+        }
+        return Traits::AlmostEqual(a.w, -b.w, absoluteTolerance, relativeTolerance) &&
+               Traits::AlmostEqual(a.x, -b.x, absoluteTolerance, relativeTolerance) &&
+               Traits::AlmostEqual(a.y, -b.y, absoluteTolerance, relativeTolerance) &&
+               Traits::AlmostEqual(a.z, -b.z, absoluteTolerance, relativeTolerance);
+    }
 
     template<typename T, FrameTag FrameFrom, FrameTag FrameTo>
     struct GeometryTraits<Quaternion<T, FrameFrom, FrameTo>> {

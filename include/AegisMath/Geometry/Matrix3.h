@@ -190,7 +190,46 @@ namespace AegisMath::Geometry {
 
             return true;
         }
+
+        // 精确结构相等性判定 (用于精确状态比对，数值摄动比较请使用 AlmostEqual)
+        constexpr bool operator==(const Matrix3& rhs) const noexcept {
+            for (size_t i = 0; i < 9; ++i) {
+                if (m[i] != rhs.m[i]) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        constexpr bool operator!=(const Matrix3& rhs) const noexcept {
+            return !(*this == rhs);
+        }
+
+        // 容差自适应数值近似判定
+        [[nodiscard]] bool AlmostEqual(
+            const Matrix3& rhs,
+            T absoluteTolerance = Traits::NumericTraits<T>::epsilon() * T{100},
+            T relativeTolerance = Traits::NumericTraits<T>::epsilon() * T{100}
+        ) const noexcept {
+            for (size_t i = 0; i < 9; ++i) {
+                if (!Traits::AlmostEqual(m[i], rhs.m[i], absoluteTolerance, relativeTolerance)) {
+                    return false;
+                }
+            }
+            return true;
+        }
     };
+
+    // 容差自适应近似相等 (Tolerance-Aware Numerical Comparison)
+    template <ScalarArithmetic T>
+    [[nodiscard]] inline bool AlmostEqual(
+        const Matrix3<T>& a,
+        const Matrix3<T>& b,
+        T absoluteTolerance = Traits::NumericTraits<T>::epsilon() * T{100},
+        T relativeTolerance = Traits::NumericTraits<T>::epsilon() * T{100}
+    ) noexcept {
+        return a.AlmostEqual(b, absoluteTolerance, relativeTolerance);
+    }
 
     // [GEO-REV-001] Geometry Layout Traits (不再直接暴露 ValueType)
     template<typename T>

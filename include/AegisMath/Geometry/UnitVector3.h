@@ -128,7 +128,29 @@ namespace AegisMath::Geometry {
             using ResT = decltype(x - rhs.x);
             return Vector3<ResT, Frame>{x - rhs.x, y - rhs.y, z - rhs.z};
         }
+
+        // 精确结构相等性判定
+        constexpr bool operator==(const UnitVector3& rhs) const noexcept {
+            return x == rhs.x && y == rhs.y && z == rhs.z;
+        }
+
+        constexpr bool operator!=(const UnitVector3& rhs) const noexcept {
+            return !(*this == rhs);
+        }
     };
+
+    // 容差自适应近似相等 (Tolerance-Aware Numerical Comparison)
+    template <ScalarArithmetic T, FrameTag Frame>
+    [[nodiscard]] inline bool AlmostEqual(
+        const UnitVector3<T, Frame>& a,
+        const UnitVector3<T, Frame>& b,
+        T absoluteTolerance = Traits::NumericTraits<T>::epsilon() * T{100},
+        T relativeTolerance = Traits::NumericTraits<T>::epsilon() * T{100}
+    ) noexcept {
+        return Traits::AlmostEqual(a.x, b.x, absoluteTolerance, relativeTolerance) &&
+               Traits::AlmostEqual(a.y, b.y, absoluteTolerance, relativeTolerance) &&
+               Traits::AlmostEqual(a.z, b.z, absoluteTolerance, relativeTolerance);
+    }
 
     // --- Geometry Traits 与 ABI Contract 联合注册 ---
     template<typename T, FrameTag Frame>

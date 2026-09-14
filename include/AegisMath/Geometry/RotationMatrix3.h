@@ -13,6 +13,13 @@ namespace AegisMath::Geometry {
     // 强制绑定 FrameFrom -> FrameTo，防范坐标系混用灾难
     template <ScalarArithmetic T, FrameTag FrameFrom, FrameTag FrameTo>
     struct RotationMatrix3 final {
+    public:
+        template <ScalarArithmetic, FrameTag, FrameTag>
+        friend struct RotationMatrix3;
+
+        template <ScalarArithmetic, FrameTag, FrameTag>
+        friend struct Quaternion;
+
     private:
         Matrix3<T> dcm_;
 
@@ -66,11 +73,17 @@ namespace AegisMath::Geometry {
             };
         }
 
+        // 拦截跨坐标系非法向量乘法
+        template <ScalarArithmetic U, FrameTag OtherFrame>
+        requires (!std::same_as<OtherFrame, FrameFrom>)
+        constexpr auto operator*(const Vector3<U, OtherFrame>&) const = delete;
+
         // 2. 旋转级联: Rotation<A, B> * Rotation<B, C> -> Rotation<A, C>
+        // 遵循 pipeline 级联定义: (R_AB * R_BC) * v_A = R_BC * (R_AB * v_A) = M_BC * (M_AB * v_A)
+        // 对应底层矩阵乘法: M_AC = M_BC * M_AB (即 rhs.ToMatrix() * dcm_)
         template <FrameTag FrameNext>
         constexpr auto operator*(const RotationMatrix3<T, FrameTo, FrameNext>& rhs) const noexcept {
-            // 右乘级联 (取决于具体 GNC 定义，此处依循 R_AC = R_AB * R_BC 规范)
-            return RotationMatrix3<T, FrameFrom, FrameNext>(dcm_ * rhs.ToMatrix());
+            return RotationMatrix3<T, FrameFrom, FrameNext>(rhs.ToMatrix() * dcm_);
         }
 
         // 3. 非法级联拦截
@@ -88,11 +101,37 @@ namespace AegisMath::Geometry {
             return Transposed();
         }
 
+        // --- 四元数转换构造工厂 ---
+        template <typename QuatType>
+        static constexpr RotationMatrix3 FromQuaternion(const QuatType& q) noexcept {
+            return q.ToRotationMatrix();
+        }
+
         // --- 数据提取 ---
         constexpr const Matrix3<T>& ToMatrix() const noexcept {
             return dcm_;
         }
+
+        // 精确结构相等性判定
+        constexpr bool operator==(const RotationMatrix3& rhs) const noexcept {
+            return dcm_ == rhs.dcm_;
+        }
+
+        constexpr bool operator!=(const RotationMatrix3& rhs) const noexcept {
+            return !(*this == rhs);
+        }
     };
+
+    // 容差自适应近似相等 (Tolerance-Aware Numerical Comparison)
+    template <ScalarArithmetic T, FrameTag FrameFrom, FrameTag FrameTo>
+    [[nodiscard]] inline bool AlmostEqual(
+        const RotationMatrix3<T, FrameFrom, FrameTo>& a,
+        const RotationMatrix3<T, FrameFrom, FrameTo>& b,
+        T absoluteTolerance = Traits::NumericTraits<T>::epsilon() * T{100},
+        T relativeTolerance = Traits::NumericTraits<T>::epsilon() * T{100}
+    ) noexcept {
+        return a.ToMatrix().AlmostEqual(b.ToMatrix(), absoluteTolerance, relativeTolerance);
+    }
 
     // --- Geometry Traits 与 ABI 联合注册 ---
     template<typename T, FrameTag FrameFrom, FrameTag FrameTo>

@@ -62,6 +62,7 @@ add_library(AegisMathLib INTERFACE
         include/AegisMath/Core/Math.h
         include/AegisMath/Geometry/Detail/RotationInvariant.h
         include/AegisMath/Geometry/RotationMatrix3.h
+        include/AegisMath/Geometry/AlmostEqual.h
         include/AegisMath/Geometry/CoordinateConvention.h
         include/AegisMath/Core/MathError.h
         include/AegisMath/Core/Result.h

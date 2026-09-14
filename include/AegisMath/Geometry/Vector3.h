@@ -4,6 +4,7 @@
 #include "FrameTags.h"
 #include "Detail/ABI.h"
 #include "Traits.h"
+#include "../Core/NumericTraits.h"
 
 namespace AegisMath::Geometry {
 
@@ -27,10 +28,18 @@ namespace AegisMath::Geometry {
             return Vector3<decltype(x + rhs.x), Frame>{x + rhs.x, y + rhs.y, z + rhs.z};
         }
 
+        template <ScalarArithmetic U, FrameTag OtherFrame>
+        requires (!std::same_as<OtherFrame, Frame>)
+        constexpr auto operator+(const Vector3<U, OtherFrame>&) const = delete;
+
         template <ScalarArithmetic U>
         constexpr auto operator-(const Vector3<U, Frame>& rhs) const noexcept {
             return Vector3<decltype(x - rhs.x), Frame>{x - rhs.x, y - rhs.y, z - rhs.z};
         }
+
+        template <ScalarArithmetic U, FrameTag OtherFrame>
+        requires (!std::same_as<OtherFrame, Frame>)
+        constexpr auto operator-(const Vector3<U, OtherFrame>&) const = delete;
 
         template <ScalarArithmetic S>
         constexpr auto operator*(const S& scalar) const noexcept {
@@ -48,7 +57,33 @@ namespace AegisMath::Geometry {
         constexpr auto dot(const Vector3<U, Frame>& rhs) const noexcept {
             return x * rhs.x + y * rhs.y + z * rhs.z;
         }
+
+        template <ScalarArithmetic U, FrameTag OtherFrame>
+        requires (!std::same_as<OtherFrame, Frame>)
+        constexpr auto dot(const Vector3<U, OtherFrame>&) const = delete;
+
+        // 精确结构相等性判定 (用于精确状态比对，数值摄动比较请使用 AlmostEqual)
+        constexpr bool operator==(const Vector3& rhs) const noexcept {
+            return x == rhs.x && y == rhs.y && z == rhs.z;
+        }
+
+        constexpr bool operator!=(const Vector3& rhs) const noexcept {
+            return !(*this == rhs);
+        }
     };
+
+    // 容差自适应近似相等 (Tolerance-Aware Numerical Comparison)
+    template <ScalarArithmetic T, FrameTag Frame>
+    [[nodiscard]] inline bool AlmostEqual(
+        const Vector3<T, Frame>& a,
+        const Vector3<T, Frame>& b,
+        T absoluteTolerance = Traits::NumericTraits<T>::epsilon() * T{100},
+        T relativeTolerance = Traits::NumericTraits<T>::epsilon() * T{100}
+    ) noexcept {
+        return Traits::AlmostEqual(a.x, b.x, absoluteTolerance, relativeTolerance) &&
+               Traits::AlmostEqual(a.y, b.y, absoluteTolerance, relativeTolerance) &&
+               Traits::AlmostEqual(a.z, b.z, absoluteTolerance, relativeTolerance);
+    }
 
     // [GEO-006] Traits 注册
     template<typename T, FrameTag Frame>

@@ -23,8 +23,8 @@ namespace AegisMath::Geometry::Detail {
         Matrix3<T> diff = rT_r - identity;
 
         // 使用 Frobenius Norm 评估误差
-        // 必须满足 ||R^T * R - I||_F^2 趋近于 0
-        return diff.frobenius_norm_squared() <= tolerance;
+        // 必须满足 ||R^T * R - I||_F <= tolerance，即 ||R^T * R - I||_F^2 <= tolerance^2
+        return diff.frobenius_norm_squared() <= tolerance * tolerance;
     }
 
 } // namespace AegisMath::Geometry::Detail
