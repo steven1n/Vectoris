@@ -14,7 +14,11 @@
 - **Primary Compiler**: Apple Clang version 21.0.0 (`clang-2100.1.1.101`, target `x86_64-apple-darwin25.6.0`)
 - **CMake Version**: 4.4.3
 - **Test Suite Execution**:
-  - **Debug** (`cmake-build-p2b-baseline`): **104 / 104 PASS (100%), 0 warnings**
+  - **Debug** (`cmake-build-p2c-debug`): **107 / 107 PASS (100%), 0 warnings**
+  - **Release** (`cmake-build-p2c-release`): **107 / 107 PASS (100%), 0 warnings**
+- **Public Header Standalone Isolation Execution**:
+  - **Debug** (`AegisMathLib_HeaderIsolation`): **68 / 68 TUs PASS (66 standalone + 2 order poisoning), 0 warnings**
+  - **Release** (`AegisMathLib_HeaderIsolation`): **68 / 68 TUs PASS (66 standalone + 2 order poisoning), 0 warnings**
 - **Compilation Flags**: `-std=c++20 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror`
 
 ---
@@ -87,7 +91,7 @@ Based on Sections 5, 48, 50, 85, 86, 88, 89, 90, 101, 104, and 124 of [`docs/ENG
 ### Authoritative Blocker Ledger
 1. **AML-MED-007**: Missing formal module specification documents under `docs/` (violates Sections 87 & 88).
 2. **AML-MED-008**: Absence of formal `AML-DEVIATION` tags registered for architectural deviations (violates Sections 101 & 102).
-3. **Public Header Standalone Isolation**: Single-header translation-unit compilation qualification for all 66 public headers (violates Sections 5 & 89).
+3. **Install / Export Validation**: CMake target installation and package export rules not yet configured (violates Section 89).
 4. **AddressSanitizer (ASan)**: Dynamic memory safety verification not executed (Sections 88 & 124).
 5. **UndefinedBehaviorSanitizer (UBSan)**: Dynamic undefined-behavior verification not executed (Sections 88 & 124).
 6. **Test Coverage Gate**: Instrumentation and verification against coverage thresholds ($\ge 95\%$ line, $\ge 90\%$ branch, 100% function) not executed (Sections 86 & 124).
@@ -102,15 +106,15 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
 
 | Qualification Gate | Standard Reference | Status | Evidence / Notes | Blocker? | Remediation Phase |
 | :--- | :--- | :---: | :--- | :---: | :---: |
-| **Correctness Audit** | Sec 60–74, 80 | **PASS** | 104/104 tests pass; all CRITICAL/HIGH closed; no algorithmic regressions. | **NO** | — |
+| **Correctness Audit** | Sec 60–74, 80 | **PASS** | 107/107 tests pass; all CRITICAL/HIGH closed; no algorithmic regressions. | **NO** | — |
 | **Numerical Reliability** | Sec 14–18, 48 | **PASS** | IEEE-754 enforced; Solve-Not-Invert adopted; condition bounds active. | **NO** | — |
-| **Debug Build & Tests** | Sec 89, 90, 124 | **PASS** | `cmake-build-p2b-baseline`: 104/104 tests pass, 0 warnings. | **NO** | — |
+| **Debug Build & Tests** | Sec 89, 90, 124 | **PASS** | `cmake-build-p2c-debug`: 107/107 tests pass, 0 warnings. | **NO** | — |
 | **Zero Compiler Warnings** | Sec 3, 90 | **PASS** | `-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror`: 0 warnings. | **NO** | — |
 | **Bounded Numerical Loops** | Rule 7, Sec 48 | **PASS** | AML-MED-004: Core::Math::sqrt bounded to $kMaxIterations = 64$. | **NO** | Remediated (bc54c0e) |
 | **Single Concept per File** | Sec 6 | **PASS** | AML-MED-002: Duplicate Units/Unit.h removed. | **NO** | Remediated (d168798) |
 | **Repository Hygiene** | Sec 89, 92 | **PASS** | AML-MED-006: Boilerplate library.* and obsolete scripts removed. | **NO** | Remediated (3d79ed2) |
-| **Public Header Isolation** | Sec 5, 89 | **NOT RUN** | Dedicated single-header TU compilation not yet run for complete 66-header set. | **YES** | **P2-C** |
-| **Install / Export Validation** | Sec 89 | **NOT RUN** | No `install(TARGETS ... EXPORT ...)` configured in CMakeLists.txt. | **YES** | **P2-C** |
+| **Public Header Isolation** | Sec 5, 89 | **PASS** | Target AegisMathLib_HeaderIsolation: 66/66 public headers compile independently in standalone TUs + forward/reverse order poisoning TUs with zero warnings in Debug and Release. | **NO** | Remediated (P2-C) |
+| **Install / Export Validation** | Sec 89 | **NOT RUN** | No `install(TARGETS ... EXPORT ...)` configured in CMakeLists.txt. | **YES** | Planned |
 | **Clang-Tidy** | Sec 90 | **NOT RUN** | Tool not installed locally; no `.clang-tidy` config file. | **YES** | **P2-D** |
 | **Cppcheck** | Sec 90 | **NOT RUN** | Tool not installed locally; no `cppcheck` config file. | **YES** | **P2-D** |
 | **AddressSanitizer (ASan)** | Sec 88, 124 | **NOT RUN** | No `-fsanitize=address` CMake configuration active. | **YES** | **P2-E** |
@@ -149,7 +153,15 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
   - Geometry: 15 headers (Detail: 2, Root: 13)
   - Dynamics: 11 headers (Detail: 2, Root: 9)
 - **Template-Instantiation Evidence**: **8 headers/types** currently exercised by dedicated instantiation test suites.
-- **Standalone Single-Header Translation-Unit Qualification**: **NOT RUN** for the complete 66-header set. (Dedicated single-header translation unit tests will be implemented in P2-C to establish rigorous isolation results).
+- **Standalone Single-Header Translation-Unit Qualification**: **PASS (66 / 66 headers)**
+  - Automated CMake qualification architecture implemented in `cmake/PublicHeaderIsolation.cmake`.
+  - Qualification target `AegisMathLib_HeaderIsolation` (OBJECT library) generates and compiles 66 isolated translation units (one per public header) plus 2 include-order poisoning translation units (`order_poison_forward.cpp` and `order_poison_reverse.cpp`).
+  - Strict compiler flags enforced: `-std=c++20 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror`.
+  - Initial Failure Count: 0 on single-header TUs; 1 duplicate symbol collision discovered via include-order poisoning (`include/AegisMath/Units/DerivedUnits/Frequency.h` previously duplicated `NewtonUnit` from `Force.h`, remediated to `HertzUnit`).
+  - Fixed Header Count: 1 (`Frequency.h`).
+  - Isolation Build Verification:
+    - Debug: 68 / 68 TUs PASS, 0 warnings.
+    - Release: 68 / 68 TUs PASS, 0 warnings.
 
 ### 6.3 Determinism & Reproducibility Audit
 - **Hidden Nondeterminism Source Audit**: **PASS**
