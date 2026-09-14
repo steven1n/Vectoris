@@ -113,6 +113,7 @@ add_executable(AegisMathLib_Tests
         tests/Core/MathFunctionsTest.cpp
         tests/Units/UnitsTest.cpp
         tests/Geometry/AttitudeEngineTest.cpp
+        tests/Geometry/Matrix3Test.cpp
         tests/Dynamics/DynamicsConceptTest.cpp
         tests/Dynamics/StateTypesTest.cpp
         tests/Dynamics/Twist6Test.cpp

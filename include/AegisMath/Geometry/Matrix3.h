@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#include <limits>
 #include "AegisMath/Dynamics/Concepts.h"
 #include "Detail/ABI.h"
 #include "Traits.h"
@@ -64,8 +65,9 @@ namespace AegisMath::Geometry {
             );
         }
 
-        // 标量乘法
-        template <ScalarArithmetic S>
+        // 标量乘法 (显式约束排他，防止 ScalarArithmetic 自指递归)
+        template <typename S>
+        requires (!std::same_as<std::remove_cvref_t<S>, Matrix3>) && ScalarArithmetic<S>
         constexpr auto operator*(const S& scalar) const noexcept {
             using ResT = decltype(m[0] * scalar);
             return Matrix3<ResT>(
@@ -120,24 +122,62 @@ namespace AegisMath::Geometry {
         }
 
         // 伴随矩阵求逆 (无抛出原则, 失败返回 false)
+        // 遵循 Solve-Not-Invert 原则：仅在需要显式矩阵逆时使用；解线性方程应使用消元求解器
         constexpr bool TryInverse(Matrix3& out) const noexcept {
-            T d = det();
-            // 奇异矩阵判定
-            if (d == T{}) {
-                return false; 
+            // 1. 评估矩阵元素最大模长尺度 (Scale / Infinity Norm Proxy)
+            T max_val = T{0};
+            for (size_t i = 0; i < 9; ++i) {
+                T abs_val = (m[i] >= T{0}) ? m[i] : -m[i];
+                if (abs_val > max_val) {
+                    max_val = abs_val;
+                }
             }
 
-            out.m[0] =  (m[4]*m[8] - m[5]*m[7]) / d;
-            out.m[1] = -(m[1]*m[8] - m[2]*m[7]) / d;
-            out.m[2] =  (m[1]*m[5] - m[2]*m[4]) / d;
+            // 零矩阵或非有限数值直接返回奇异
+            if (max_val == T{0} || max_val != max_val || max_val > std::numeric_limits<T>::max()) {
+                return false;
+            }
 
-            out.m[3] = -(m[3]*m[8] - m[5]*m[6]) / d;
-            out.m[4] =  (m[0]*m[8] - m[2]*m[6]) / d;
-            out.m[5] = -(m[0]*m[5] - m[2]*m[3]) / d;
+            T d = det();
+            if (d == T{0} || d != d || d > std::numeric_limits<T>::max() || d < std::numeric_limits<T>::lowest()) {
+                return false;
+            }
 
-            out.m[6] =  (m[3]*m[7] - m[4]*m[6]) / d;
-            out.m[7] = -(m[0]*m[7] - m[2]*m[6]) / d;
-            out.m[8] =  (m[0]*m[4] - m[1]*m[3]) / d;
+            // 2. 尺度敏感奇异性阈值 (Scale-aware singularity cutoff)
+            // 行列式量纲为 scale^3。若 |det| <= eps * scale^3，判定为数值奇异，防御近奇异除零溢出。
+            T abs_d = (d >= T{0}) ? d : -d;
+            T scale3 = max_val * max_val * max_val;
+            T eps = std::numeric_limits<T>::epsilon();
+            if (abs_d <= eps * scale3) {
+                return false;
+            }
+
+            // 3. 伴随矩阵元素计算写入临时栈缓冲，杜绝原地自赋值踩踏 (Anti-Aliasing)
+            // 修正第 7 元素代数余子式 C_12 下标: -(m[0]*m[7] - m[1]*m[6])
+            T inv[9];
+            inv[0] =  (m[4]*m[8] - m[5]*m[7]) / d;
+            inv[1] = -(m[1]*m[8] - m[2]*m[7]) / d;
+            inv[2] =  (m[1]*m[5] - m[2]*m[4]) / d;
+
+            inv[3] = -(m[3]*m[8] - m[5]*m[6]) / d;
+            inv[4] =  (m[0]*m[8] - m[2]*m[6]) / d;
+            inv[5] = -(m[0]*m[5] - m[2]*m[3]) / d;
+
+            inv[6] =  (m[3]*m[7] - m[4]*m[6]) / d;
+            inv[7] = -(m[0]*m[7] - m[1]*m[6]) / d; // 修复: 原实现误为 m[2]*m[6]
+            inv[8] =  (m[0]*m[4] - m[1]*m[3]) / d;
+
+            // 4. 检查逆矩阵元素有限性
+            for (size_t i = 0; i < 9; ++i) {
+                if (inv[i] != inv[i] || inv[i] > std::numeric_limits<T>::max() || inv[i] < std::numeric_limits<T>::lowest()) {
+                    return false;
+                }
+            }
+
+            // 5. 写入输出对象 (安全拷贝，支持 &out == this)
+            for (size_t i = 0; i < 9; ++i) {
+                out.m[i] = inv[i];
+            }
 
             return true;
         }
