@@ -129,6 +129,7 @@ add_executable(AegisMathLib_Tests
         tests/Geometry/Matrix3Test.cpp
         tests/Geometry/SymmetricLinearSolver3Test.cpp
         tests/Geometry/PublicTemplateInstantiationTest.cpp
+        tests/Geometry/GeometryComparisonTest.cpp
         tests/Dynamics/DynamicsConceptTest.cpp
         tests/Dynamics/StateTypesTest.cpp
         tests/Dynamics/Twist6Test.cpp
