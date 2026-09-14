@@ -110,6 +110,7 @@ endif()
 # 移除旧的 Units 测试，专注当前重构的 Core 测试
 add_executable(AegisMathLib_Tests
         tests/Core/NumericTraitsTest.cpp
+        tests/Core/MathFunctionsTest.cpp
         tests/Units/UnitsTest.cpp
         tests/Geometry/AttitudeEngineTest.cpp
         tests/Dynamics/DynamicsConceptTest.cpp

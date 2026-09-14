@@ -1,6 +1,8 @@
 #pragma once
 #include <cmath>
+#include <numbers>
 #include "NumericTraits.h"
+#include "Constants.h"
 
 namespace AegisMath::Core::Math {
 
@@ -39,11 +41,23 @@ namespace AegisMath::Core::Math {
         return std::cos(value);
     }
 
-    // 三角函数: 反余弦 (带定义域安全截断，防止浮点误差导致 domain error)
+    // 三角函数: 反余弦 (带边界浮点微小舍入截断，明显越界输入遵循 IEEE-754 返回 NaN)
     template <typename T>
     [[nodiscard]] inline T acos(T value) noexcept {
-        if (value >= T{1}) return T{0};
-        if (value <= -T{1}) return Traits::NumericTraits<T>::max(); // 或返回 std::numbers::pi_v<T>，视项目常量定义而定
+        constexpr T boundaryTolerance = Traits::NumericTraits<T>::epsilon() * T{10};
+
+        if (value >= T{1}) {
+            if (value <= T{1} + boundaryTolerance) {
+                return T{0};
+            }
+            return std::acos(value); // IEEE-754: 明显越界输入 (value > 1 + tol) 返回 NaN
+        }
+        if (value <= -T{1}) {
+            if (value >= -T{1} - boundaryTolerance) {
+                return std::numbers::pi_v<T>;
+            }
+            return std::acos(value); // IEEE-754: 明显越界输入 (value < -1 - tol) 返回 NaN
+        }
         return std::acos(value);
     }
 
