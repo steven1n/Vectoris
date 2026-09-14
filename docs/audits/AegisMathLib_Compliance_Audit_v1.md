@@ -360,14 +360,14 @@ expected_z evaluates to 4.9033249999999997, and
       - `SingularInertiaReturnsError`: Singular inertia matrix cleanly returns `MathError::singular_matrix` without silent fallback or corrupting state.
       - Static assert concept verification guarding coordinate frame safety.
     - `tests/Dynamics/EulerDynamicsTest.cpp`:
-      - `TorqueFreeConservationAndConvergence`: Verified bounded drift and $\mathcal{O}(\Delta t^1)$ convergence on rotational kinetic energy ($0.5\,\boldsymbol{\omega}\cdot\mathbf{L}$) and squared angular momentum ($\mathbf{L}\cdot\mathbf{L}$) under $dt$ refinement ($dt = 0.01\to 0.001$), completely using native typed Quantity algebra.
-      - `TransactionalSafetyOnSingularInertia`: Verified zero state corruption on solver failure via transactional rollback.
-      - `TimestepValidationAndTransactionalSafety`: Verified rejection of $dt \le 0$ and non-finite $dt$ with zero state mutation.
+      - `TorqueFreeConservationAndConvergence`: Verified bounded drift and $\mathcal{O}(\Delta t^1)$ convergence on rotational kinetic energy ($0.5\,\boldsymbol{\omega}\cdot\mathbf{L}$) and angular momentum squared norm ($\|\mathbf{L}\|^2 = \mathbf{L}\cdot\mathbf{L}$) under $dt$ refinement ($dt = 0.01\to 0.001$), completely using native typed Quantity algebra.
+      - `TransactionalSafetyOnSingularInertia`: Verified zero state corruption on solver failure via transactional rollback across all kinematic state fields.
+      - `TimestepValidationAndTransactionalSafety`: Verified rejection of $dt \le 0$ (`MathError::invalid_argument`) and non-finite $dt$ (`MathError::non_finite_input`) with transactional zero-mutation across all kinematic state fields.
     - `tests/Geometry/SymmetricLinearSolver3Test.cpp`:
-      - 11 unit, error diagnostics, and property tests covering double and float precisions, backward error control ($\eta \le 100 \epsilon$), and float moderate matrix acceptance.
+      - 11 unit, error diagnostics, and property tests covering double and float precisions, normwise relative backward error control ($\eta \le 100 \epsilon$), and float moderate matrix acceptance.
     - Full test suite: 84/84 tests passing in both clean Debug and Release builds with 0 compiler warnings.
   - **Resolution**:
-    - Implemented analytical, square-root-free $LDL^T$ 3x3 symmetric positive definite linear solver in `include/AegisMath/Geometry/SymmetricLinearSolver3.h` (`SolveSymmetricPositiveDefinite3x3`) with Oettli-Prager backward error control and precision-scaled pivot-spread safeguard.
+    - Implemented analytical, square-root-free $LDL^T$ 3x3 symmetric positive definite linear solver in `include/AegisMath/Geometry/SymmetricLinearSolver3.h` (`SolveSymmetricPositiveDefinite3x3`) with normwise relative backward error control and precision-scaled pivot-spread safeguard.
     - Integrated exact Newton-Euler rotational dynamics $\mathbf{I}\boldsymbol{\alpha} = \boldsymbol{\tau}_{\text{ext}} - \operatorname{LieBracket}(\boldsymbol{\omega}, \mathbf{I}\boldsymbol{\omega})$ in `include/AegisMath/Dynamics/RigidBodyState.h` without `.value()` bypasses.
     - Added strongly-typed `InertiaTensor3::Multiply(alpha) -> Torque3` and `operator*` overloads.
     - Provided `DynamicsDerivative` struct and safe, functional `Result<DynamicsDerivative, MathError>` API alongside backward-compatible out-parameter overloads.

@@ -40,10 +40,15 @@ namespace AegisMath::Geometry {
      *     以及主元正定性 (d_k > tol_sing)。
      *   - Layer B (解算质量与反向误差控制):
      *       1. LDLT pivot-spread safeguard (主元跨度启发式防线): min(d) / max(d) <= eps * 100 即判定病态。
-     *       2. Oettli-Prager scale-aware backward error 验证: ||r||_inf / (||A||_inf * ||x||_inf + ||b||_inf) <= 100 * eps。
+     *       2. Normwise relative backward error (无穷范数相对反向误差) 验证:
+     *          ||r||_inf / (||A||_inf * ||x||_inf + ||b||_inf) <= 100 * eps。
      *   - 零平方根计算，保证 ISO C++20 纯 constexpr 语义。
      *   - 零堆动态分配，所有计算在寄存器/栈上就地完成。
-     * 
+     *
+     * @note ill_conditioned 是数值安全诊断标识：当配置的 LDLT 主元扩展比率安全门限 (pivot-spread safeguard)
+     *       或无穷范数相对反向误差验收准则 (normwise relative backward error acceptance criterion) 被突破时触发，
+     *       并不代表显式计算了矩阵的精确条件数 kappa(A)。
+     *
      * @tparam T 浮点精度类型 (float, double)
      * @tparam Frame 空间坐标系标签
      * @param A 3x3 对称正定矩阵
@@ -147,7 +152,8 @@ namespace AegisMath::Geometry {
             return ResultType(Core::MathError::ill_conditioned);
         }
 
-        // 9. 反向误差与残差控制 (Scale-aware backward error)
+        // 9. 范数相对反向误差与残差控制 (Normwise relative backward error)
+        // eta = ||r||_inf / (||A||_inf * ||x||_inf + ||b||_inf)
         // r = A*x - b
         const T r0 = A(0, 0)*x0 + A(0, 1)*x1 + A(0, 2)*x2 - b.x;
         const T r1 = A(1, 0)*x0 + A(1, 1)*x1 + A(1, 2)*x2 - b.y;
