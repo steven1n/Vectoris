@@ -4,9 +4,12 @@
 #include "BaseUnits/Angle.h"
 
 namespace AegisMath::Units::Literals {
-    consteval Length::Meter operator""_m(long double val) { return Length::Meter(static_cast<Scalar>(val)); }
-    consteval Length::Meter operator""_m(unsigned long long val) { return Length::Meter(static_cast<Scalar>(val)); }
-    
-    consteval Time::Second operator""_s(long double val) { return Time::Second(static_cast<Scalar>(val)); }
-    consteval Time::Second operator""_s(unsigned long long val) { return Time::Second(static_cast<Scalar>(val)); }
+    constexpr Meter operator""_m(long double val) noexcept { return Meter(static_cast<Scalar>(val)); }
+    constexpr Meter operator""_m(unsigned long long val) noexcept { return Meter(static_cast<Scalar>(val)); }
+
+    constexpr Second operator""_s(long double val) noexcept { return Second(static_cast<Scalar>(val)); }
+    constexpr Second operator""_s(unsigned long long val) noexcept { return Second(static_cast<Scalar>(val)); }
+
+    constexpr Radian operator""_rad(long double val) noexcept { return Radian(static_cast<Scalar>(val)); }
+    constexpr Radian operator""_rad(unsigned long long val) noexcept { return Radian(static_cast<Scalar>(val)); }
 }

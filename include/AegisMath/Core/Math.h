@@ -16,9 +16,9 @@ namespace AegisMath::Core {
         if (x <= T{}) return T{};
         T curr = x;
         T prev = T{};
-        while (abs(curr - prev) > NumericTraits<T>::Epsilon()) {
+        while (abs(curr - prev) > Traits::NumericTraits<T>::epsilon()) {
             prev = curr;
-            curr = T{0.5} * (curr + x / curr);
+            curr = static_cast<T>(0.5) * (curr + x / curr);
         }
         return curr;
     }

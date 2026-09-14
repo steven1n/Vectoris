@@ -41,7 +41,7 @@ namespace AegisMath::Geometry {
         static constexpr Transform3 Identity() noexcept {
             return Transform3(
                 Quaternion<T, FrameFrom, FrameTo>::Identity(),
-                Vector3<T, FrameTo>::Zero(),
+                Vector3<T, FrameTo>{},
                 TransformValidatedTag{}
             );
         }

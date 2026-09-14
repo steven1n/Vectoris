@@ -42,6 +42,12 @@ namespace AegisMath::Geometry {
         friend constexpr auto operator*(const S& scalar, const Vector3& v) noexcept {
             return Vector3<decltype(scalar * v.x), Frame>{scalar * v.x, scalar * v.y, scalar * v.z};
         }
+
+        // 点积代数运算 (必须在同坐标系 Frame 下进行)
+        template <ScalarArithmetic U>
+        constexpr auto dot(const Vector3<U, Frame>& rhs) const noexcept {
+            return x * rhs.x + y * rhs.y + z * rhs.z;
+        }
     };
 
     // [GEO-006] Traits 注册

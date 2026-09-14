@@ -8,8 +8,8 @@
 
 // 修正：指向真实的 Core 目录，如果你的实际文件在其他位置，请对应修改此路径
 #include "../Core/NumericTraits.h"
-// 修正：隔离 <cmath>，使用项目自有的 MathFunctions [GEO-UNIT-004]
 #include "../Core/MathFunctions.h"
+#include "../Core/Result.h"
 
 namespace AegisMath::Geometry {
 
@@ -37,24 +37,32 @@ namespace AegisMath::Geometry {
         // --- 核心工厂 ---
         // [GEO-UNIT-003] 泛化输入类型，允许 float32 的 Vector3 生成 double 的 UnitVector3
         template <ScalarArithmetic U>
-        static bool TryCreate(const Vector3<U, Frame>& input, UnitVector3& out) noexcept {
+        static Core::Result<UnitVector3> TryCreate(const Vector3<U, Frame>& input) noexcept {
             using CalcType = decltype(U{} / U{});
             CalcType sq_len = input.dot(input);
 
-            // 奇异检查：使用项目实际的统一状态检测函数
             if (Traits::IsZero(sq_len)) {
-                return false;
+                return Core::Result<UnitVector3>();
             }
 
-            // [GEO-UNIT-004] 隔离 <cmath>，使用 Core::Math
             CalcType inv_len = CalcType{1} / Core::Math::sqrt(sq_len);
-            out = UnitVector3(
-                static_cast<T>(input.x * inv_len),
-                static_cast<T>(input.y * inv_len),
-                static_cast<T>(input.z * inv_len),
-                UnitValidatedTag{}
+            return Core::Result<UnitVector3>(
+                UnitVector3(
+                    static_cast<T>(input.x * inv_len),
+                    static_cast<T>(input.y * inv_len),
+                    static_cast<T>(input.z * inv_len),
+                    UnitValidatedTag{}
+                )
             );
+        }
 
+        template <ScalarArithmetic U>
+        static bool TryCreate(const Vector3<U, Frame>& input, UnitVector3& out) noexcept {
+            auto res = TryCreate(input);
+            if (!res.IsSuccess()) {
+                return false;
+            }
+            out = res.Value();
             return true;
         }
 
@@ -130,9 +138,10 @@ namespace AegisMath::Geometry {
             "UnitVector3 failed base ABI constraints.");
 
         // 精确的 offsetof 验证，防止私有继承或优化器带来的内存缝隙
-        static_assert(offsetof(UnitVector3<T, Frame>, x) == 0, "x offset mismatch");
-        static_assert(offsetof(UnitVector3<T, Frame>, y) == sizeof(T), "y offset mismatch");
-        static_assert(offsetof(UnitVector3<T, Frame>, z) == sizeof(T) * 2, "z offset mismatch");
+        using UV = UnitVector3<T, Frame>;
+        static_assert(offsetof(UV, x) == 0, "x offset mismatch");
+        static_assert(offsetof(UV, y) == sizeof(T), "y offset mismatch");
+        static_assert(offsetof(UV, z) == sizeof(T) * 2, "z offset mismatch");
 
         static_assert(sizeof(UnitVector3<T, Frame>) == sizeof(T) * 3, 
             "UnitVector3 memory layout contains padding, which violates DMA alignment.");

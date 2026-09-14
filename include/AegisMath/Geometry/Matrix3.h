@@ -121,6 +121,15 @@ namespace AegisMath::Geometry {
                  + m[2] * (m[3]*m[7] - m[4]*m[6]);
         }
 
+        // 计算 Frobenius 范数的平方: ||M||_F^2 = sum(m_i^2)
+        constexpr T frobenius_norm_squared() const noexcept {
+            T sum = T{0};
+            for (size_t i = 0; i < 9; ++i) {
+                sum += m[i] * m[i];
+            }
+            return sum;
+        }
+
         // 伴随矩阵求逆 (无抛出原则, 失败返回 false)
         // 遵循 Solve-Not-Invert 原则：仅在需要显式矩阵逆时使用；解线性方程应使用消元求解器
         constexpr bool TryInverse(Matrix3& out) const noexcept {

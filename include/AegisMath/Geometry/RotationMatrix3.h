@@ -5,6 +5,7 @@
 #include "Vector3.h"
 #include "Detail/RotationInvariant.h"
 #include "Detail/ABI.h"
+#include "../Core/Result.h"
 
 namespace AegisMath::Geometry {
 
@@ -30,11 +31,19 @@ namespace AegisMath::Geometry {
         }
 
         // 2. 安全构建 (执行正交性和行列式检查)
-        static constexpr bool TryCreate(const Matrix3<T>& raw_matrix, RotationMatrix3& out) noexcept {
+        static Core::Result<RotationMatrix3> TryCreate(const Matrix3<T>& raw_matrix) noexcept {
             if (!Detail::CheckRotationInvariants(raw_matrix)) {
-                return false; // 矩阵畸变，非合法旋转
+                return Core::Result<RotationMatrix3>();
             }
-            out = RotationMatrix3(raw_matrix);
+            return Core::Result<RotationMatrix3>(RotationMatrix3(raw_matrix));
+        }
+
+        static constexpr bool TryCreate(const Matrix3<T>& raw_matrix, RotationMatrix3& out) noexcept {
+            auto res = TryCreate(raw_matrix);
+            if (!res.IsSuccess()) {
+                return false;
+            }
+            out = res.Value();
             return true;
         }
 

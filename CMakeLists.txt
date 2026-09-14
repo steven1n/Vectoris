@@ -111,9 +111,12 @@ endif()
 add_executable(AegisMathLib_Tests
         tests/Core/NumericTraitsTest.cpp
         tests/Core/MathFunctionsTest.cpp
+        tests/Core/PublicTemplateInstantiationTest.cpp
         tests/Units/UnitsTest.cpp
+        tests/Units/PublicTemplateInstantiationTest.cpp
         tests/Geometry/AttitudeEngineTest.cpp
         tests/Geometry/Matrix3Test.cpp
+        tests/Geometry/PublicTemplateInstantiationTest.cpp
         tests/Dynamics/DynamicsConceptTest.cpp
         tests/Dynamics/StateTypesTest.cpp
         tests/Dynamics/Twist6Test.cpp

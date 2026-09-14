@@ -21,10 +21,10 @@ namespace AegisMath::Geometry::Detail {
         Matrix3<T> rT_r = m.transposed() * m;
         Matrix3<T> identity = Matrix3<T>::Identity();
         Matrix3<T> diff = rT_r - identity;
-        
-        // 使用 Frobenius Norm (Phase 2.1 引入) 评估误差
+
+        // 使用 Frobenius Norm 评估误差
         // 必须满足 ||R^T * R - I||_F^2 趋近于 0
-        return diff.squaredNorm() <= tolerance;
+        return diff.frobenius_norm_squared() <= tolerance;
     }
 
 } // namespace AegisMath::Geometry::Detail
