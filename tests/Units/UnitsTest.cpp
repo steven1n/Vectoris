@@ -43,6 +43,7 @@ TEST(UnitsSystemRevisionB2Test, StrictTypeConceptAndCast) {
 #include "AegisMath/Units/DerivedUnits/Torque.h"
 #include "AegisMath/Units/DerivedUnits/MomentOfInertia.h"
 #include "AegisMath/Units/DerivedUnits/Power.h"
+#include "AegisMath/Units/DerivedUnits/Frequency.h"
 #include "AegisMath/Units/Literals.h"
 
 TEST(UnitsSystemRevisionB2Test, RotationalAndInertiaUnits) {
@@ -131,4 +132,42 @@ TEST(UnitsSystemRevisionB2Test, RotationalAndInertiaUnits) {
     EXPECT_DOUBLE_EQ(l_Nm.value(), 25.0);
     EXPECT_DOUBLE_EQ(l_W.value(), 1000.0);
     EXPECT_DOUBLE_EQ(l_rad_s.value(), 3.14);
+}
+
+TEST(UnitsSystemRevisionB2Test, FrequencyCompileTimeContractAndAlgebra) {
+    // 1. Frequency dimension & unit contract
+    static_assert(std::same_as<typename HertzUnit::Dimension, FrequencyDimension>);
+    static_assert(HertzUnit::Dimension::time == -1);
+    static_assert(HertzUnit::Dimension::length == 0);
+    static_assert(HertzUnit::Dimension::mass == 0);
+    static_assert(HertzUnit::Dimension::current == 0);
+    static_assert(HertzUnit::Dimension::temperature == 0);
+    static_assert(HertzUnit::Dimension::amount == 0);
+    static_assert(HertzUnit::Dimension::luminosity == 0);
+    static_assert(HertzUnit::Dimension::angle == 0);
+
+    // 2. Strong type binding and ABI safety
+    static_assert(std::same_as<Frequency, Quantity<Scalar, HertzUnit>>);
+    static_assert(std::same_as<Hertz, Frequency>);
+    static_assert(IsQuantity<Frequency>);
+    static_assert(sizeof(Frequency) == sizeof(double));
+    static_assert(alignof(Frequency) == alignof(double));
+    static_assert(std::is_trivially_copyable_v<Frequency>);
+
+    // 3. Regression against duplicate NewtonUnit collision
+    static_assert(!std::same_as<NewtonUnit, HertzUnit>);
+    static_assert(!std::same_as<Force, Frequency>);
+    static_assert(!DimensionEqual<NewtonUnit::Dimension, HertzUnit::Dimension>);
+
+    // 4. Dimensional algebra: Frequency (T^-1) * Time (T^1) -> Dimensionless
+    Frequency freq{50.0};
+    Second time_span{0.1};
+    auto cycles = freq * time_span;
+    static_assert(DimensionEqual<decltype(cycles)::DimensionType, Dimensionless>);
+    EXPECT_DOUBLE_EQ(cycles.value(), 5.0);
+
+    // 5. Dimension algebra: Dimensionless / Time (T^1) -> Frequency (T^-1)
+    auto recovered_rate = cycles / time_span;
+    static_assert(DimensionEqual<decltype(recovered_rate)::DimensionType, FrequencyDimension>);
+    EXPECT_DOUBLE_EQ(recovered_rate.value(), 50.0);
 }
