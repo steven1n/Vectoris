@@ -429,3 +429,44 @@ $$[\operatorname{RotationalCross}(\boldsymbol{\omega}, \mathbf{L})] = \frac{[M \
 4. **Consistency with Quaternion Boundary**: $SO(3)$ rotational kinematics similarly consume dimensionless coordinates by explicitly extracting radian scalars at the integration boundary, ensuring total consistency across the library.
 
 ---
+
+# 20. Geometry Semantics, Matrix3 Scope, and Floating-Point Comparisons
+
+### 20.1 Matrix3 Scope & Frame Separation
+- **Unframed Generic Tensor**: `Matrix3<T>` is an unframed numerical tensor container designed for pure linear algebra. It represents $3 \times 3$ matrices in $\mathbb{R}^{3 \times 3}$ without spatial coordinate frame tags.
+- **Generic Linear Algebra Preservation**: Pure numerical routines—such as the $LDL^T$ symmetric positive definite solver (`SolveSymmetricPositiveDefinite3x3`), matrix determinants, adjoint inverses, covariances, and Jacobians—MUST accept `Matrix3<T>` without coordinate frame tags.
+- **Dedicated Spatial Transformation Wrappers**: Coordinate frame semantics (`FromFrame -> ToFrame`) are strictly carried by semantic geometric types:
+  - `RotationMatrix3<T, FromFrame, ToFrame>`
+  - `Transform3<T, FromFrame, ToFrame>`
+  - `Quaternion<T, FromFrame, ToFrame>`
+- **Typed Inertia Bridge**: Inertia tensors (`InertiaTensor3<T, BodyFrame>`) hold coordinate frame tags; they construct local `Matrix3<T>` instances purely to invoke numerical solvers, preventing frame tags from polluting general linear algebra.
+
+### 20.2 Coordinate Transformation & Composition Convention
+- **Vector Transformation**:
+  $$\mathbf{v}_{\text{Target}} = \mathbf{R}_{\text{Source} \to \text{Target}} \mathbf{v}_{\text{Source}}$$
+- **Rotation Composition (Pipeline Convention)**:
+  Following the unified pipeline composition convention established across `Quaternion` and `Transform3`:
+  $$\mathbf{R}_{A \to B} * \mathbf{R}_{B \to C} \to \mathbf{R}_{A \to C}$$
+  The composition satisfies associativity when applied to vectors:
+  $$(\mathbf{R}_{A \to B} * \mathbf{R}_{B \to C}) * \mathbf{v}_A = \mathbf{R}_{B \to C} * (\mathbf{R}_{A \to B} * \mathbf{v}_A) = \mathbf{M}_{BC} \mathbf{M}_{AB} \mathbf{v}_A$$
+  Under the hood, the underlying Direction Cosine Matrix product evaluates $\mathbf{M}_{BC} \mathbf{M}_{AB}$ (`rhs.ToMatrix() * dcm_`).
+- **Quaternion to Rotation Matrix Agreement**:
+  For any unit quaternion $\mathbf{q} \in SO(3)$ and vector $\mathbf{v}$:
+  $$\mathbf{q} * \mathbf{v} \equiv \mathbf{R}(\mathbf{q}) * \mathbf{v}$$
+
+### 20.3 Floating-Point Equality & Comparison Policy
+In compliance with Rule 9 ("Never trust floating-point equality"):
+1. **Exact Structural Equality (`operator==`, `operator!=`)**:
+   - Compares stored IEEE-754 components directly (`a == b`).
+   - Reserved strictly for exact value checks: sentinel states, exact identity matrix initialization, serialization round-trips, and transactional immutability assertions.
+   - FORBIDDEN for numerical convergence, solver residuals, or computed geometry comparisons.
+2. **Tolerance-Aware Closeness (`AlmostEqual`)**:
+   - All geometry types (`Vector3`, `Point3`, `Matrix3`, `UnitVector3`, `RotationMatrix3`, `Transform3`, `Quaternion`) provide `AlmostEqual(a, b, abs_tol, rel_tol)` delegating to `Traits::AlmostEqual`.
+   - Thresholds combine absolute and relative tolerances: $|a - b| \le \max(\text{abs\_tol}, \text{rel\_tol} \times \max(|a|, |b|))$.
+3. **Rotational Equivalence (`RotationEquivalent`)**:
+   - Quaternions represent $SO(3)$ rotations via a double cover ($\mathbb{S}^3 \to SO(3)$), meaning $\mathbf{q}$ and $-\mathbf{q}$ represent the identical physical orientation.
+   - Rotational comparison MUST use `RotationEquivalent(q1, q2)` which accepts $\mathbf{q}_1 \approx \mathbf{q}_2$ OR $\mathbf{q}_1 \approx -\mathbf{q}_2$.
+4. **Rotation Invariant Tolerance**:
+   - The orthogonality check $\mathbf{R}^T \mathbf{R} \approx \mathbf{I}$ uses the squared Frobenius norm:
+     $$\|\mathbf{R}^T \mathbf{R} - \mathbf{I}\|_F^2 \le \tau^2$$
+     guaranteeing exact scale consistency between linear tolerance $\tau$ and the quadratic norm.

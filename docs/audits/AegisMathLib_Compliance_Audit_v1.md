@@ -435,6 +435,28 @@ expected_z evaluates to 4.9033249999999997, and
   ```
 - **Risk**: Frame safety guarantees cannot be enforced across matrix operations; exact equality fails on computed geometric transformations due to machine round-off.
 - **Recommended Direction**: Provide `almost_equal` overloads with explicit absolute and relative tolerances for all geometry types; distinguish purely numerical `Matrix3` from frame-bound `RotationMatrix3`.
+- **Remediation**:
+  - **Status**: REMEDIATED
+  - **Remediation Commit**: `refactor(geometry): formalize frame-safe rotation semantics`, `feat(geometry): unify tolerance-aware comparisons`, `test(geometry): enforce frame and rotation equivalence contracts`
+  - **Verification**:
+    - `tests/Geometry/GeometryComparisonTest.cpp`:
+      - Exact structural equality (`operator==`, `operator!=`) tested for `Vector3`, `Point3`, `Matrix3`, `UnitVector3`, `RotationMatrix3`, `Transform3`, `Quaternion`.
+      - Tolerance-aware `AlmostEqual` tested with explicit absolute and relative tolerances across all geometry types.
+      - $SO(3)$ rotational equivalence `RotationEquivalent` tested for $\mathbf{q}$ and $-\mathbf{q}$.
+      - Property test verifying $\mathbf{q} * \mathbf{v} \approx \mathbf{R}(\mathbf{q}) * \mathbf{v}$ with machine precision ($\le 10^{-12}$).
+      - Pipeline rotation composition property test verifying $(\mathbf{R}_{AB} * \mathbf{R}_{BC}) * \mathbf{v}_A = \mathbf{R}_{BC} * (\mathbf{R}_{AB} * \mathbf{v}_A)$ within $10^{-14}$.
+      - Compile-time concept / `static_assert` negative assertions verifying that cross-frame vector operations, cross-frame rotations, and mismatched frame cascades are rejected at compile time.
+      - Compile-time assertion confirming `Matrix3<T>` intentionally remains an unframed generic tensor container.
+      - Generic interoperability test confirming `SolveSymmetricPositiveDefinite3x3` accepts unframed `Matrix3<T>`.
+    - Full test suite: 95/95 tests passing in both clean Debug and Release builds with 0 compiler warnings.
+  - **Resolution**:
+    - Architectural clarification: `Matrix3<T>` intentionally remains an unframed generic numerical tensor container to preserve pure linear algebra routines (SPD solver, covariance, Jacobians) without frame pollution.
+    - Coordinate frame safety is strictly carried and enforced by geometric transformation wrappers (`RotationMatrix3<T, From, To>`, `Transform3<T, From, To>`, `Quaternion<T, From, To>`).
+    - Corrected rotation composition in `RotationMatrix3` to evaluate $\mathbf{M}_{BC} \mathbf{M}_{AB}$ (`rhs.ToMatrix() * dcm_`), maintaining exact mathematical equivalence with vector composition $(R_{AB} * R_{BC}) * v_A = R_{BC} * (R_{AB} * v_A)$.
+    - Added `FromQuaternion` and `ToRotationMatrix` bridging `Quaternion` and `RotationMatrix3`.
+    - Fixed Frobenius norm squared tolerance check in `Detail::CheckRotationInvariants` to $\|R^T R - I\|_F^2 \le \tau^2$.
+    - Unified floating-point comparisons: exact `operator==` retained for storage/sentinel checks, tolerance-aware `AlmostEqual` provided for all geometry types, and `RotationEquivalent` implemented for $SO(3)$ double-cover quaternions.
+    - Formalized conventions in `docs/MATHEMATICAL_CONVENTIONS.md` (Section 20).
 
 ---
 
