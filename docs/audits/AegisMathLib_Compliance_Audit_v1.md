@@ -443,13 +443,14 @@ expected_z evaluates to 4.9033249999999997, and
       - Exact component-wise value equality (`operator==`, `operator!=`) tested for `Vector3`, `Point3`, `Matrix3`, `UnitVector3`, `RotationMatrix3`, `Transform3`, `Quaternion`, explicitly verifying $+0.0 == -0.0$ and $\text{NaN} \neq \text{NaN}$ under C++ floating-point semantics.
       - Tolerance-aware `AlmostEqual` tested with explicit absolute and relative tolerances across all geometry types.
       - $SO(3)$ rotational equivalence `RotationEquivalent` tested for $\mathbf{q}$ and non-canonical $-\mathbf{q}$, verifying sign-invariance and tolerance properties on nontrivial rotations ($\theta \neq 0$).
+      - 180-degree rotation boundary ($\theta = \pi, w = 0$) and near-zero sign determinism ($w = \pm 10^{-16}$) verified under Option A construction-time canonicalization and transitional mutability policy.
       - Property test verifying $\mathbf{q} * \mathbf{v} \approx \mathbf{R}(\mathbf{q}) * \mathbf{v}$ with machine precision ($\le 10^{-12}$).
       - Pipeline rotation composition property test verifying $(\mathbf{R}_{AB} * \mathbf{R}_{BC}) * \mathbf{v}_A \approx \mathbf{R}_{BC} * (\mathbf{R}_{AB} * \mathbf{v}_A)$ within $10^{-14}$.
       - Compile-time concept / `static_assert` negative assertions verifying that cross-frame vector operations, cross-frame rotations, and mismatched frame cascades are rejected at compile time.
       - Compile-time type assertion confirming `decltype(R_AB * R_BC)` evaluates to `RotationMatrix3<double, FrameA, FrameC>`.
       - Compile-time assertion confirming `Matrix3<T>` intentionally remains an unframed generic tensor container.
       - Generic interoperability test confirming `SolveSymmetricPositiveDefinite3x3` accepts unframed `Matrix3<T>`.
-    - Full test suite: 95/95 tests passing in both clean Debug and Release builds with 0 compiler warnings.
+    - Full test suite: 97/97 tests passing in both clean Debug and Release builds with 0 compiler warnings.
   - **Resolution**:
     - The original frame-safety concern was valid. The remediation recommendation was refined: generic `Matrix3<T>` intentionally remains frame-agnostic (unframed) to preserve pure numerical linear algebra routines (such as $LDL^T$ SPD solver, covariance blocks, Jacobians) without frame pollution, while frame semantics are strictly carried and enforced in semantic geometry wrappers (`RotationMatrix3<T, From, To>`, `Transform3<T, From, To>`, `Quaternion<T, From, To>`).
     - Exact stored-value equality and tolerance-aware numerical comparison are now explicitly separated across all geometry types: `operator==`/`operator!=` provide exact component-wise C++ floating-point value equality, while `AlmostEqual` provides dual absolute/relative tolerance checks.

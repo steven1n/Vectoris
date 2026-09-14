@@ -468,10 +468,11 @@ In compliance with Rule 9 ("Never trust floating-point equality"):
 2. **Tolerance-Aware Closeness (`AlmostEqual`)**:
    - All geometry types (`Vector3`, `Point3`, `Matrix3`, `UnitVector3`, `RotationMatrix3`, `Transform3`, `Quaternion`) provide `AlmostEqual(a, b, abs_tol, rel_tol)` delegating to `Traits::AlmostEqual`.
    - Thresholds combine absolute and relative tolerances: $|a - b| \le \max(\text{abs\_tol}, \text{rel\_tol} \times \max(|a|, |b|))$.
-3. **Rotational Equivalence (`RotationEquivalent`) & Canonicalization**:
+3. **Rotational Equivalence (`RotationEquivalent`) & Canonicalization Policy**:
    - Quaternions represent $SO(3)$ rotations via a double cover ($\mathbb{S}^3 \to SO(3)$), meaning $\mathbf{q}$ and $-\mathbf{q}$ represent the identical physical orientation.
-   - **Canonical Representation**: Public construction via `Quaternion::TryCreate` enforces a canonical sign representation ($w \ge 0$), collapsing the double cover to a single canonical representative at construction.
-   - **Sign-Invariant Comparison**: `RotationEquivalent(q1, q2)` checks both $\mathbf{q}_1 \approx \mathbf{q}_2$ and $\mathbf{q}_1 \approx -\mathbf{q}_2$, providing robust tolerance-aware equivalence for un-canonicalized, legacy, or numerical sign-flipped instances.
+   - **Construction-Time Sign Normalization (Option A)**: `Quaternion::TryCreate` applies exact deterministic sign normalization (`w < 0 -> negate`), guaranteeing $w \ge 0$ whenever $w \ne 0$. For 180-degree pure vector rotations where $w == 0$ (e.g. $[0, 1, 0, 0]$ and $[0, -1, 0, 0]$), sign canonicalization is degenerate and does not enforce lexicographical uniqueness on the vector part.
+   - **Transitional Mutability Policy**: Quaternion components (`w, x, y, z`) remain public data members to satisfy standard-layout / trivially copyable ABI constraints for embedded telemetry and hardware DMA buffers. Therefore, canonicalization is a construction-time guarantee, NOT an immutable lifetime invariant.
+   - **Independent $SO(3)$ Equivalence**: `RotationEquivalent(q1, q2)` is independent of whether instances are canonical or modified. It checks both $\mathbf{q}_1 \approx \mathbf{q}_2$ and $\mathbf{q}_1 \approx -\mathbf{q}_2$, providing robust tolerance-aware $SO(3)$ equivalence across all orientations, including $\theta = \pi$ ($w = 0$), near-zero $w$, and non-canonical representations.
 4. **Rotation Invariant Tolerance**:
    - The orthogonality check $\mathbf{R}^T \mathbf{R} \approx \mathbf{I}$ uses the squared Frobenius norm:
      $$\|\mathbf{R}^T \mathbf{R} - \mathbf{I}\|_F^2 \le \tau^2$$
