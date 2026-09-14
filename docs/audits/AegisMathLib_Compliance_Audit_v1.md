@@ -367,18 +367,20 @@ expected_z evaluates to 4.9033249999999997, and
 - **Risk**: Dimensional errors (e.g. pounds vs kilograms, degrees/s vs rad/s) can pass through API boundaries undetected, replicating historical aerospace catastrophic failures (e.g., Mars Climate Orbiter).
 - **Recommended Direction**: Integrate `Units::Mass` and typed quantity vectors into `RigidBodyParameters` and `KinematicState`.
 - **Remediation**:
-  - **Status**: REMEDIATION UNDER DIMENSIONAL REVIEW
-  - **Remediation Commit**: `2418e94`, `a612ddf`, `cc95094`
+  - **Status**: REMEDIATED
+  - **Remediation Commit**: `2418e94`, `a612ddf`, `cc95094`, `f322317`, `1cf9a86`
   - **Verification**:
-    - `tests/Dynamics/DynamicsUnitsTest.cpp` (compile-time negative concept/`static_assert` assertions preventing raw scalar assignment, dimensional mixing, force-to-torque conversion, torque-to-energy conversion, and inertia-to-mass*length^2 conversion; compile-time identities for $I\alpha=\tau$, $\tau\omega=P$, $P/\omega=\tau$, $\tau/\alpha=I$; positive rotational dynamic algebra verification).
-    - `tests/Units/UnitsTest.cpp` (`RotationalAndInertiaUnits` validating Model B compile-time dimensional exponents, SI ratios, native `operator*`/`operator/` without `.value()`, and user-defined literals `_rad_s`, `_rad_s2`, `_Nm`, `_kg_m2`, `_W`).
+    - `tests/Dynamics/DynamicsUnitsTest.cpp` (compile-time negative concept/`static_assert` assertions preventing raw scalar assignment, dimensional mixing, force-to-torque conversion, torque-to-energy conversion, inertia-to-mass*length^2 conversion, and ordinary cross product in place of Lie bracket; compile-time identities for $I\alpha=\tau$, $\tau\omega=P$, $P/\omega=\tau$, $\tau/\alpha=I$, $I\omega=L$, $\operatorname{RotationalCross}(\omega, L)=\tau$, $\tau - \operatorname{RotationalCross}(\omega, I\omega)=\tau$; positive rotational dynamic algebra verification).
+    - `tests/Units/UnitsTest.cpp` (`RotationalAndInertiaUnits` validating Model B compile-time dimensional exponents, SI ratios, AngularMomentum concept/ABI, native `operator*`/`operator/` without `.value()`, and user-defined literals `_rad_s`, `_rad_s2`, `_Nm`, `_kg_m2`, `_W`).
     - `tests/Dynamics/DynamicsABITest.cpp` (zero-cost abstraction verified: `sizeof(QuantityVector3) == 24`, standard layout, trivial copyability matching standard C arrays).
     - `tests/Dynamics/PropagationTest.cpp`, `RigidBodyStateTest.cpp`, `Twist6Test.cpp`, `Wrench6Test.cpp`, `InertiaTensorTest.cpp`, `RegressionFreeFallTest.cpp` all passing without manual scalar bypass.
     - Full test suite: 60/60 tests passing in both Debug and Release (`-DNDEBUG`) builds with 0 compiler warnings.
   - **Resolution**:
-    - Expanded `AegisMath::Units` with rotational, inertia, and power dimensions and SI base units (`AngularVelocity`, `AngularAcceleration`, `Torque`, `MomentOfInertia`, `Power`) and user-defined literals.
+    - Expanded `AegisMath::Units` with rotational, inertia, angular momentum, and power dimensions and SI base units (`AngularVelocity`, `AngularAcceleration`, `AngularMomentum`, `Torque`, `MomentOfInertia`, `Power`) and user-defined literals.
+    - Implemented Model B dimensional closure treating Angle as an independent base dimension ($A$) with compensating inverse-angle exponents for rotational quantities ($[I] = M L^2 A^{-2}$, $[\tau] = M L^2 T^{-2} A^{-1}$, $[L] = M L^2 A^{-1} T^{-1}$), strictly isolating Torque from Energy.
+    - Defined dimension-safe $\mathfrak{so}(3)$ Lie bracket / rotational adjoint operator `RotationalCross(omega, momentum)` normalizing by $1\text{ rad}$, guaranteeing exact Torque dimension for gyroscopic cross terms.
     - Implemented `QuantityVector3<QuantityType, Frame>` in `include/AegisMath/Dynamics/QuantityVector3.h` to couple typed dimensional quantities with coordinate frame tags without polluting `Geometry::Vector3` or violating architectural layering.
-    - Provided standard type aliases `Position3`, `Velocity3`, `Acceleration3`, `AngularVelocity3`, `AngularAcceleration3`, `Force3`, `Torque3`.
+    - Provided standard type aliases `Position3`, `Velocity3`, `Acceleration3`, `AngularVelocity3`, `AngularAcceleration3`, `AngularMomentum3`, `Force3`, `Torque3`.
     - Integrated Hamiltonian active rotation operator `operator*(const Quaternion<T>&, const QuantityVector3<Quantity<T, Unit>, Frame>&)` into `QuantityVector3.h`.
     - Migrated all Dynamics API boundaries to strong units:
       - `RigidBodyParameters`: `Units::Kilogram<T> mass`, `Position3<T, BodyFrame> centerOfMass`, `InertiaTensor3<T, BodyFrame> inertia` (holding `Units::KilogramMeterSquared<T>`).
@@ -386,7 +388,7 @@ expected_z evaluates to 4.9033249999999997, and
       - `Twist6`: `Velocity3<T, Frame> linear`, `AngularVelocity3<T, Frame> angular`.
       - `Wrench6`: `Force3<T, Frame> force`, `Torque3<T, Frame> moment`, `dot(Twist6)` returning `Units::Watt<T>`.
       - `RigidBodyDynamicsKernel`: input forces/moments typed as `Force3` and `Torque3`, returning `Acceleration3` and `AngularAcceleration3`.
-      - `EulerIntegrator`: time step explicitly typed as `Units::Second<T> dt`.
+      - `EulerIntegrator`: time step explicitly typed as `Units::Second<T> dt`, with $SO(3)$ quaternion kinematics boundary explicitly documented.
 
 ---
 
