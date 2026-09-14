@@ -1,47 +1,53 @@
 #include <gtest/gtest.h>
-#include "AegisMath/Geometry/Vector3.h"
+#include <cmath>
 #include "AegisMath/Dynamics/EulerIntegrator.h"
 #include "AegisMath/Dynamics/RigidBodyParameters.h"
 #include "AegisMath/Dynamics/Wrench6.h"
 #include "AegisMath/Dynamics/InertiaTensor3.h"
 #include "AegisMath/Dynamics/Detail/StateTypes.h"
+#include "AegisMath/Dynamics/QuantityVector3.h"
 
 struct WorldFrame {};
 struct BodyFrame {};
 
 TEST(RegressionFreeFall, VerticalDrop) {
-    double m = 10.0;
+    using namespace AegisMath::Dynamics;
+    using namespace AegisMath::Units;
+
+    Kilogram m{10.0};
     double g = 9.80665;
 
-    AegisMath::Dynamics::InertiaTensor3<double, BodyFrame> inertia(
-        1.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 
-        0.0, 0.0, 1.0
+    using MI = MomentOfInertia;
+    InertiaTensor3<double, BodyFrame> inertia(
+        MI(1.0), MI::Zero(), MI::Zero(),
+        MI::Zero(), MI(1.0), MI::Zero(),
+        MI::Zero(), MI::Zero(), MI(1.0)
     );
 
-    AegisMath::Dynamics::RigidBodyParameters<double, BodyFrame> params(
+    RigidBodyParameters<double, BodyFrame> params(
         m,
-        AegisMath::Geometry::Vector3<double, BodyFrame>(0, 0, 0),
+        Position3<BodyFrame>(),
         inertia
     );
 
-    auto state = AegisMath::Dynamics::KinematicState<double, WorldFrame, BodyFrame>::Create(
-        AegisMath::Geometry::Point3<double, WorldFrame>(0, 0, 0),
+    auto state = KinematicState<double, WorldFrame, BodyFrame>::Create(
+        Position3<WorldFrame>(),
         AegisMath::Geometry::Quaternion<double, BodyFrame, WorldFrame>::TryCreate(1, 0, 0, 0).Value(),
-        AegisMath::Geometry::Vector3<double, BodyFrame>(0, 0, 0),
-        AegisMath::Geometry::Vector3<double, BodyFrame>(0, 0, 0)
+        Velocity3<BodyFrame>(),
+        AngularVelocity3<BodyFrame>()
     );
 
     // 模拟重力向下 (Z轴向下为正，故 Fz = m * g)
-    AegisMath::Dynamics::Wrench6<double, BodyFrame> gravity_wrench(
-        AegisMath::Geometry::Vector3<double, BodyFrame>(0, 0, m * g),
-        AegisMath::Geometry::Vector3<double, BodyFrame>(0, 0, 0)
+    Wrench6<double, BodyFrame> gravity_wrench(
+        Force3<BodyFrame>(Force::Zero(), Force::Zero(), Force(m.value() * g)),
+        Torque3<BodyFrame>()
     );
 
-    double dt = 0.01;
+    double dt_val = 0.01;
+    Second dt{dt_val};
     int steps = 100;
     for (int i = 0; i < steps; ++i) {
-        AegisMath::Dynamics::EulerIntegrator::Step(state, params, gravity_wrench, dt);
+        EulerIntegrator::Step(state, params, gravity_wrench, dt);
     }
 
     // 半隐式欧拉精确离散递推真值:
@@ -50,45 +56,50 @@ TEST(RegressionFreeFall, VerticalDrop) {
     // z_N = z_0 + N * v_0 * dt + g * dt^2 * (N * (N + 1) / 2)
     // 对于 z_0 = 0, v_0 = 0:
     // z_N = 0.5 * g * t^2 + 0.5 * g * t * dt
-    double expected_discrete_z = g * (dt * dt) * (static_cast<double>(steps * (steps + 1)) / 2.0);
-    EXPECT_NEAR(state.position.z, expected_discrete_z, 1e-9);
+    double expected_discrete_z = g * (dt_val * dt_val) * (static_cast<double>(steps * (steps + 1)) / 2.0);
+    EXPECT_NEAR(state.position.z.value(), expected_discrete_z, 1e-9);
 }
 
 TEST(RegressionFreeFall, FirstOrderConvergence) {
-    double m = 10.0;
+    using namespace AegisMath::Dynamics;
+    using namespace AegisMath::Units;
+
+    Kilogram m{10.0};
     double g = 9.80665;
     double t_total = 1.0;
     double z_continuous_analytical = 0.5 * g * t_total * t_total;
 
-    AegisMath::Dynamics::InertiaTensor3<double, BodyFrame> inertia(
-        1.0, 0.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 0.0, 1.0
+    using MI = MomentOfInertia;
+    InertiaTensor3<double, BodyFrame> inertia(
+        MI(1.0), MI::Zero(), MI::Zero(),
+        MI::Zero(), MI(1.0), MI::Zero(),
+        MI::Zero(), MI::Zero(), MI(1.0)
     );
 
-    AegisMath::Dynamics::RigidBodyParameters<double, BodyFrame> params(
+    RigidBodyParameters<double, BodyFrame> params(
         m,
-        AegisMath::Geometry::Vector3<double, BodyFrame>(0, 0, 0),
+        Position3<BodyFrame>(),
         inertia
     );
 
-    auto simulate = [&](double dt, int steps) {
-        auto state = AegisMath::Dynamics::KinematicState<double, WorldFrame, BodyFrame>::Create(
-            AegisMath::Geometry::Point3<double, WorldFrame>(0, 0, 0),
+    auto simulate = [&](double dt_val, int steps) {
+        auto state = KinematicState<double, WorldFrame, BodyFrame>::Create(
+            Position3<WorldFrame>(),
             AegisMath::Geometry::Quaternion<double, BodyFrame, WorldFrame>::TryCreate(1, 0, 0, 0).Value(),
-            AegisMath::Geometry::Vector3<double, BodyFrame>(0, 0, 0),
-            AegisMath::Geometry::Vector3<double, BodyFrame>(0, 0, 0)
+            Velocity3<BodyFrame>(),
+            AngularVelocity3<BodyFrame>()
         );
 
-        AegisMath::Dynamics::Wrench6<double, BodyFrame> gravity_wrench(
-            AegisMath::Geometry::Vector3<double, BodyFrame>(0, 0, m * g),
-            AegisMath::Geometry::Vector3<double, BodyFrame>(0, 0, 0)
+        Wrench6<double, BodyFrame> gravity_wrench(
+            Force3<BodyFrame>(Force::Zero(), Force::Zero(), Force(m.value() * g)),
+            Torque3<BodyFrame>()
         );
 
+        Second dt{dt_val};
         for (int i = 0; i < steps; ++i) {
-            AegisMath::Dynamics::EulerIntegrator::Step(state, params, gravity_wrench, dt);
+            EulerIntegrator::Step(state, params, gravity_wrench, dt);
         }
-        return state.position.z;
+        return state.position.z.value();
     };
 
     // 分别以 dt, dt/2, dt/4 进行仿真，验证误差阶数为 O(dt)

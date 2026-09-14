@@ -68,6 +68,7 @@ add_library(AegisMathLib INTERFACE
         include/AegisMath/Core/MathFunctions.h
         include/AegisMath/Dynamics/Concepts.h
         include/AegisMath/Dynamics/DynamicsConvention.h
+        include/AegisMath/Dynamics/QuantityVector3.h
         include/AegisMath/Dynamics/Detail/DynamicsABI.h
         include/AegisMath/Dynamics/Detail/StateTypes.h
         include/AegisMath/Dynamics/Twist6.h
@@ -132,6 +133,7 @@ add_executable(AegisMathLib_Tests
         tests/Dynamics/RigidBodyStateTest.cpp
         tests/Dynamics/PropagationTest.cpp
         tests/Dynamics/DynamicsABITest.cpp
+        tests/Dynamics/DynamicsUnitsTest.cpp
         tests/Dynamics/Regression/FreeFallTest.cpp
         tests/Architecture/DependencyLayerTest.cpp
 )
