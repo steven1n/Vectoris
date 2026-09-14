@@ -149,13 +149,41 @@ TEST(SymmetricLinearSolver3Test, IndefiniteMatrixDetected) {
 }
 
 TEST(SymmetricLinearSolver3Test, IllConditionedMatrixDetected) {
-    // 病态矩阵: 主元跨度在有效正定但接近奇异边缘
+    // 双精度病态矩阵: 主元跨度在有效正定但接近奇异边缘 (5e-15 > tol_sing=2.22e-15, 但 <= 100*eps=2.22e-14)
     Matrix3<double> A(
         1.0, 0.0, 0.0,
         0.0, 1.0, 0.0,
-        0.0, 0.0, 1e-13
+        0.0, 0.0, 5e-15
     );
     Vector3<double, TestFrame> b(1.0, 1.0, 1.0);
+    auto res = SolveSymmetricPositiveDefinite3x3(A, b);
+    ASSERT_FALSE(res.has_value());
+    EXPECT_EQ(res.error(), MathError::ill_conditioned);
+}
+
+TEST(SymmetricLinearSolver3Test, FloatModerateSPDMatrixPasses) {
+    // 单精度常规正定矩阵应正常求解，不应被过度保守的启发式门限误拒
+    Matrix3<float> A(
+        10.0f,  2.0f,  1.0f,
+         2.0f, 12.0f,  3.0f,
+         1.0f,  3.0f, 15.0f
+    );
+    Vector3<float, TestFrame> b(3.0f, 0.0f, 23.0f);
+    auto res = SolveSymmetricPositiveDefinite3x3(A, b);
+    ASSERT_TRUE(res.has_value());
+    EXPECT_NEAR(res.value().x, 0.2272727f, 1e-4f);
+    EXPECT_NEAR(res.value().y, -0.4393939f, 1e-4f);
+    EXPECT_NEAR(res.value().z, 1.6060606f, 1e-4f);
+}
+
+TEST(SymmetricLinearSolver3Test, FloatIllConditionedMatrixDetected) {
+    // 单精度病态矩阵检测 (5e-6 > tol_sing=1.19e-6, 但 <= 100*eps=1.19e-5)
+    Matrix3<float> A(
+        1.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 5e-6f
+    );
+    Vector3<float, TestFrame> b(1.0f, 1.0f, 1.0f);
     auto res = SolveSymmetricPositiveDefinite3x3(A, b);
     ASSERT_FALSE(res.has_value());
     EXPECT_EQ(res.error(), MathError::ill_conditioned);

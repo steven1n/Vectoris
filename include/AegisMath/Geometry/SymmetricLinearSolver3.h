@@ -34,12 +34,17 @@ namespace AegisMath::Geometry {
      * @brief 求解 3x3 对称正定线性方程组: A * x = b
      * 
      * 遵循 Solve-Not-Invert 原则 (Engineering Standard v1.0 Section 18)。
-     * 采用无平方根的解析 LDL^T 分解 (A = L * D * L^T):
-     *   - 无需计算平方根，保证 ISO C++20 纯 constexpr 语义与高执行效率。
-     *   - 零堆动态分配，所有计算均在寄存器/栈上就地完成。
-     *   - 严格具备尺度敏感的对称性检查、奇异性判定、负定/不定性诊断以及条件数超限诊断。
+     * 针对 3x3 对称正定线性系统设计，采用确定性无选主元的解析 LDL^T 分解 (A = L * D * L^T)
+     * 与两层数值可靠性策略：
+     *   - Layer A (结构与正定性判定): 严格检测输入有限性 (isfinite)、矩阵对称性 (|A_ij - A_ji| <= tol_sym)
+     *     以及主元正定性 (d_k > tol_sing)。
+     *   - Layer B (解算质量与反向误差控制):
+     *       1. LDLT pivot-spread safeguard (主元跨度启发式防线): min(d) / max(d) <= eps * 100 即判定病态。
+     *       2. Oettli-Prager scale-aware backward error 验证: ||r||_inf / (||A||_inf * ||x||_inf + ||b||_inf) <= 100 * eps。
+     *   - 零平方根计算，保证 ISO C++20 纯 constexpr 语义。
+     *   - 零堆动态分配，所有计算在寄存器/栈上就地完成。
      * 
-     * @tparam T 浮点精度类型 (float, double, long double)
+     * @tparam T 浮点精度类型 (float, double)
      * @tparam Frame 空间坐标系标签
      * @param A 3x3 对称正定矩阵
      * @param b 3x1 目标向量 (保留 FrameTag 坐标系语义)
@@ -114,11 +119,12 @@ namespace AegisMath::Geometry {
             return ResultType(Core::MathError::singular_matrix);
         }
 
-        // 5. 条件数估算 (主元极值比)
+        // 5. LDLT 主元跨度启发式防线 (Pivot-Spread Safeguard)
+        // 浮点与双精度自适应：比值接近机器浮点噪声下限即判定为病态
         const T min_d = Detail::ConstexprMin(d1, Detail::ConstexprMin(d2, d3));
         const T max_d = Detail::ConstexprMax(d1, Detail::ConstexprMax(d2, d3));
-        const T tol_ill = Detail::ConstexprMax(eps * static_cast<T>(100000.0), static_cast<T>(1e-10));
-        if (min_d / max_d <= tol_ill) {
+        const T tol_pivot_spread = eps * static_cast<T>(100.0);
+        if (min_d / max_d <= tol_pivot_spread) {
             return ResultType(Core::MathError::ill_conditioned);
         }
 
@@ -139,6 +145,34 @@ namespace AegisMath::Geometry {
 
         if (!Traits::IsFinite(x0) || !Traits::IsFinite(x1) || !Traits::IsFinite(x2)) {
             return ResultType(Core::MathError::ill_conditioned);
+        }
+
+        // 9. 反向误差与残差控制 (Scale-aware backward error)
+        // r = A*x - b
+        const T r0 = A(0, 0)*x0 + A(0, 1)*x1 + A(0, 2)*x2 - b.x;
+        const T r1 = A(1, 0)*x0 + A(1, 1)*x1 + A(1, 2)*x2 - b.y;
+        const T r2 = A(2, 0)*x0 + A(2, 1)*x1 + A(2, 2)*x2 - b.z;
+
+        const T r_inf = Detail::ConstexprMax(Detail::ConstexprAbs(r0),
+            Detail::ConstexprMax(Detail::ConstexprAbs(r1), Detail::ConstexprAbs(r2)));
+
+        const T row0_sum = Detail::ConstexprAbs(A(0, 0)) + Detail::ConstexprAbs(A(0, 1)) + Detail::ConstexprAbs(A(0, 2));
+        const T row1_sum = Detail::ConstexprAbs(A(1, 0)) + Detail::ConstexprAbs(A(1, 1)) + Detail::ConstexprAbs(A(1, 2));
+        const T row2_sum = Detail::ConstexprAbs(A(2, 0)) + Detail::ConstexprAbs(A(2, 1)) + Detail::ConstexprAbs(A(2, 2));
+        const T A_inf = Detail::ConstexprMax(row0_sum, Detail::ConstexprMax(row1_sum, row2_sum));
+
+        const T x_inf = Detail::ConstexprMax(Detail::ConstexprAbs(x0),
+            Detail::ConstexprMax(Detail::ConstexprAbs(x1), Detail::ConstexprAbs(x2)));
+        const T b_inf = Detail::ConstexprMax(Detail::ConstexprAbs(b.x),
+            Detail::ConstexprMax(Detail::ConstexprAbs(b.y), Detail::ConstexprAbs(b.z)));
+
+        const T denom = A_inf * x_inf + b_inf;
+        if (denom > T{0}) {
+            const T eta = r_inf / denom;
+            constexpr T kBackwardErrorBound = static_cast<T>(100.0);
+            if (eta > kBackwardErrorBound * eps) {
+                return ResultType(Core::MathError::ill_conditioned);
+            }
         }
 
         return ResultType::success(Vector3<T, Frame>(x0, x1, x2));
