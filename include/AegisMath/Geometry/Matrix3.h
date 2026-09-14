@@ -1,7 +1,7 @@
 #pragma once
 #include <cstddef>
 #include <limits>
-#include "AegisMath/Dynamics/Concepts.h"
+#include "Concepts.h"
 #include "Detail/ABI.h"
 #include "Traits.h"
 #include "Vector3.h"

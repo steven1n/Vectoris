@@ -1,6 +1,6 @@
 #pragma once
 #include <cstddef>
-#include "AegisMath/Dynamics/Concepts.h"
+#include "Concepts.h"
 #include "FrameTags.h"
 #include "Vector3.h"
 #include "Detail/ABI.h"

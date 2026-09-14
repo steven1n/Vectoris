@@ -1,5 +1,5 @@
 #pragma once
-#include "AegisMath/Dynamics/Concepts.h"
+#include "Concepts.h"
 
 namespace AegisMath::Geometry {
 

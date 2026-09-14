@@ -123,6 +123,7 @@ add_executable(AegisMathLib_Tests
         tests/Dynamics/PropagationTest.cpp
         tests/Dynamics/DynamicsABITest.cpp
         tests/Dynamics/Regression/FreeFallTest.cpp
+        tests/Architecture/DependencyLayerTest.cpp
 )
 
 # 精准挂载：只要求我们的测试代码做到零警告
