@@ -118,16 +118,15 @@ TEST(RigidBodyStateTest, ZeroAngularVelocityDegeneration) {
     auto res = RigidBodyDynamicsKernel<double, WorldFrame, BodyFrame>::ComputeDerivative(state, params, wrench);
     ASSERT_TRUE(res.has_value());
 
-    // 验证 I * alpha ≈ tau_ext
-    auto I_alpha = inertia.Multiply(AngularVelocity3<BodyFrame>(
-        AngularVelocity(res.value().angular.x.value()),
-        AngularVelocity(res.value().angular.y.value()),
-        AngularVelocity(res.value().angular.z.value())
-    ));
-    // I_alpha 数值应与 tau_ext 严格一致
-    EXPECT_NEAR(I_alpha.x.value(), torque_ext.x.value(), 1e-13);
-    EXPECT_NEAR(I_alpha.y.value(), torque_ext.y.value(), 1e-13);
-    EXPECT_NEAR(I_alpha.z.value(), torque_ext.z.value(), 1e-13);
+    // 验证 I * alpha ≈ tau_ext (使用强类型 Multiply 运算，无 .value() 标量重解释)
+    Torque3<BodyFrame> reconstructed_tau = inertia.Multiply(res.value().angular);
+    static_assert(std::is_same_v<decltype(reconstructed_tau), Torque3<BodyFrame>>,
+        "Inertia * AngularAcceleration must yield Torque3.");
+
+    // reconstructed_tau 数值应与 tau_ext 严格一致
+    EXPECT_NEAR(reconstructed_tau.x.value(), torque_ext.x.value(), 1e-13);
+    EXPECT_NEAR(reconstructed_tau.y.value(), torque_ext.y.value(), 1e-13);
+    EXPECT_NEAR(reconstructed_tau.z.value(), torque_ext.z.value(), 1e-13);
 }
 
 // Test D: 无外力矩非对称刚体转动测试 (Torque-free asymmetric body):

@@ -100,7 +100,8 @@ namespace AegisMath::Dynamics {
         }
 
         // 惯量张量乘角速度：I * omega (返回角动量)
-        constexpr AngularMomentum3<Frame, T>
+        // [I * omega] = [M L^2 A^-2] * [A T^-1] = [M L^2 A^-1 T^-1] = [AngularMomentum]
+        [[nodiscard]] constexpr AngularMomentum3<Frame, T>
         Multiply(const AngularVelocity3<Frame, T>& w) const noexcept {
             using ResQ = Units::Quantity<T, AngularMomentumUnit>;
             return AngularMomentum3<Frame, T>(
@@ -108,6 +109,28 @@ namespace AegisMath::Dynamics {
                 ResQ(iyx * w.x + iyy * w.y + iyz * w.z),
                 ResQ(izx * w.x + izy * w.y + izz * w.z)
             );
+        }
+
+        // 惯量张量乘角加速度：I * alpha (返回力矩)
+        // [I * alpha] = [M L^2 A^-2] * [A T^-2] = [M L^2 A^-1 T^-2] = [Torque]
+        [[nodiscard]] constexpr Torque3<Frame, T>
+        Multiply(const AngularAcceleration3<Frame, T>& alpha) const noexcept {
+            using ResQ = Units::Quantity<T, Units::NewtonMeterUnit>;
+            return Torque3<Frame, T>(
+                ResQ(ixx * alpha.x + ixy * alpha.y + ixz * alpha.z),
+                ResQ(iyx * alpha.x + iyy * alpha.y + iyz * alpha.z),
+                ResQ(izx * alpha.x + izy * alpha.y + izz * alpha.z)
+            );
+        }
+
+        [[nodiscard]] friend constexpr AngularMomentum3<Frame, T>
+        operator*(const InertiaTensor3& I, const AngularVelocity3<Frame, T>& w) noexcept {
+            return I.Multiply(w);
+        }
+
+        [[nodiscard]] friend constexpr Torque3<Frame, T>
+        operator*(const InertiaTensor3& I, const AngularAcceleration3<Frame, T>& alpha) noexcept {
+            return I.Multiply(alpha);
         }
 
         // 强类型转动方程直接求解：I * alpha = tau ==> alpha = SolveSPD(I, tau)
