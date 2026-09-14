@@ -28,7 +28,7 @@ However, the audit identified **critical mathematical bugs, coordinate frame mix
 | **Conforming Strengths** | **8** | C++20 clean build, zero heap allocation, zero mutable global state, dimensional analysis |
 | **Tests Executed** | **18** | **17 PASSED, 1 FAILED** (`RegressionFreeFall.VerticalDrop`) |
 | **Compiler Warnings** | **0** | Zero warnings under `-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror` |
-| **Undocumented Deviations** | **22** | Zero `AML-DEVIATION` tags in codebase (100% of standard deviations are undocumented) |
+| **Documented Intentional Deviations** | **0** | Zero formal `AML-DEVIATION` tags in codebase (true bugs must be fixed, not masked as deviations) |
 
 ---
 
@@ -156,7 +156,7 @@ expected_z evaluates to 4.9033249999999997, and
 | **Testing Coverage** | **Non-Conforming** | Only 18 tests; critical classes (`Matrix3`, `RotationMatrix3`, `UnitVector3`, `MathFunctions`) have 0 tests. |
 | **Static Analysis & Sanitizers**| **Not Verified** | Clang-tidy, cppcheck, ASan, UBSan are not configured in CMake build. |
 | **Documentation & Specs** | **Non-Conforming** | Zero `docs/<module>.md` module specification documents exist. |
-| **Deviations Governance** | **Non-Conforming** | Zero `AML-DEVIATION` tags exist; all standard violations are currently undocumented. |
+| **Deviations Governance** | **Documented: 0** | Zero formal `AML-DEVIATION` tags exist; true bugs are distinguished from technical debt and intentional deviations. |
 
 ---
 
@@ -437,13 +437,13 @@ expected_z evaluates to 4.9033249999999997, and
 
 ---
 
-### AML-MED-008: Undocumented Standard Deviations (Zero AML-DEVIATION Tags)
+### AML-MED-008: Absence of Formal Deviation Tracking (Zero AML-DEVIATION Tags)
 - **Governing Rule**: Section 101 & 102 (Mandatory Formal Deviation Records)
 - **Location**: Global codebase
 - **Evidence**:
-  Grep for `AML-DEVIATION` yields zero occurrences across all headers and source files. Every divergence from the standard (such as raw physical scalars, reversed quaternion multiplication, exact zero comparisons) is currently undocumented.
+  Grep for `AML-DEVIATION` yields zero occurrences across all headers and source files. Standard governance mandates distinguishing true bugs (which must be fixed) from intentional design trade-offs (which must be registered as formal deviations). Currently, documented intentional deviations: 0.
 - **Risk**: Violates auditability and governance enforcement.
-- **Recommended Direction**: Register all justified deviations with formal `AML-DEVIATION` comments.
+- **Recommended Direction**: Distinguish true bugs from architectural trade-offs; register only justified, approved deviations with formal `AML-DEVIATION` comments.
 
 ---
 
@@ -575,7 +575,7 @@ The following subsystems defined in `docs/ENGINEERING_STANDARD_V1.md` are **Not 
 - **Property-Based Tests**: None. Mathematical invariants ($R R^T = I$, $q q^* = 1$, $\det(R) = 1$, $A \cdot \text{solve}(A, b) = b$) are not tested.
 - **Golden / Reference Tests**: Absent. No verification against SciPy, NumPy, or published analytical solutions.
 - **Regression Tests**: `FreeFallTest` exists as a regression test, but it is **currently failing**.
-- **Coverage**: No test coverage instrumentation configured in CMake. Estimated line coverage of implemented headers is $< 30\%$.
+- **Coverage**: Coverage: Not Measured. (No test coverage instrumentation configured in CMake; inspection suggests substantial coverage gaps across uninstantiated templates and untested math headers).
 
 ### 13.2 Static Analysis & Sanitizers
 - **Compiler Warnings**: Fully compliant with `-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror` under AppleClang 17.0.0.
@@ -597,7 +597,7 @@ The following subsystems defined in `docs/ENGINEERING_STANDARD_V1.md` are **Not 
 - **CI Configuration**: No automated GitHub Actions or CI pipeline workflow files found in `.github/workflows/`.
 - **Definition of Done (DoD)**: Fails DoD Section 124 criteria:
   - Fails passing tests requirement (1 test failing).
-  - Fails coverage requirement (coverage unmeasured; $<30\%$).
+  - Fails coverage requirement (coverage unmeasured).
   - Fails module specification requirement (zero module docs).
 
 ---
