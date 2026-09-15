@@ -203,7 +203,7 @@ All exported quantity types must satisfy `Detail::ValidateQuantityABI<Q>()`:
 - `std::is_standard_layout_v<Quantity<T, Unit>> == true`
 - `std::is_trivially_copyable_v<Quantity<T, Unit>> == true`
 
-These traits guarantee that `Quantity` introduces zero runtime memory or padding overhead beyond the underlying scalar `T`. While standard layout and trivial copyability allow predictable memory representations and low-overhead integration, portability across differing compiler ABI specifications or network wire formats depends on platform conventions.
+These checks confirm that `Quantity` stores one scalar value and introduces no additional per-object storage or padding beyond that scalar under the verified ABI checks. While standard layout and trivial copyability allow predictable memory representations and low-overhead integration, portability across differing compiler ABI specifications or network wire formats depends on platform conventions.
 
 ---
 

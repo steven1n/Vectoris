@@ -10,18 +10,15 @@
 
 ---
 
-## 1. Purpose
+## 1. Purpose & Authority Model
 
 This document defines the mathematical conventions used throughout AegisMathLib to eliminate ambiguity across coordinate frames, spatial transformations, attitude representations, dimensional algebra, and physical equations.
 
-For detailed API definitions, consult the respective module specifications:
-- [`docs/core.md`](core.md) — Fundamental types, scalar policy, numerical traits, error model.
-- [`docs/units.md`](units.md) — Model B 8D dimensional system, unit tags, derived units.
-- [`docs/geometry.md`](geometry.md) — Frame safety, matrices, quaternions, equality model.
-- [`docs/dynamics.md`](dynamics.md) — Rigid-body dynamics, inertia tensor, Euler integrator.
-- [`docs/DEVIATIONS.md`](DEVIATIONS.md) — Formal approved deviations ledger.
-
----
+### Documentation Authority & Precedence
+- **Normative SSOT**: [`docs/ENGINEERING_STANDARD_V1.md`](ENGINEERING_STANDARD_V1.md) is the authoritative Single Source of Truth for all mathematical, engineering, and coding requirements.
+- **Scoped Exception Mechanism**: [`docs/DEVIATIONS.md`](DEVIATIONS.md) is the Engineering Standard's formally authorized scoped exception mechanism per Sections 101 & 102.
+- **Conventions & Specifications Hierarchy**: This conventions document and all subsystem module specifications ([`docs/core.md`](core.md), [`docs/units.md`](units.md), [`docs/geometry.md`](geometry.md), [`docs/dynamics.md`](dynamics.md)) must strictly conform to the **Engineering Standard plus applicable registered deviations**.
+- **Historical Evidence**: Audit reports ([`docs/audits/`](audits/)) provide historical evidence and qualification ledgers only; they carry zero normative authority to alter or define requirements.
 
 ## 2. Numerical Convention
 
@@ -114,8 +111,8 @@ All internal angles are strictly represented in **Radians** ($[A^1]$).
 ---
 
 ## 7. Frame Transformation Pipeline Composition
-
-Per **AML-DEVIATION-001**, `operator*` on `RotationMatrix3` and `Quaternion` implements a **left-to-right transformation pipeline syntax**:
+ 
+As standardized in AegisMathLib (historically registered as AML-DEVIATION-001 before confirmation of full standard compliance with Sections 22–24), `operator*` on `RotationMatrix3` and `Quaternion` implements a **left-to-right transformation pipeline convention**:
 
 $$\mathbf{R}_{A \to B} * \mathbf{R}_{B \to C} \implies \mathbf{R}_{A \to C}$$
 

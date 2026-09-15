@@ -40,7 +40,7 @@ Lower layers NEVER depend on higher layers. Cyclic dependencies and umbrella hea
 
 ### 2. [`Units`](docs/units.md) (Layer 1)
 - **Model B 8-Dimensional Physical System**: Treats Plane Angle ($A$) as an independent base dimension alongside Length, Mass, Time, Current, Temperature, Amount, and Luminosity.
-- Strongly typed `Quantity<T, Unit>` with zero runtime overhead: `sizeof(Quantity) == sizeof(Scalar)`.
+- Strongly typed `Quantity<T, Unit>` introducing no per-object storage overhead beyond the underlying scalar (`sizeof(Quantity) == sizeof(Scalar)`).
 - 8 Base Units (`Meter`, `Second`, `Kilogram`, `Radian`, `Kelvin`, `Ampere`, `Mole`, `Candela`).
 - 10 Derived Units (`Velocity`, `Acceleration`, `Force`, `Frequency`, `AngularVelocity`, `AngularAcceleration`, `Torque`, `MomentOfInertia`, `Power`, `AngularMomentum`).
 - Compensating inverse-angle exponents ensuring strict dimensional separation between Torque ($[M L^2 T^{-2} A^{-1}]$) and Energy ($[M L^2 T^{-2} A^0]$).
@@ -92,19 +92,36 @@ cmake --build build --target AegisMathLib_HeaderIsolation --parallel
 
 ---
 
-## Documentation Map
+## Documentation Authority & Inventory
 
-| Document | Purpose |
-| :--- | :--- |
-| [`docs/ENGINEERING_STANDARD_V1.md`](docs/ENGINEERING_STANDARD_V1.md) | Single Source of Truth (SSOT) for normative engineering, mathematical, and coding rules. |
-| [`docs/MATHEMATICAL_CONVENTIONS.md`](docs/MATHEMATICAL_CONVENTIONS.md) | Cross-module coordinate systems, rotation directions, and mathematical conventions. |
-| [`docs/core.md`](docs/core.md) | Technical specification for the `Core` layer (scalar policy, error model, `sqrt` contract). |
-| [`docs/units.md`](docs/units.md) | Technical specification for the `Units` layer (Model B 8D dimension algebra, unit tags, ABI). |
-| [`docs/geometry.md`](docs/geometry.md) | Technical specification for the `Geometry` layer (frame safety, matrix scope, equality tiers). |
-| [`docs/dynamics.md`](docs/dynamics.md) | Technical specification for the `Dynamics` layer (inertia tensor, dynamics kernel, integrator). |
-| [`docs/DEVIATIONS.md`](docs/DEVIATIONS.md) | Formal approved deviation ledger tracking intentional exceptions to standard rules. |
-| [`docs/audits/AegisMathLib_Compliance_Audit_v1.md`](docs/audits/AegisMathLib_Compliance_Audit_v1.md) | Historical compliance audit tracking all CRITICAL, HIGH, MEDIUM, and LOW findings. |
-| [`docs/audits/AegisMathLib_Stable_Core_Qualification_v1.md`](docs/audits/AegisMathLib_Stable_Core_Qualification_v1.md) | Authoritative qualification matrix, blocker ledger, and verification evidence. |
+### Authority Model & Scoped Precedence
+1. **Normative Baseline (SSOT)**: [`docs/ENGINEERING_STANDARD_V1.md`](docs/ENGINEERING_STANDARD_V1.md) is the single source of truth for all normative mathematical, architectural, and engineering rules.
+2. **Authorized Scoped Exceptions**: [`docs/DEVIATIONS.md`](docs/DEVIATIONS.md) is the Engineering Standard's formally authorized exception mechanism per Sections 101 & 102. Within an explicitly registered deviation scope, the registered deviation modifies only the cited rule for the declared component and lifetime; outside that scope, the Standard remains fully authoritative.
+3. **Current Specifications & Overviews**: Subordinate specifications ([`docs/MATHEMATICAL_CONVENTIONS.md`](docs/MATHEMATICAL_CONVENTIONS.md), [`docs/core.md`](docs/core.md), [`docs/units.md`](docs/units.md), [`docs/geometry.md`](docs/geometry.md), [`docs/dynamics.md`](docs/dynamics.md)) and this overview ([`README.md`](README.md)) must strictly conform to the **Engineering Standard plus applicable registered deviations**.
+4. **Audit & Evidence**: Audit documents ([`docs/audits/`](docs/audits/)) record historical findings and live qualification evidence; they carry zero normative authority to modify requirements.
+5. **Deprecated / Historical**: Legacy notes ([`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/CODING_STANDARD.md`](docs/CODING_STANDARD.md), [`CHANGELOG.md`](CHANGELOG.md), [`TECHDEBT.md`](TECHDEBT.md), [`TODO.md`](TODO.md)) are superseded and non-authoritative.
+
+### Complete Documentation Inventory
+
+| Authority Classification | File | Description / Scope |
+| :--- | :--- | :--- |
+| **Entry Point** | [`README.md`](README.md) | Repository overview, subsystem architecture, build commands, and documentation index. |
+| **Normative (SSOT)** | [`docs/ENGINEERING_STANDARD_V1.md`](docs/ENGINEERING_STANDARD_V1.md) | Authoritative Single Source of Truth for engineering rules and coding standards. |
+| **Governance** | [`docs/DEVIATIONS.md`](docs/DEVIATIONS.md) | Formal deviation ledger tracking intentional, scoped exceptions to normative rules. |
+| **Current Specification** | [`docs/MATHEMATICAL_CONVENTIONS.md`](docs/MATHEMATICAL_CONVENTIONS.md) | Cross-module coordinate systems, rotation directions, and transformation pipeline conventions. |
+| **Current Specification** | [`docs/core.md`](docs/core.md) | Core layer specification: scalar types, bounded numerical functions, IEEE-754 traits, error model. |
+| **Current Specification** | [`docs/units.md`](docs/units.md) | Units layer specification: Model B 8D dimensional algebra, unit tags, quantity ABI validation. |
+| **Current Specification** | [`docs/geometry.md`](docs/geometry.md) | Geometry layer specification: frame safety, matrix linear algebra, quaternion conventions, SPD solver. |
+| **Current Specification** | [`docs/dynamics.md`](docs/dynamics.md) | Dynamics layer specification: spatial quantities, rigid-body state, inertia tensor, Euler integrator. |
+| **Audit / Evidence** | [`docs/audits/AegisMathLib_Compliance_Audit_v1.md`](docs/audits/AegisMathLib_Compliance_Audit_v1.md) | Comprehensive compliance audit ledger across all CRITICAL, HIGH, MEDIUM, and LOW findings. |
+| **Audit / Evidence** | [`docs/audits/AegisMathLib_Stable_Core_Qualification_v1.md`](docs/audits/AegisMathLib_Stable_Core_Qualification_v1.md) | Quality qualification matrix, blocker status, header isolation, and DoD evidence. |
+| **Audit / Evidence** | [`docs/audits/EulerIntegrator_Contract_Review.md`](docs/audits/EulerIntegrator_Contract_Review.md) | Mathematical contract review of Euler numerical integrator and coordinate frame mixing. |
+| **Audit / Evidence** | [`docs/audits/P0_Remediation_Closure.md`](docs/audits/P0_Remediation_Closure.md) | Historical verification report for P0 remediation closure (AML-CRIT-001 through 003). |
+| **Deprecated / Historical** | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Legacy pre-V1 architecture specification (superseded by Engineering Standard V1). |
+| **Deprecated / Historical** | [`docs/CODING_STANDARD.md`](docs/CODING_STANDARD.md) | Legacy pre-V1 coding standard (superseded by Engineering Standard V1). |
+| **Deprecated / Historical** | [`CHANGELOG.md`](CHANGELOG.md) | Legacy release notes from initial geometry development. |
+| **Deprecated / Historical** | [`TECHDEBT.md`](TECHDEBT.md) | Legacy technical debt tracking list (superseded by compliance audits). |
+| **Deprecated / Historical** | [`TODO.md`](TODO.md) | Legacy milestone tracking notes (superseded by stable-core qualification). |
 
 ---
 

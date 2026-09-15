@@ -117,7 +117,7 @@ Therefore, the underlying Direction Cosine Matrix multiplication is:
 $$\mathbf{M}_{AC} = \mathbf{M}_{BC} \mathbf{M}_{AB} \quad (\text{i.e. } \texttt{rhs.ToMatrix() * dcm\_})$$
 
 > [!NOTE]
-> This pipeline composition syntax is registered in [`docs/DEVIATIONS.md`](DEVIATIONS.md) under **AML-DEVIATION-001**.
+> This pipeline composition convention is formally documented as a project convention in [`docs/MATHEMATICAL_CONVENTIONS.md`](MATHEMATICAL_CONVENTIONS.md). It satisfies all normative requirements of Sections 22–24 and is tracked as an architectural convention (historically registered as AML-DEVIATION-001 before confirmation of full standard compliance).
 
 ---
 
@@ -145,8 +145,7 @@ $$\mathbf{M}_{AC} = \mathbf{M}_{BC} \mathbf{M}_{AB} \quad (\text{i.e. } \texttt{
 
 ---
 
-## 10. Known Deviations
+## 10. Registered Deviations
 
-1. **AML-DEVIATION-001**: Frame transformation pipeline composition syntax ($R_{AB} * R_{BC} \to R_{AC}$).
-2. **AML-DEVIATION-002**: Public mutable data members (`x, y, z` and `w, x, y, z`) for existing API compatibility and aggregate direct access.
-3. **AML-DEVIATION-003**: Namespace `AegisMath::Geometry` instead of `aegis::math::geometry`.
+1. **AML-DEVIATION-002**: Public mutable data members (`x, y, z` and `w, x, y, z`) for existing API compatibility and aggregate direct access (registered in [`docs/DEVIATIONS.md`](DEVIATIONS.md)).
+2. **AML-DEVIATION-003**: Namespace `AegisMath::Geometry` instead of `aegis::math::geometry` (registered in [`docs/DEVIATIONS.md`](DEVIATIONS.md)).

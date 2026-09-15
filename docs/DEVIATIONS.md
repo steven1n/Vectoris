@@ -12,27 +12,42 @@
 
 ## 1. Overview & Governance
 
-Per Section 101 and Section 102 of Engineering Standard V1, any intentional divergence from normative rules must be formally registered in this ledger. Silent deviations, informal waivers, or undocumented architectural exceptions are strictly prohibited.
+### 1.1 Documentation Authority Model & Scoped Precedence
+- **Default Normative Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](ENGINEERING_STANDARD_V1.md) is the single source of truth (SSOT) for all normative engineering, mathematical, and architectural requirements.
+- **Authorized Scoped Exception Mechanism**: This document (`docs/DEVIATIONS.md`) is the Engineering Standard's formally authorized scoped exception mechanism governed by Sections 101 & 102.
+- **Precedence**:
+  - Within an explicitly registered deviation scope, the applicable registered deviation modifies or overrides **only** the cited normative rule for the stated component, scope, and version lifetime.
+  - Outside that explicitly registered scope, the Engineering Standard remains fully and strictly authoritative.
+  - Project conventions ([`docs/MATHEMATICAL_CONVENTIONS.md`](MATHEMATICAL_CONVENTIONS.md)), module specifications ([`docs/core.md`](core.md), [`docs/units.md`](units.md), [`docs/geometry.md`](geometry.md), [`docs/dynamics.md`](dynamics.md)), and repository overviews ([`README.md`](../README.md)) must strictly conform to the **Engineering Standard plus applicable registered deviations**.
+  - Audit documents ([`docs/audits/`](audits/)) serve as historical evidence and qualification ledgers only; they carry zero normative authority to define or alter rules.
 
-Every registered deviation must include:
-- A unique identifier (`AML-DEVIATION-###`)
-- Affected rule and location
-- Technical rationale and risk evaluation
-- Mitigations and verification test evidence
-- Reviewer, status, and long-term removal / migration plans
+### 1.2 ID Stability & Registration Requirements
+- **Immutable Deviation IDs**: Deviation IDs (`AML-DEVIATION-###`) are strictly immutable once registered. If a deviation is withdrawn, resolved, or reclassified as an API convention, its ID is retired with its historical rationale recorded and is never reused.
+- Every registered deviation record must formally provide:
+  - `Deviation ID` and `Title`
+  - `Affected Rule` (exact section citation from Engineering Standard V1)
+  - `Location` (source files and line ranges)
+  - `Reason` (engineering and mathematical justification)
+  - `Risk` (architectural or operational implications)
+  - `Mitigation` (type safety guards, static assertions, or documentation)
+  - `Verification` (unit/regression test evidence)
+  - `Reviewer` (`Repository Maintainer`)
+  - `Status` and `Removal / Migration Plan`
 
 ---
 
-## 2. Active Deviation Index
+## 2. Deviation Index
 
 | Deviation ID | Title | Module | Standard Rule | Status | Finding Cross-Reference |
 | :--- | :--- | :--- | :--- | :---: | :---: |
-| **AML-DEVIATION-001** | Left-to-Right Frame Transformation Pipeline Composition | `Geometry` | Sec 22, 24 | **REGISTERED / ACCEPTED FOR V1** | `AML-MED-005` |
-| **AML-DEVIATION-002** | Public Mutable Coordinate Data Members | `Geometry` | Sec 9 | **REGISTERED / ACCEPTED FOR V1** | `AML-LOW-002` |
-| **AML-DEVIATION-003** | PascalCase Root Namespace `AegisMath` | Global | Sec 8 | **REGISTERED / ACCEPTED FOR V1** | `AML-LOW-001` |
+| **AML-DEVIATION-001** | Left-to-Right Frame Transformation Pipeline Composition | `Geometry` | Sec 22, 24 | **WITHDRAWN / RECLASSIFIED (NOT A DEVIATION)** | `AML-MED-005` (Remediated) |
+| **AML-DEVIATION-002** | Public Mutable Coordinate Data Members | `Geometry` | Sec 9 | **REGISTERED / MAINTAINER-ACCEPTED FOR V1** | `AML-LOW-002` |
+| **AML-DEVIATION-003** | PascalCase Root Namespace `AegisMath` | Global | Sec 8 | **REGISTERED / MAINTAINER-ACCEPTED FOR V1** | `AML-LOW-001` |
 
 > [!NOTE]
-> `Core::Math::sqrt` non-negative domain clamping (returning `+0.0` for negative values to avoid filter NaN corruption) is a documented module-specific numerical domain policy within `docs/core.md`, rather than an Engineering Standard rule violation, and is therefore tracked as module policy rather than a standard deviation.
+> - **Active Legitimate Deviations**: Exactly 2 active deviations are accepted for v1 (`AML-DEVIATION-002` and `AML-DEVIATION-003`).
+> - **AML-DEVIATION-001 Reclassification**: Detailed in Section 3.1 below. The left-to-right transformation pipeline composition satisfies all normative requirements of Sections 22–24 and is tracked as an API/mathematical convention rather than a standard deviation.
+> - **`Core::Math::sqrt` Domain Clamping**: Non-negative domain clamping (returning `+0.0` for negative values to prevent Kalman filter NaN corruption) is a documented module numerical policy within [`docs/core.md`](core.md), fully permitted under Section 16, and is tracked as module policy rather than a standard deviation.
 
 ---
 
@@ -42,28 +57,24 @@ Every registered deviation must include:
 
 - **Deviation ID**: `AML-DEVIATION-001`
 - **Title**: Left-to-Right Frame Transformation Pipeline Composition
-- **Status**: **REGISTERED / ACCEPTED FOR V1**
-- **Reviewer**: AegisMath Governance & Maintainers
+- **Status**: **WITHDRAWN / RECLASSIFIED (NOT A DEVIATION)**
+- **Reviewer**: Repository Maintainer
 - **Recorded Date**: 2026-09-15
 - **Applicable Version**: 1.0+
 - **Module**: `Geometry`
-- **Affected Rule**: Section 22 / Section 24 (Mathematical composition of rotation operators $R_{\text{net}} = R_2 R_1$)
+- **Affected Rule Citation**: Section 22 / Section 24 (Coordinate frames & rotation matrices)
 - **Location**: `include/AegisMath/Geometry/RotationMatrix3.h:92-98`, `include/AegisMath/Geometry/Quaternion.h:73-83`
-- **Description**:
-  The rotation composition operator `operator*` evaluates frame transformations from left to right as a sequential pipeline:
-  $$\mathbf{R}_{A \to B} * \mathbf{R}_{B \to C} \implies \mathbf{R}_{A \to C}$$
-  Under standard matrix multiplication, $\mathbf{v}_C = \mathbf{M}_{BC} (\mathbf{M}_{AB} \mathbf{v}_A) = (\mathbf{M}_{BC} \mathbf{M}_{AB}) \mathbf{v}_A$. Therefore, the underlying direction cosine matrix implementation multiplies `rhs.ToMatrix() * dcm_` ($\mathbf{M}_{BC} \mathbf{M}_{AB}$), and quaternions compute the reverse Hamilton product ($q_{rhs} \otimes q_{this}$).
-- **Reason**:
-  Left-to-right pipeline chaining (`R_world_body * R_body_sensor`) represents standard intuitive transformation modeling in aerospace, robotics, and graphics pipelines.
-- **Risk**:
-  Developers expecting raw matrix multiplication order ($M_1 M_2$) might assume `R1 * R2` multiplies matrices in lexical order.
-- **Mitigation**:
-  Compile-time frame tags (`FromFrame`, `ToFrame`) statically enforce frame chaining ($A \to B$ can only multiply $B \to C$; $B \to C$ multiplied by $A \to B$ is rejected at compile time).
+- **Reclassification Rationale**:
+  - The rotation composition operator `operator*` evaluates frame transformations from left to right as a sequential pipeline:
+    $$\mathbf{R}_{A \to B} * \mathbf{R}_{B \to C} \implies \mathbf{R}_{A \to C}$$
+  - Under standard linear algebra, transforming a vector from frame $A$ to frame $C$ evaluates:
+    $$\mathbf{v}_C = \mathbf{M}_{BC} (\mathbf{M}_{AB} \mathbf{v}_A) = (\mathbf{M}_{BC} \mathbf{M}_{AB}) \mathbf{v}_A$$
+  - The underlying Direction Cosine Matrix implementation multiplies `rhs.ToMatrix() * dcm_` ($\mathbf{M}_{BC} \mathbf{M}_{AB}$), and quaternions compute the reverse Hamilton product ($q_{rhs} \otimes q_{this}$).
+  - **Normative Rule Analysis**: Engineering Standard Sections 22, 23, and 24 mandate explicit coordinate frames, active rotation conventions, unified multiplication conventions, and orthogonal matrix properties. They do **not** mandate surface syntax operator lexical ordering. The mathematical transformation $\mathbf{v}_C = \mathbf{R}_{BC} (\mathbf{R}_{AB} \mathbf{v}_A)$ is mathematically exact and frame-safe.
+  - **Conclusion**: Current behavior violates zero normative rules of the Engineering Standard. This item is reclassified as a **Documented Mathematical and API Convention** in [`docs/MATHEMATICAL_CONVENTIONS.md`](MATHEMATICAL_CONVENTIONS.md) and [`docs/geometry.md`](geometry.md). Finding `AML-MED-005` is closed as **REMEDIATED**.
 - **Verification**:
   - `tests/Geometry/GeometryComparisonTest.cpp`: `RotationCompositionProperty` passes.
   - `tests/Geometry/AttitudeEngineTest.cpp`: `CascadingOrder_Q002_Fix` passes.
-- **Review Trigger**: Major breaking release (v2.0).
-- **Removal / Migration Plan**: Retained permanently in v1.x; maintain strict syntax across `RotationMatrix3`, `Quaternion`, and `Transform3`.
 
 ---
 
@@ -71,8 +82,8 @@ Every registered deviation must include:
 
 - **Deviation ID**: `AML-DEVIATION-002`
 - **Title**: Public Mutable Coordinate Data Members
-- **Status**: **REGISTERED / ACCEPTED FOR V1**
-- **Reviewer**: AegisMath Governance & Maintainers
+- **Status**: **REGISTERED / MAINTAINER-ACCEPTED FOR V1**
+- **Reviewer**: Repository Maintainer
 - **Recorded Date**: 2026-09-15
 - **Applicable Version**: 1.0+
 - **Module**: `Geometry`
@@ -98,8 +109,8 @@ Every registered deviation must include:
 
 - **Deviation ID**: `AML-DEVIATION-003`
 - **Title**: PascalCase Root Namespace `AegisMath`
-- **Status**: **REGISTERED / ACCEPTED FOR V1**
-- **Reviewer**: AegisMath Governance & Maintainers
+- **Status**: **REGISTERED / MAINTAINER-ACCEPTED FOR V1**
+- **Reviewer**: Repository Maintainer
 - **Recorded Date**: 2026-09-15
 - **Applicable Version**: 1.0+
 - **Module**: Global (`Core`, `Units`, `Geometry`, `Dynamics`)

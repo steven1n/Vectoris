@@ -63,7 +63,7 @@ The `Core` module exposes exactly **10 public headers** under `include/AegisMath
 - **Constrained Function Domain**: `Core::Math::sqrt` is explicitly constrained by `Concepts::SupportedSqrtScalar` to `float` and `double`.
 - **Unsupported Types for Mathematical Kernels**:
   - Integral types (`int`, `long`, `int64_t`) are rejected at compile time for square roots and transcendental functions.
-  - `long double` is unsupported due to platform variability (80-bit x87 on x86 vs 128-bit IEEE quadruple vs 64-bit on MSVC).
+  - `long double` is unsupported: its representation and precision are implementation-defined and vary across toolchains/platforms; it is not part of the supported scalar contract, and there is no current requirement for it.
 
 ---
 
