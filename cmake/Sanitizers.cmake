@@ -24,6 +24,8 @@ function(aegismath_apply_sanitizers TARGET_NAME)
             list(APPEND SANITIZER_COMPILE_FLAGS -fsanitize=undefined -fno-omit-frame-pointer)
             list(APPEND SANITIZER_LINK_FLAGS -fsanitize=undefined)
         endif()
+    else()
+        message(FATAL_ERROR "Sanitizers (ASan/UBSan) are currently supported only for Clang, AppleClang, and GNU GCC. Unsupported compiler: ${CMAKE_CXX_COMPILER_ID}")
     endif()
 
     if(SANITIZER_COMPILE_FLAGS)
