@@ -115,8 +115,8 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
 | **Install / Export Validation** | Sec 89 | **NOT RUN** | FOLLOW-UP QUALIFICATION / PACKAGING DEBT. CMake package export is not an explicit DoD blocker in ENGINEERING_STANDARD_V1.md Sec 124. | **NO** | Packaging Debt |
 | **Clang-Tidy** | Sec 90 | **NOT RUN** | Tool not installed locally; no `.clang-tidy` config file. | **YES** | **P2-D** |
 | **Cppcheck** | Sec 90 | **NOT RUN** | Tool not installed locally; no `cppcheck` config file. | **YES** | **P2-D** |
-| **AddressSanitizer (ASan)** | Sec 88, 124 | **PASS** | Target-scoped `AEGISMATH_ENABLE_ASAN` enabled; 108/108 tests pass with `ASAN_OPTIONS=halt_on_error=1:abort_on_error=1`; zero memory violations; header isolation (68/68 TUs) compiles cleanly; Leak detection: NOT RUN / unavailable on host. | **NO** | Remediated (P2-SAN) |
-| **UndefinedBehaviorSanitizer (UBSan)** | Sec 88, 124 | **PASS** | Target-scoped `AEGISMATH_ENABLE_UBSAN` enabled; 108/108 tests pass with `UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1`; zero undefined behavior diagnostics; header isolation (68/68 TUs) compiles cleanly. | **NO** | Remediated (P2-SAN) |
+| **AddressSanitizer (ASan)** | Sec 88, 124 | **PASS** | Target-scoped `AEGISMATH_ENABLE_ASAN` enabled; 108/108 tests pass with `ASAN_OPTIONS=halt_on_error=1:abort_on_error=1`; no ASan diagnostics observed; header isolation (68/68 TUs) compile-qualified with ASan instrumentation; leak detection: NOT QUALIFIED in P2-SAN (unsupported on macOS host); dynamic init-order checking: NOT SUPPORTED on macOS host. | **NO** | Remediated (P2-SAN) |
+| **UndefinedBehaviorSanitizer (UBSan)** | Sec 88, 124 | **PASS** | Target-scoped `AEGISMATH_ENABLE_UBSAN` enabled; 108/108 tests pass with `UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1`; no diagnostics observed from checks enabled by `-fsanitize=undefined`; header isolation (68/68 TUs) compile-qualified with UBSan instrumentation. | **NO** | Remediated (P2-SAN) |
 | **ThreadSanitizer (TSan)** | Sec 88 | **NOT RUN** | Single-threaded kernels; periodic verification item; not an immediate P2 blocker. | **NO** | Periodic |
 | **Test Coverage Gate** | Sec 86, 124 | **NOT RUN** | No coverage instrumentation or reports generated. | **YES** | **P2-F** |
 | **Module Specification Docs** | Sec 87, 88 | **PASS** | AML-MED-007: `docs/core.md`, `docs/units.md`, `docs/geometry.md`, `docs/dynamics.md` authored and verified. | **NO** | Remediated (P2-DOC) |
@@ -183,26 +183,36 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
   - Compile flags: `-fsanitize=address -fno-omit-frame-pointer`. Link flags: `-fsanitize=address`.
   - Direct binary execution: **108 / 108 PASS (100%), 0 warnings, 0 ASan diagnostics** under `ASAN_OPTIONS=halt_on_error=1:abort_on_error=1`.
   - CTest test runner execution: **108 / 108 PASS (100%)**.
-  - Public header isolation target (`AegisMathLib_HeaderIsolation`): **68 / 68 TUs PASS** compiled with ASan.
-  - *Violation Observation*: No AddressSanitizer violations were observed in the current test suite.
-  - *Leak Detection Reality*: **NOT RUN / unavailable on host** (macOS Darwin AppleClang 21.0.0 does not support LeakSanitizer runtime; ASan PASS does not constitute proof of zero memory leaks).
-  - *Allocation Qualification*: Runtime ASan safety does not constitute proof of zero dynamic allocation; explicit allocation audit remains separate.
+  - Public header isolation target (`AegisMathLib_HeaderIsolation`): **68 / 68 TUs PASS** sanitizer-instrumented compile qualification (OBJECT library target; compile options instrumented, link options not applicable).
+  - *Diagnostic Observation*: No AddressSanitizer diagnostics were observed during the complete 108-test suite on the qualified host (covering heap/stack/global out-of-bounds, use-after-free, invalid free).
+  - *Stack Use-After-Return Capability*: Runtime support verified via `detect_stack_use_after_return=1` (**108 / 108 PASS**).
+  - *Stack Use-After-Scope Status*: Enabled by default in Clang ASan (`-fsanitize-address-use-after-scope`).
+  - *Dynamic Initialization-Order Checking*: **NOT SUPPORTED / NOT QUALIFIED on this macOS host**.
+  - *Leak Detection Status*: **NOT QUALIFIED in P2-SAN** (Host runtime returns `AddressSanitizer: detect_leaks is not supported on this platform`).
+  - *Allocation Qualification Separation*: Runtime ASan safety proves absence of invalid memory accesses and memory corruption, but does not constitute proof of zero dynamic allocation; explicit allocation audit remains separate (Engineering Standard Sections 29–34).
 - **UndefinedBehaviorSanitizer (UBSan)**: **PASS**
   - Configured via target-scoped option `AEGISMATH_ENABLE_UBSAN` in `cmake/Sanitizers.cmake`.
-  - Compile flags: `-fsanitize=undefined -fno-omit-frame-pointer`. Link flags: `-fsanitize=undefined`.
-  - Active sanitizer checks (AppleClang): bool, bounds, enum, float-cast-overflow, integer-divide-by-zero, nonnull-attribute, null, object-size, pointer-overflow, return, returns-nonnull-attribute, shift, signed-integer-overflow, unreachable, vla-bound, vptr.
+  - Qualification flag: `-fsanitize=undefined -fno-omit-frame-pointer`. Link flags: `-fsanitize=undefined`.
+  - Enabled sanitizer group: Clang `undefined`.
+  - Not additionally qualified by this gate: `vptr`, `nullability`, `implicit-conversion`, `unsigned-integer-overflow`, `float-divide-by-zero`, `local-bounds`.
   - Direct binary execution: **108 / 108 PASS (100%), 0 warnings, 0 UBSan diagnostics** under `UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1`.
   - CTest test runner execution: **108 / 108 PASS (100%)**.
-  - Public header isolation target (`AegisMathLib_HeaderIsolation`): **68 / 68 TUs PASS** compiled with UBSan.
-  - *Diagnostic Observation*: No UBSan-detectable undefined behavior was observed in the current test suite.
+  - Public header isolation target (`AegisMathLib_HeaderIsolation`): **68 / 68 TUs PASS** sanitizer-instrumented compile qualification.
+  - *Diagnostic Observation*: No diagnostics were observed from the UBSan checks enabled by `-fsanitize=undefined` during execution of the complete 108-test suite.
 - **Combined ASan + UBSan Qualification**: **PASS**
   - Compile flags: `-fsanitize=address -fno-omit-frame-pointer -fsanitize=undefined`. Link flags: `-fsanitize=address -fsanitize=undefined`.
   - Direct binary execution: **108 / 108 PASS (100%)** under combined `ASAN_OPTIONS` and `UBSAN_OPTIONS`.
   - CTest test runner execution: **108 / 108 PASS (100%)**.
-  - Public header isolation target (`AegisMathLib_HeaderIsolation`): **68 / 68 TUs PASS**.
+  - Public header isolation target (`AegisMathLib_HeaderIsolation`): **68 / 68 TUs PASS** sanitizer-instrumented compile qualification.
 - **Sanitizer Flag Scoping & Non-Contamination**: **PASS**
   - When options are `OFF` (default), zero `-fsanitize` flags appear in `compile_commands.json` or link invocations.
+  - Absence of sanitizer flags verified via automated gate check script: `PASS: no sanitizer flags`.
   - Clean normal Debug and Release builds pass 108/108 with 0 warnings.
+- **Compiler Portability Guards**: **PASS**
+  - `cmake/Sanitizers.cmake` guards flags for Clang, AppleClang, and GNU GCC. Unsupported compilers (e.g. MSVC) raise an explicit `FATAL_ERROR` if sanitizer options are enabled, preventing silent failure or passing incompatible flags.
+- **RelWithDebInfo Requirement**:
+  - Evaluated against `docs/ENGINEERING_STANDARD_V1.md` Sections 88, 123, 124.
+  - Status: RelWithDebInfo sanitizer qualification is **NOT REQUIRED** by current normative gate.
 - **ThreadSanitizer (TSan)**: **NOT CONFIGURED**, **NOT RUN**.
   - *Qualification Policy*: Current Stable-Core implementation is single-threaded and contains no internal threading primitives. TSan is therefore not an immediate P2 blocker unless the engineering standard requires it for the Stable certification gate, but it remains a periodic verification item rather than "not applicable".
 
