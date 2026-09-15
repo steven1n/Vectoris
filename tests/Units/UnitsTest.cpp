@@ -171,3 +171,78 @@ TEST(UnitsSystemRevisionB2Test, FrequencyCompileTimeContractAndAlgebra) {
     static_assert(DimensionEqual<decltype(recovered_rate)::DimensionType, FrequencyDimension>);
     EXPECT_DOUBLE_EQ(recovered_rate.value(), 50.0);
 }
+
+TEST(UnitsSystemCoverageTest, LiteralsRuntimeExercise) {
+    using namespace AegisMath::Units::Literals;
+
+    volatile long double d_val = 2.5L;
+    volatile unsigned long long u_val = 3ULL;
+
+    auto m_flt = operator""_m(d_val);
+    auto m_int = operator""_m(u_val);
+    EXPECT_DOUBLE_EQ(m_flt.value(), 2.5);
+    EXPECT_DOUBLE_EQ(m_int.value(), 3.0);
+
+    auto s_flt = operator""_s(d_val);
+    auto s_int = operator""_s(u_val);
+    EXPECT_DOUBLE_EQ(s_flt.value(), 2.5);
+    EXPECT_DOUBLE_EQ(s_int.value(), 3.0);
+
+    auto rad_flt = operator""_rad(d_val);
+    auto rad_int = operator""_rad(u_val);
+    EXPECT_DOUBLE_EQ(rad_flt.value(), 2.5);
+    EXPECT_DOUBLE_EQ(rad_int.value(), 3.0);
+
+    auto kg_flt = operator""_kg(d_val);
+    auto kg_int = operator""_kg(u_val);
+    EXPECT_DOUBLE_EQ(kg_flt.value(), 2.5);
+    EXPECT_DOUBLE_EQ(kg_int.value(), 3.0);
+
+    auto n_flt = operator""_N(d_val);
+    auto n_int = operator""_N(u_val);
+    EXPECT_DOUBLE_EQ(n_flt.value(), 2.5);
+    EXPECT_DOUBLE_EQ(n_int.value(), 3.0);
+
+    auto nm_flt = operator""_Nm(d_val);
+    auto nm_int = operator""_Nm(u_val);
+    EXPECT_DOUBLE_EQ(nm_flt.value(), 2.5);
+    EXPECT_DOUBLE_EQ(nm_int.value(), 3.0);
+
+    auto w_flt = operator""_W(d_val);
+    auto w_int = operator""_W(u_val);
+    EXPECT_DOUBLE_EQ(w_flt.value(), 2.5);
+    EXPECT_DOUBLE_EQ(w_int.value(), 3.0);
+
+    auto mps_flt = operator""_mps(d_val);
+    auto mps_int = operator""_mps(u_val);
+    EXPECT_DOUBLE_EQ(mps_flt.value(), 2.5);
+    EXPECT_DOUBLE_EQ(mps_int.value(), 3.0);
+
+    auto rad_s_flt = operator""_rad_s(d_val);
+    auto rad_s_int = operator""_rad_s(u_val);
+    EXPECT_DOUBLE_EQ(rad_s_flt.value(), 2.5);
+    EXPECT_DOUBLE_EQ(rad_s_int.value(), 3.0);
+}
+
+TEST(UnitsSystemCoverageTest, DetailABIRuntimeExercise) {
+    EXPECT_TRUE(AegisMath::Units::Detail::QuantityABIValidator<Meter>::Validate());
+    EXPECT_TRUE(AegisMath::Units::Detail::ValidateQuantityABI<Meter>());
+    EXPECT_TRUE(AegisMath::Units::Detail::QuantityABIValidator<Second>::Validate());
+    EXPECT_TRUE(AegisMath::Units::Detail::ValidateQuantityABI<Second>());
+
+    struct DummyNonMatchingSize {
+        using ValueType = double;
+        double a;
+        double b;
+    };
+    EXPECT_FALSE(AegisMath::Units::Detail::QuantityABIValidator<DummyNonMatchingSize>::Validate());
+
+    struct DummyNonTrivial {
+        using ValueType = double;
+        double a;
+        DummyNonTrivial() : a(0.0) {}
+        DummyNonTrivial(const DummyNonTrivial& o) : a(o.a) {}
+        DummyNonTrivial& operator=(const DummyNonTrivial& o) { a = o.a; return *this; }
+    };
+    EXPECT_FALSE(AegisMath::Units::Detail::QuantityABIValidator<DummyNonTrivial>::Validate());
+}
