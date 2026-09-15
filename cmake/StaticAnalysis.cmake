@@ -5,6 +5,10 @@
 
 option(AEGISMATH_ENABLE_STATIC_ANALYSIS "Enable static analysis qualification targets" OFF)
 
+if(NOT AEGISMATH_ENABLE_STATIC_ANALYSIS)
+    return()
+endif()
+
 # Support explicit cache overrides
 set(AEGISMATH_CLANG_TIDY "" CACHE FILEPATH "Path to clang-tidy executable override")
 set(AEGISMATH_CPPCHECK "" CACHE FILEPATH "Path to cppcheck executable override")
@@ -34,5 +38,5 @@ add_custom_target(AegisMathLib_Cppcheck
 # Combined Target: AegisMathLib_StaticAnalysis
 add_custom_target(AegisMathLib_StaticAnalysis
     DEPENDS AegisMathLib_ClangTidy AegisMathLib_Cppcheck
-    COMMENT "All static analysis qualification gates completed."
+    COMMENT "Mandatory static-analysis gate completed; recommended analyzers reported separately."
 )

@@ -39,6 +39,18 @@ def find_clang_tidy(explicit_path=None):
         
     return None
 
+def get_compiler_resource_include():
+    try:
+        res = subprocess.check_output(["/usr/bin/c++", "-print-resource-dir"], stderr=subprocess.DEVNULL, text=True).strip()
+        if res and os.path.isdir(res):
+            inc = os.path.join(res, "include")
+            if os.path.isdir(inc):
+                return inc
+    except Exception:
+        pass
+    clang_incs = glob.glob("/Library/Developer/CommandLineTools/usr/lib/clang/*/include")
+    return clang_incs[0] if clang_incs else None
+
 def get_macos_sdk_args():
     if platform.system() != "Darwin":
         return []
@@ -55,10 +67,9 @@ def get_macos_sdk_args():
     args.append("--extra-arg=-nostdinc++")
     args.append(f"--extra-arg=-isystem{sdk_path}/usr/include/c++/v1")
     
-    # Locate builtin clang headers
-    clang_incs = glob.glob("/Library/Developer/CommandLineTools/usr/lib/clang/*/include")
-    if clang_incs:
-        args.append(f"--extra-arg=-isystem{clang_incs[0]}")
+    resource_inc = get_compiler_resource_include()
+    if resource_inc:
+        args.append(f"--extra-arg=-isystem{resource_inc}")
         
     args.append("--extra-arg=-isysroot")
     args.append(f"--extra-arg={sdk_path}")
@@ -81,15 +92,12 @@ def main():
     parser.add_argument("--warnings-as-errors", action="store_true", help="Treat warnings as errors")
     parser.add_argument("--jobs", "-j", type=int, default=os.cpu_count() or 4, help="Number of concurrent workers")
     parser.add_argument("--output", default=None, help="File to write raw clang-tidy output")
+    parser.add_argument("--dump-checks", default=None, help="File to dump expanded effective checks list")
     args = parser.parse_args()
 
     repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     build_dir = os.path.abspath(args.build_dir)
     compdb_path = os.path.join(build_dir, "compile_commands.json")
-
-    if not os.path.isfile(compdb_path):
-        print(f"ERROR: Compilation database not found at {compdb_path}", file=sys.stderr)
-        sys.exit(1)
 
     clang_tidy_bin = find_clang_tidy(args.clang_tidy)
     if not clang_tidy_bin:
@@ -102,6 +110,20 @@ def main():
     except Exception as e:
         first_ver_line = f"Unknown ({e})"
 
+    if args.dump_checks:
+        config_path = os.path.join(repo_root, ".clang-tidy")
+        cmd_list = [clang_tidy_bin, "--list-checks"]
+        if os.path.isfile(config_path):
+            cmd_list.append(f"--config-file={config_path}")
+        out = subprocess.check_output(cmd_list, text=True)
+        with open(args.dump_checks, "w", encoding="utf-8") as f:
+            f.write(out)
+        print(f"Effective checks dumped to: {args.dump_checks}")
+
+    if not os.path.isfile(compdb_path):
+        print(f"ERROR: Compilation database not found at {compdb_path}", file=sys.stderr)
+        sys.exit(1)
+
     print("=" * 80)
     print("AegisMathLib Clang-Tidy Qualification Runner")
     print("=" * 80)
@@ -110,6 +132,8 @@ def main():
     print(f"Build Dir:  {build_dir}")
     print(f"Workers:    {args.jobs}")
     print(f"WarningsAsErrors: {args.warnings_as_errors}")
+    resource_inc = get_compiler_resource_include()
+    print(f"Resource Include: {resource_inc}")
     print("=" * 80)
 
     with open(compdb_path, "r", encoding="utf-8") as f:
@@ -148,29 +172,43 @@ def main():
                 failed_tus.append((sf, retcode, stdout, stderr))
             print(f"[{completed_count:2d}/{len(source_files):2d}] Analyzed: {os.path.basename(sf)}")
 
-    combined_output = "\n".join(all_stdout)
+    combined_output = "\n".join(all_stdout + all_stderr)
     if args.output:
         with open(args.output, "w", encoding="utf-8") as out_f:
-            out_f.write(combined_output)
+            out_f.write("--- STDOUT ---\n")
+            out_f.write("\n".join(all_stdout))
             out_f.write("\n--- STDERR ---\n")
             out_f.write("\n".join(all_stderr))
         print(f"Raw report saved to: {args.output}")
 
-    # Parse diagnostics
+    # Parse diagnostics from both stdout and stderr
     # Format typically: /path/to/file:line:col: warning/error: message [check-name]
     diag_pattern = re.compile(r"^([^:\n]+):(\d+):(\d+):\s+(warning|error):\s+(.*?)\s+\[([^\]]+)\]", re.MULTILINE)
     
-    production_diags = []
-    test_diags = []
-    system_diags = []
+    real_repo_root = os.path.realpath(repo_root)
+    real_prod_root = os.path.realpath(os.path.join(real_repo_root, "include", "AegisMath"))
+    real_test_root = os.path.realpath(os.path.join(real_repo_root, "tests"))
 
-    prod_prefix = os.path.join(repo_root, "include", "AegisMath")
+    def is_contained_in(path, parent):
+        try:
+            return os.path.commonpath([parent, path]) == parent
+        except ValueError:
+            return False
+
+    raw_diag_count = 0
+    raw_production_diags = []
+    raw_test_diags = []
+    raw_system_diags = []
+
+    unique_production_diags = {}
+    unique_test_diags = {}
+    unique_system_diags = {}
 
     for match in diag_pattern.finditer(combined_output):
         fpath, line, col, severity, msg, check = match.groups()
-        norm_fpath = os.path.normpath(fpath)
+        candidate = os.path.realpath(fpath)
         diag_item = {
-            "file": norm_fpath,
+            "file": candidate,
             "line": int(line),
             "col": int(col),
             "severity": severity,
@@ -178,26 +216,37 @@ def main():
             "check": check,
             "raw": match.group(0)
         }
-        if norm_fpath.startswith(prod_prefix):
-            production_diags.append(diag_item)
-        elif "/tests/" in norm_fpath:
-            test_diags.append(diag_item)
+        key = (candidate, int(line), int(col), check, msg)
+        raw_diag_count += 1
+
+        if is_contained_in(candidate, real_prod_root):
+            raw_production_diags.append(diag_item)
+            if key not in unique_production_diags:
+                unique_production_diags[key] = diag_item
+        elif is_contained_in(candidate, real_test_root):
+            raw_test_diags.append(diag_item)
+            if key not in unique_test_diags:
+                unique_test_diags[key] = diag_item
         else:
-            system_diags.append(diag_item)
+            raw_system_diags.append(diag_item)
+            if key not in unique_system_diags:
+                unique_system_diags[key] = diag_item
 
     print("\n" + "=" * 80)
     print("Clang-Tidy Diagnostics Summary")
     print("=" * 80)
-    print(f"Production Diagnostics (include/AegisMath/**): {len(production_diags)}")
-    print(f"Test Diagnostics (tests/**):                   {len(test_diags)}")
-    print(f"System / External Diagnostics:                 {len(system_diags)}")
+    print(f"Total Raw Diagnostic Occurrences:              {raw_diag_count}")
+    print(f"Total Unique Diagnostics:                      {len(unique_production_diags) + len(unique_test_diags) + len(unique_system_diags)}")
+    print(f"Production Diagnostics (include/AegisMath/**): {len(unique_production_diags)} unique ({len(raw_production_diags)} raw)")
+    print(f"Test Diagnostics (tests/**):                   {len(unique_test_diags)} unique ({len(raw_test_diags)} raw)")
+    print(f"System / External Diagnostics:                 {len(unique_system_diags)} unique ({len(raw_system_diags)} raw)")
     print(f"Failed Translation Units (crashed/errored):    {len(failed_tus)}")
     print("=" * 80)
 
-    if production_diags:
+    if unique_production_diags:
         print("\n--- Production Diagnostics Details ---")
-        for d in production_diags:
-            rel = os.path.relpath(d["file"], repo_root)
+        for d in unique_production_diags.values():
+            rel = os.path.relpath(d["file"], real_repo_root)
             print(f"{rel}:{d['line']}:{d['col']}: {d['severity']}: {d['message']} [{d['check']}]")
         print("=" * 80)
 
@@ -209,7 +258,7 @@ def main():
                 print("  Stderr snippet:", "\n".join(stderr.splitlines()[:5]))
         print("=" * 80)
 
-    if len(production_diags) > 0 or len(failed_tus) > 0:
+    if len(unique_production_diags) > 0 or len(failed_tus) > 0:
         print("RESULT: FAIL (Unresolved production diagnostics or failed TUs)")
         sys.exit(1)
     else:

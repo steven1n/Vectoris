@@ -42,6 +42,9 @@ def main():
 
     if not cppcheck_bin:
         print("STATUS: NOT RUN (cppcheck binary not found on host system)")
+        print("Cppcheck qualification:")
+        print("  NOT RUN")
+        print("  NON-BLOCKING UNDER CURRENT ENGINEERING STANDARD")
         print("Per ENGINEERING_STANDARD_V1.md Section 87 & Stable-Core Audit Policy:")
         print("  cppcheck is a RECOMMENDED analyzer (clang-tidy is MANDATORY).")
         print("  Host absence is recorded as NOT RUN; toolchain was not installed/upgraded.")
@@ -65,6 +68,7 @@ def main():
         "--enable=warning,style,performance,portability",
         "--inconclusive",
         "--force",
+        "--error-exitcode=1",
         "-I", os.path.join(repo_root, "include"),
     ]
     if args.xml_output:
