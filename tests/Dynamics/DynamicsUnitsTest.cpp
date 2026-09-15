@@ -233,5 +233,10 @@ TEST(DynamicsUnitsTest, CombinedFrameAndUnitSafety) {
     Velocity3<TestRefFrame> v_ref = q * v_body;
     EXPECT_DOUBLE_EQ(v_ref.x.value(), 5.0);
 
+    EXPECT_FALSE((AegisMath::Geometry::Quaternion<double, TestBodyFrame, TestRefFrame>::TryCreate(0.0, 0.0, 0.0, 0.0).IsSuccess()));
+    EXPECT_FALSE((AegisMath::Geometry::Quaternion<double, TestBodyFrame, TestRefFrame>::TryCreate(std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0, 0.0).IsSuccess()));
+    auto q_neg = AegisMath::Geometry::Quaternion<double, TestBodyFrame, TestRefFrame>::TryCreate(-1.0, 0.0, 0.0, 0.0);
+    EXPECT_TRUE(q_neg.IsSuccess());
+
     SUCCEED();
 }

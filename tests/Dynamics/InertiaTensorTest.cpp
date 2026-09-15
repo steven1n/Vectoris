@@ -107,3 +107,90 @@ TEST(InertiaTensorTest, TypedSolveSPD) {
     EXPECT_DOUBLE_EQ(res_fn.value().y.value(), alpha.y.value());
     EXPECT_DOUBLE_EQ(res_fn.value().z.value(), alpha.z.value());
 }
+
+TEST(InertiaTensorTest, ComprehensiveDefensiveValidation) {
+    using MI = MomentOfInertia;
+
+    // 1. All zeros inertia tensor (scale <= 0)
+    InertiaTensor3<double, BodyFrame> zero_I(
+        MI::Zero(), MI::Zero(), MI::Zero(),
+        MI::Zero(), MI::Zero(), MI::Zero(),
+        MI::Zero(), MI::Zero(), MI::Zero()
+    );
+    EXPECT_FALSE(zero_I.IsValid());
+
+    // 2. Off-diagonal asymmetry: ixz != izx
+    InertiaTensor3<double, BodyFrame> asym_xz(
+        MI(10.0), MI(0.0), MI(2.0),
+        MI(0.0),  MI(20.0), MI(0.0),
+        MI(1.0),  MI(0.0),  MI(30.0)
+    );
+    EXPECT_FALSE(asym_xz.IsValid());
+
+    // Off-diagonal asymmetry: iyz != izy
+    InertiaTensor3<double, BodyFrame> asym_yz(
+        MI(10.0), MI(0.0), MI(0.0),
+        MI(0.0),  MI(20.0), MI(2.0),
+        MI(0.0),  MI(1.0),  MI(30.0)
+    );
+    EXPECT_FALSE(asym_yz.IsValid());
+
+    // 3. Non-finite values across individual entries
+    const double qnan = std::numeric_limits<double>::quiet_NaN();
+    EXPECT_FALSE((InertiaTensor3<double, BodyFrame>(
+        MI(10.0), MI(0.0), MI(0.0),
+        MI(0.0),  MI(qnan), MI(0.0),
+        MI(0.0),  MI(0.0),  MI(30.0)
+    ).IsValid()));
+
+    EXPECT_FALSE((InertiaTensor3<double, BodyFrame>(
+        MI(10.0), MI(0.0), MI(0.0),
+        MI(0.0),  MI(20.0), MI(0.0),
+        MI(0.0),  MI(0.0),  MI(qnan)
+    ).IsValid()));
+
+    EXPECT_FALSE((InertiaTensor3<double, BodyFrame>(
+        MI(10.0), MI(qnan), MI(0.0),
+        MI(qnan), MI(20.0), MI(0.0),
+        MI(0.0),  MI(0.0),  MI(30.0)
+    ).IsValid()));
+
+    EXPECT_FALSE((InertiaTensor3<double, BodyFrame>(
+        MI(10.0), MI(0.0), MI(qnan),
+        MI(0.0),  MI(20.0), MI(0.0),
+        MI(qnan), MI(0.0),  MI(30.0)
+    ).IsValid()));
+
+    EXPECT_FALSE((InertiaTensor3<double, BodyFrame>(
+        MI(10.0), MI(0.0), MI(0.0),
+        MI(0.0),  MI(20.0), MI(qnan),
+        MI(0.0),  MI(qnan), MI(30.0)
+    ).IsValid()));
+
+    // Individual non-finite entries for iyx, izx, and izy specifically
+    EXPECT_FALSE((InertiaTensor3<double, BodyFrame>(
+        MI(10.0), MI(0.0), MI(0.0),
+        MI(qnan), MI(20.0), MI(0.0),
+        MI(0.0),  MI(0.0),  MI(30.0)
+    ).IsValid()));
+
+    EXPECT_FALSE((InertiaTensor3<double, BodyFrame>(
+        MI(10.0), MI(0.0), MI(0.0),
+        MI(0.0),  MI(20.0), MI(0.0),
+        MI(qnan), MI(0.0),  MI(30.0)
+    ).IsValid()));
+
+    EXPECT_FALSE((InertiaTensor3<double, BodyFrame>(
+        MI(10.0), MI(0.0), MI(0.0),
+        MI(0.0),  MI(20.0), MI(0.0),
+        MI(0.0),  MI(qnan), MI(30.0)
+    ).IsValid()));
+
+    // 4. Singular pivot d3 <= 0
+    InertiaTensor3<double, BodyFrame> sing_d3(
+        MI(10.0), MI(0.0), MI(0.0),
+        MI(0.0),  MI(20.0), MI(0.0),
+        MI(0.0),  MI(0.0),  MI(0.0)
+    );
+    EXPECT_FALSE(sing_d3.IsValid());
+}

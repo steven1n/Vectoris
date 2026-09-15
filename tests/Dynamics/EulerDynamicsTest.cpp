@@ -160,3 +160,57 @@ TEST(EulerDynamicsTest, TimestepValidationAndTransactionalSafety) {
     EXPECT_EQ(res_nan.error(), AegisMath::Core::MathError::non_finite_input);
     ExpectStateExactlyEqual(before_nan, state);
 }
+
+TEST(EulerDynamicsTest, DerivativeNonFiniteRollback) {
+    Position3<WorldFrame> pos(Meter(1.0), Meter(2.0), Meter(3.0));
+    auto att = AegisMath::Geometry::Quaternion<double, BodyFrame, WorldFrame>::TryCreate(1.0, 0.0, 0.0, 0.0).Value();
+    Velocity3<BodyFrame> vel(Velocity(4.0), Velocity(5.0), Velocity(6.0));
+    AngularVelocity3<BodyFrame> omega(AngularVelocity(0.1), AngularVelocity(0.2), AngularVelocity(0.3));
+
+    auto state = KinematicState<double, WorldFrame, BodyFrame>::Create(pos, att, vel, omega);
+    const auto before = state;
+
+    InertiaTensor3<double, BodyFrame> inertia(
+        MomentOfInertia(10.0), MomentOfInertia::Zero(), MomentOfInertia::Zero(),
+        MomentOfInertia::Zero(), MomentOfInertia(20.0), MomentOfInertia::Zero(),
+        MomentOfInertia::Zero(), MomentOfInertia::Zero(), MomentOfInertia(30.0)
+    );
+    RigidBodyParameters<double, BodyFrame> params(Mass(5.0), Position3<BodyFrame>{}, inertia);
+
+    Wrench6<double, BodyFrame> nan_wrench{
+        Force3<BodyFrame>{Force::Zero(), Force::Zero(), Force::Zero()},
+        Torque3<BodyFrame>{Torque(std::numeric_limits<double>::quiet_NaN()), Torque::Zero(), Torque::Zero()}
+    };
+
+    auto res = EulerIntegrator::Step(state, params, nan_wrench, Second(0.01));
+    ASSERT_FALSE(res.has_value());
+    EXPECT_EQ(res.error(), AegisMath::Core::MathError::non_finite_input);
+    ExpectStateExactlyEqual(before, state);
+}
+
+TEST(EulerDynamicsTest, AttitudeNormalizationFailureRollback) {
+    Position3<WorldFrame> pos(Meter(1.0), Meter(2.0), Meter(3.0));
+    auto att = AegisMath::Geometry::Quaternion<double, BodyFrame, WorldFrame>::TryCreate(1.0, 0.0, 0.0, 0.0).Value();
+    Velocity3<BodyFrame> vel(Velocity(4.0), Velocity(5.0), Velocity(6.0));
+    AngularVelocity3<BodyFrame> omega(AngularVelocity(0.0), AngularVelocity(0.0), AngularVelocity(0.0));
+
+    auto state = KinematicState<double, WorldFrame, BodyFrame>::Create(pos, att, vel, omega);
+    const auto before = state;
+
+    InertiaTensor3<double, BodyFrame> inertia(
+        MomentOfInertia(1.0), MomentOfInertia::Zero(), MomentOfInertia::Zero(),
+        MomentOfInertia::Zero(), MomentOfInertia(1.0), MomentOfInertia::Zero(),
+        MomentOfInertia::Zero(), MomentOfInertia::Zero(), MomentOfInertia(1.0)
+    );
+    RigidBodyParameters<double, BodyFrame> params(Mass(1.0), Position3<BodyFrame>{}, inertia);
+
+    Wrench6<double, BodyFrame> huge_wrench{
+        Force3<BodyFrame>{Force::Zero(), Force::Zero(), Force::Zero()},
+        Torque3<BodyFrame>{Torque(1e300), Torque::Zero(), Torque::Zero()}
+    };
+
+    auto res = EulerIntegrator::Step(state, params, huge_wrench, Second(1e10));
+    ASSERT_FALSE(res.has_value());
+    EXPECT_EQ(res.error(), AegisMath::Core::MathError::non_finite_input);
+    ExpectStateExactlyEqual(before, state);
+}
