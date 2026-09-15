@@ -7,7 +7,7 @@
 > **Code Baseline**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
 > **Last Updated**: 2026-09-15  
 > **Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](../ENGINEERING_STANDARD_V1.md)  
-> **Certification Status**: **NOT CERTIFIED** (Pending dynamic sanitizers, test coverage, static analysis, and cross-compiler qualification)
+> **Certification Status**: **NOT CERTIFIED** (Pending test coverage, static analysis, and cross-compiler qualification)
 
 ---
 
@@ -92,11 +92,9 @@ Based on Sections 5, 48, 50, 85, 86, 88, 89, 90, 101, 104, and 124 of [`docs/ENG
 > Tool unavailability on the local host (such as `clang-tidy` or `cppcheck` missing from PATH) is **NOT** a code finding; it represents an unfulfilled qualification gate whose status is recorded as `NOT RUN`.
 
 ### Authoritative Blocker Ledger
-1. **AddressSanitizer (ASan)**: Dynamic memory safety verification not executed (Sections 88 & 124).
-2. **UndefinedBehaviorSanitizer (UBSan)**: Dynamic undefined-behavior verification not executed (Sections 88 & 124).
-3. **Test Coverage Gate**: Instrumentation and verification against coverage thresholds ($\ge 95\%$ line, $\ge 90\%$ branch, 100% function) not executed (Sections 86 & 124).
-4. **Required Cross-Compiler Matrix**: Portability qualification across GCC, Clang, and MSVC not executed (Sections 2 & 89).
-5. **Required Static Analysis Gates**: Clang-Tidy and Cppcheck static-analysis qualification not executed (Section 90).
+1. **Test Coverage Gate**: Instrumentation and verification against coverage thresholds ($\ge 95\%$ line, $\ge 90\%$ branch, 100% function) not executed (Sections 86 & 124).
+2. **Required Cross-Compiler Matrix**: Portability qualification across GCC, Clang, and MSVC not executed (Sections 2 & 89).
+3. **Required Static Analysis Gates**: Clang-Tidy and Cppcheck static-analysis qualification not executed (Section 90).
 
 ---
 
@@ -117,8 +115,8 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
 | **Install / Export Validation** | Sec 89 | **NOT RUN** | FOLLOW-UP QUALIFICATION / PACKAGING DEBT. CMake package export is not an explicit DoD blocker in ENGINEERING_STANDARD_V1.md Sec 124. | **NO** | Packaging Debt |
 | **Clang-Tidy** | Sec 90 | **NOT RUN** | Tool not installed locally; no `.clang-tidy` config file. | **YES** | **P2-D** |
 | **Cppcheck** | Sec 90 | **NOT RUN** | Tool not installed locally; no `cppcheck` config file. | **YES** | **P2-D** |
-| **AddressSanitizer (ASan)** | Sec 88, 124 | **NOT RUN** | No `-fsanitize=address` CMake configuration active. | **YES** | **P2-E** |
-| **UndefinedBehaviorSanitizer (UBSan)** | Sec 88, 124 | **NOT RUN** | No `-fsanitize=undefined` CMake configuration active. | **YES** | **P2-E** |
+| **AddressSanitizer (ASan)** | Sec 88, 124 | **PASS** | Target-scoped `AEGISMATH_ENABLE_ASAN` enabled; 108/108 tests pass with `ASAN_OPTIONS=halt_on_error=1:abort_on_error=1`; zero memory violations; header isolation (68/68 TUs) compiles cleanly; Leak detection: NOT RUN / unavailable on host. | **NO** | Remediated (P2-SAN) |
+| **UndefinedBehaviorSanitizer (UBSan)** | Sec 88, 124 | **PASS** | Target-scoped `AEGISMATH_ENABLE_UBSAN` enabled; 108/108 tests pass with `UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1`; zero undefined behavior diagnostics; header isolation (68/68 TUs) compiles cleanly. | **NO** | Remediated (P2-SAN) |
 | **ThreadSanitizer (TSan)** | Sec 88 | **NOT RUN** | Single-threaded kernels; periodic verification item; not an immediate P2 blocker. | **NO** | Periodic |
 | **Test Coverage Gate** | Sec 86, 124 | **NOT RUN** | No coverage instrumentation or reports generated. | **YES** | **P2-F** |
 | **Module Specification Docs** | Sec 87, 88 | **PASS** | AML-MED-007: `docs/core.md`, `docs/units.md`, `docs/geometry.md`, `docs/dynamics.md` authored and verified. | **NO** | Remediated (P2-DOC) |
@@ -180,8 +178,31 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
   - Zero-allocation execution paths have not yet been dynamically validated via operator-new interception or heap profilers under full workload stress.
 
 ### 6.5 Dynamic Sanitizers (ASan / UBSan / TSan)
-- **AddressSanitizer (ASan)**: **NOT CONFIGURED**, **NOT RUN** (Blocker).
-- **UndefinedBehaviorSanitizer (UBSan)**: **NOT CONFIGURED**, **NOT RUN** (Blocker).
+- **AddressSanitizer (ASan)**: **PASS**
+  - Configured via target-scoped option `AEGISMATH_ENABLE_ASAN` in `cmake/Sanitizers.cmake`.
+  - Compile flags: `-fsanitize=address -fno-omit-frame-pointer`. Link flags: `-fsanitize=address`.
+  - Direct binary execution: **108 / 108 PASS (100%), 0 warnings, 0 ASan diagnostics** under `ASAN_OPTIONS=halt_on_error=1:abort_on_error=1`.
+  - CTest test runner execution: **108 / 108 PASS (100%)**.
+  - Public header isolation target (`AegisMathLib_HeaderIsolation`): **68 / 68 TUs PASS** compiled with ASan.
+  - *Violation Observation*: No AddressSanitizer violations were observed in the current test suite.
+  - *Leak Detection Reality*: **NOT RUN / unavailable on host** (macOS Darwin AppleClang 21.0.0 does not support LeakSanitizer runtime; ASan PASS does not constitute proof of zero memory leaks).
+  - *Allocation Qualification*: Runtime ASan safety does not constitute proof of zero dynamic allocation; explicit allocation audit remains separate.
+- **UndefinedBehaviorSanitizer (UBSan)**: **PASS**
+  - Configured via target-scoped option `AEGISMATH_ENABLE_UBSAN` in `cmake/Sanitizers.cmake`.
+  - Compile flags: `-fsanitize=undefined -fno-omit-frame-pointer`. Link flags: `-fsanitize=undefined`.
+  - Active sanitizer checks (AppleClang): bool, bounds, enum, float-cast-overflow, integer-divide-by-zero, nonnull-attribute, null, object-size, pointer-overflow, return, returns-nonnull-attribute, shift, signed-integer-overflow, unreachable, vla-bound, vptr.
+  - Direct binary execution: **108 / 108 PASS (100%), 0 warnings, 0 UBSan diagnostics** under `UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1`.
+  - CTest test runner execution: **108 / 108 PASS (100%)**.
+  - Public header isolation target (`AegisMathLib_HeaderIsolation`): **68 / 68 TUs PASS** compiled with UBSan.
+  - *Diagnostic Observation*: No UBSan-detectable undefined behavior was observed in the current test suite.
+- **Combined ASan + UBSan Qualification**: **PASS**
+  - Compile flags: `-fsanitize=address -fno-omit-frame-pointer -fsanitize=undefined`. Link flags: `-fsanitize=address -fsanitize=undefined`.
+  - Direct binary execution: **108 / 108 PASS (100%)** under combined `ASAN_OPTIONS` and `UBSAN_OPTIONS`.
+  - CTest test runner execution: **108 / 108 PASS (100%)**.
+  - Public header isolation target (`AegisMathLib_HeaderIsolation`): **68 / 68 TUs PASS**.
+- **Sanitizer Flag Scoping & Non-Contamination**: **PASS**
+  - When options are `OFF` (default), zero `-fsanitize` flags appear in `compile_commands.json` or link invocations.
+  - Clean normal Debug and Release builds pass 108/108 with 0 warnings.
 - **ThreadSanitizer (TSan)**: **NOT CONFIGURED**, **NOT RUN**.
   - *Qualification Policy*: Current Stable-Core implementation is single-threaded and contains no internal threading primitives. TSan is therefore not an immediate P2 blocker unless the engineering standard requires it for the Stable certification gate, but it remains a periodic verification item rather than "not applicable".
 
@@ -199,9 +220,9 @@ graph TD
     P2A[P2-A: Stable-Core Qualification Rebaseline] --> P2B[P2-B: Remaining Code Blockers & Repository Hygiene]
     P2B --> P2C[P2-C: Public Header Isolation & Install/Export]
     P2C --> P2DOC[P2-DOC: Module Documentation & Deviation Ledger]
-    P2DOC --> P2D[P2-D: Static Analysis Infrastructure]
-    P2D --> P2E[P2-E: ASan & UBSan Dynamic Safety]
-    P2E --> P2F[P2-F: Test Coverage Gate >=95% Line]
+    P2DOC --> P2SAN[P2-SAN: ASan & UBSan Dynamic Safety]
+    P2SAN --> P2D[P2-D: Static Analysis Infrastructure]
+    P2D --> P2F[P2-F: Test Coverage Gate >=95% Line]
     P2F --> P2G[P2-G: Cross-Compiler Matrix & Benchmark Baseline]
     P2G --> P2H[P2-H: Formal Stable-Core Certification]
 ```
@@ -217,10 +238,10 @@ graph TD
 3. **P2-DOC — Module Documentation & Deviation Ledger**:
    - Authored formal documents: `docs/core.md`, `docs/units.md`, `docs/geometry.md`, `docs/dynamics.md` (**AML-MED-007** Remediated).
    - Registered all formal `AML-DEVIATION` records in `docs/DEVIATIONS.md` (**AML-MED-008** Remediated).
-4. **P2-D — Static Analysis Infrastructure**:
+4. **P2-SAN — Dynamic Sanitizers (ASan / UBSan)** (Remediated):
+   - Configured target-scoped `AEGISMATH_ENABLE_ASAN` and `AEGISMATH_ENABLE_UBSAN` in CMake; verified 100% clean test and header isolation execution.
+5. **P2-D — Static Analysis Infrastructure**:
    - Establish `.clang-tidy` and `cppcheck` configuration rules and CI definitions.
-5. **P2-E — Dynamic Sanitizers (ASan / UBSan)**:
-   - Configure `-fsanitize=address,undefined` in CMake; verify 100% clean test execution.
 6. **P2-F — Test Coverage Gate**:
    - Instrument build with gcov/llvm-cov; verify 100% function, $\ge 95\%$ line, $\ge 90\%$ branch coverage.
 7. **P2-G — Cross-Compiler Matrix & Benchmark Baseline**:
