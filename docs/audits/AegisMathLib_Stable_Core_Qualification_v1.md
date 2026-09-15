@@ -4,7 +4,7 @@
 > **Document**: Stable-Core Qualification Rebaseline V1  
 > **Document Version**: 1.0  
 > **Status**: Formal Quality Qualification Report  
-> **Baseline Commit**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
+> **Code Baseline**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
 > **Last Updated**: 2026-09-15  
 > **Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](../ENGINEERING_STANDARD_V1.md)  
 > **Certification Status**: **NOT CERTIFIED** (Pending dynamic sanitizers, test coverage, static analysis, and cross-compiler qualification)
@@ -13,7 +13,7 @@
 
 ## 1. Baseline Environment & Verification
 
-- **Repository Baseline**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`
+- **Code Baseline**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`
 - **Primary Compiler**: Apple Clang version 21.0.0 (`clang-2100.1.1.101`, target `x86_64-apple-darwin25.6.0`)
 - **CMake Version**: 4.4.3
 - **Test Suite Execution**:
@@ -48,9 +48,9 @@ Re-evaluated against [`docs/audits/AegisMathLib_Compliance_Audit_v1.md`](AegisMa
 | **AML-MED-005** | Quaternion Multiplication Order | **MEDIUM** | **APPROVED DEVIATION** | `docs(governance)` | Registered as `AML-DEVIATION-001` in `docs/DEVIATIONS.md`; pipeline composition verified in `GeometryComparisonTest.cpp` and `AttitudeEngineTest.cpp`. Blocker: **NO**. |
 | **AML-MED-006** | Root Boilerplate & Maintenance Scripts | **MEDIUM** | **REMEDIATED** | `3d79ed2` | Deleted `library.h`, `library.cpp`, `fix_compile_errors.py`, and `update_units.py` via `git rm`. Zero build impact. |
 | **AML-MED-007** | Missing Module Specification Docs | **MEDIUM** | **REMEDIATED** | `docs(core)`, `docs(units)`, `docs(geometry)`, `docs(dynamics)` | Authoritative module specification documents `docs/core.md`, `docs/units.md`, `docs/geometry.md`, `docs/dynamics.md` created per Section 88. Blocker: **NO**. |
-| **AML-MED-008** | Absence of `AML-DEVIATION` Tags | **MEDIUM** | **REMEDIATED** | `docs(governance)` | Formal deviation ledger `docs/DEVIATIONS.md` established per Sections 101 & 102 with 4 registered and approved deviations (`AML-DEVIATION-001` through `004`). Blocker: **NO**. |
-| **AML-LOW-001** | Namespace Casing Inconsistency | **LOW** | **APPROVED DEVIATION** | `docs(governance)` | Registered as `AML-DEVIATION-004` in `docs/DEVIATIONS.md`. Blocker: **NO**. |
-| **AML-LOW-002** | Member Variable Naming | **LOW** | **APPROVED DEVIATION** | `docs(governance)` | `x, y, z` public for standard-layout ABI. Registered as `AML-DEVIATION-002` in `docs/DEVIATIONS.md`. Blocker: **NO**. |
+| **AML-MED-008** | Absence of `AML-DEVIATION` Tags | **MEDIUM** | **REMEDIATED** | `docs(governance)` | Formal deviation ledger `docs/DEVIATIONS.md` established per Sections 101 & 102 with 3 registered and approved deviations (`AML-DEVIATION-001` through `003`). Blocker: **NO**. |
+| **AML-LOW-001** | Namespace Casing Inconsistency | **LOW** | **APPROVED DEVIATION** | `docs(governance)` | Registered as `AML-DEVIATION-003` in `docs/DEVIATIONS.md`. Blocker: **NO**. |
+| **AML-LOW-002** | Member Variable Naming | **LOW** | **APPROVED DEVIATION** | `docs(governance)` | `x, y, z` public for aggregate initialization ergonomics and legacy C API compatibility. Registered as `AML-DEVIATION-002` in `docs/DEVIATIONS.md`. Blocker: **NO**. |
 | **AML-LOW-003** | Function Casing Inconsistencies | **LOW** | **OPEN (STYLE DEBT)** | — | Mixed casing across legacy methods (`TryInverse` vs `transposed`). Non-blocking style debt. Blocker: **NO**. |
 | **AML-LOW-004** | Weak Test Assertions | **LOW** | **OPEN (TEST HYGIENE)**| — | Isolated tests execute `SUCCEED();` without runtime verification after compile-time static asserts. Blocker: **NO**. |
 | **AML-LOW-005** | Historical Non-Conventional Commits | **LOW** | **CLOSED** | — | Historical pre-governance commits preserved immutable. Current commit discipline is strictly conventional. Blocker: **NO**. |
@@ -122,7 +122,7 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
 | **ThreadSanitizer (TSan)** | Sec 88 | **NOT RUN** | Single-threaded kernels; periodic verification item; not an immediate P2 blocker. | **NO** | Periodic |
 | **Test Coverage Gate** | Sec 86, 124 | **NOT RUN** | No coverage instrumentation or reports generated. | **YES** | **P2-F** |
 | **Module Specification Docs** | Sec 87, 88 | **PASS** | AML-MED-007: `docs/core.md`, `docs/units.md`, `docs/geometry.md`, `docs/dynamics.md` authored and verified. | **NO** | Remediated (P2-DOC) |
-| **Formal Deviation Records** | Sec 101, 102 | **PASS** | AML-MED-008: `docs/DEVIATIONS.md` established with AML-DEVIATION-001 through 004. | **NO** | Remediated (P2-DOC) |
+| **Formal Deviation Records** | Sec 101, 102 | **PASS** | AML-MED-008: `docs/DEVIATIONS.md` established with AML-DEVIATION-001 through 003. | **NO** | Remediated (P2-DOC) |
 | **Cross-Compiler Matrix: GCC** | Sec 2, 89 | **NOT RUN** | Local `/usr/bin/g++` is AppleClang wrapper; true GNU GCC not executed. | **YES** | **P2-H** |
 | **Cross-Compiler: Upstream Clang** | Sec 2, 89 | **PARTIAL** | AppleClang 21.0.0 PASS; Linux upstream LLVM Clang not executed. | **YES** | **P2-H** |
 | **Cross-Compiler: MSVC** | Sec 2, 89 | **NOT RUN** | Windows MSVC environment not available locally. | **YES** | **P2-H** |

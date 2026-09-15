@@ -4,7 +4,7 @@
 > **Document**: Compliance Baseline Audit V1  
 > **Document Version**: 1.0  
 > **Status**: Historical Compliance Finding & Remediation Ledger  
-> **Baseline Commit**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
+> **Code Baseline**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
 > **Last Updated**: 2026-09-15  
 > **Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](../ENGINEERING_STANDARD_V1.md)
 
@@ -146,7 +146,7 @@ AegisMathLib/
 [==========] Running 18 tests from 13 test suites ran. (0 ms total)
 [  PASSED  ] 17 tests.
 [  FAILED  ] 1 test: RegressionFreeFall.VerticalDrop
-/Users/akiyama/CLionProjects/AegisMathLib/tests/Dynamics/Regression/FreeFallTest.cpp:48: Failure
+tests/Dynamics/Regression/FreeFallTest.cpp:48: Failure
 The difference between state.position.z and expected_z is 0.049033249999995476, which exceeds 1e-2, where
 state.position.z evaluates to 4.9523582499999952,
 expected_z evaluates to 4.9033249999999997, and
@@ -692,11 +692,10 @@ expected_z evaluates to 4.9033249999999997, and
     - Established the formal approved deviation ledger `docs/DEVIATIONS.md` in strict accordance with Sections 101 & 102.
     - Formally registered and approved all architectural and design deviations:
       - `AML-DEVIATION-001`: Left-to-Right Frame Transformation Pipeline Composition (Scope: `Geometry`, Sec 22/24)
-      - `AML-DEVIATION-002`: Public Mutable Coordinate Data Members for Standard-Layout ABI (Scope: `Geometry`, Sec 9/29)
-      - `AML-DEVIATION-003`: Project-Specific Non-Negative Domain Clamping for `Core::Math::sqrt` (Scope: `Core`, Sec 14/48)
-      - `AML-DEVIATION-004`: PascalCase Root Namespace `AegisMath` (Scope: Global, Sec 8)
+      - `AML-DEVIATION-002`: Public Mutable Coordinate Data Members (Scope: `Geometry`, Sec 9/29)
+      - `AML-DEVIATION-003`: PascalCase Root Namespace `AegisMath` (Scope: Global, Sec 8)
   - **Verification**:
-    - Verified all 4 deviations against unit test evidence and standard requirements.
+    - Verified all 3 deviations against unit test evidence and standard requirements.
 
 ---
 
