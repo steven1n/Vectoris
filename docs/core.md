@@ -1,0 +1,206 @@
+# AegisMathLib Core Module Specification
+
+> [!IMPORTANT]
+> **Document**: Core Module Specification  
+> **Document Version**: 1.0  
+> **Status**: Authoritative Module Specification  
+> **Baseline Commit**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
+> **Last Updated**: 2026-09-15  
+> **Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](ENGINEERING_STANDARD_V1.md)
+
+---
+
+## 1. Purpose
+
+The `Core` module provides the foundational type system, scalar definitions, compiler abstraction, floating-point numerical traits, monadic error handling, and mathematical primitive functions for AegisMathLib. It establishes the lowest-level layer upon which all higher mathematical subsystems (`Units`, `Geometry`, `Dynamics`) depend.
+
+---
+
+## 2. Scope
+
+The `Core` module encompasses:
+- Standard scalar definitions and compile-time floating-point concepts.
+- Strict IEEE-754 numerical traits, tolerances, and comparison utilities.
+- Standard-library-backed monadic error representation (`Result<T, MathError>`).
+- Compiler feature detection (`AEGIS_CPLUSPLUS`) and portability macros.
+- Bounded constexpr elementary mathematical functions (`Core::Math::sqrt`, `acos`, `asin`, `clamp`).
+
+---
+
+## 3. Dependency Rules
+
+- **Layer Position**: Layer 0 (Base Layer).
+- **Inbound Dependencies**: Consumed by `Units`, `Geometry`, `Dynamics`, and test suites.
+- **Outbound Dependencies**: **Zero internal dependencies**. The `Core` module depends strictly and exclusively on the ISO C++20 standard library headers:
+  - `<concepts>`, `<type_traits>`, `<limits>`, `<cmath>`, `<variant>`, `<cstdint>`, `<utility>`
+- **Architecture Constraint**: `Core` MUST NEVER include any header from `Units`, `Geometry`, or `Dynamics`.
+
+---
+
+## 4. Public Headers
+
+The `Core` module exposes exactly **10 public headers** under `include/AegisMath/Core/`:
+
+| Header | Description |
+| :--- | :--- |
+| [`BasicTypes.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Core/BasicTypes.h) | Fundamental type aliases (`Real`, `Float32`, `Float64`, `Int32`, `UInt32`, `Bool`, etc.). |
+| [`Compiler.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Core/Compiler.h) | Standard compliance detection and compiler-specific attribute abstractions (`AEGIS_CPLUSPLUS`). |
+| [`Concepts.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Core/Concepts.h) | C++20 concepts (`Concepts::FloatingPoint`, `Concepts::RealScalar`, `Concepts::SupportedSqrtScalar`). |
+| [`Constants.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Core/Constants.h) | Mathematical constants ($\pi$, $e$, $\sqrt{2}$, $\ln 2$, machine epsilons) with full 64-bit precision. |
+| [`Math.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Core/Math.h) | Root namespace umbrella including `MathFunctions.h`, `NumericTraits.h`, and `Constants.h`. |
+| [`MathError.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Core/MathError.h) | Strongly typed error enum `MathError` and string converter `to_string(MathError)`. |
+| [`MathFunctions.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Core/MathFunctions.h) | Bounded numerical functions: `Core::Math::sqrt`, `clamp`, `acos`, `asin`, `deg2rad`, `rad2deg`. |
+| [`NumericTraits.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Core/NumericTraits.h) | Compile-time IEEE-754 traits: `AlmostEqual`, `IsZero`, `IsFinite`, `IsNaN`. |
+| [`Precision.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Core/Precision.h) | Default floating-point scalar alias `Scalar = double;`. |
+| [`Result.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Core/Result.h) | `std::variant`-backed monadic error container `Result<T, MathError>`. |
+
+---
+
+## 5. Scalar Policy
+
+- **Default Scalar**: `Scalar` is alias to IEEE-754 `double` (64-bit double precision).
+- **Supported Floating-Point Types**: `float` (32-bit single precision) and `double` (64-bit double precision).
+- **Constrained Function Domain**: `Core::Math::sqrt` is explicitly constrained by `Concepts::SupportedSqrtScalar` to `float` and `double`.
+- **Unsupported Types for Mathematical Kernels**:
+  - Integral types (`int`, `long`, `int64_t`) are rejected at compile time for square roots and transcendental functions.
+  - `long double` is unsupported due to platform variability (80-bit x87 on x86 vs 128-bit IEEE quadruple vs 64-bit on MSVC).
+
+---
+
+## 6. Error Model
+
+AegisMathLib enforces a strict **zero-exception** policy across all mathematical kernels (Rule 6 and Section 36 of Engineering Standard V1). Errors are represented as strongly typed enumerators in `Core::MathError`:
+
+```cpp
+namespace AegisMath::Core {
+    enum class MathError {
+        none = 0,
+        invalid_argument,
+        out_of_range,
+        singular_matrix,
+        not_positive_definite,
+        ill_conditioned,
+        non_finite_input,
+        iteration_limit_exceeded,
+        zero_norm
+    };
+}
+```
+
+Swallowing errors or returning sentinel scalars (such as `-1` or `0.0` on invalid state) is strictly prohibited at API boundaries.
+
+---
+
+## 7. `Result<T, MathError>`
+
+All fallible mathematical operations return `Core::Result<T, MathError>`:
+- **Implementation**: Implemented via standard `std::variant<T, MathError>`. Placement-new and raw union allocations are eliminated.
+- **Constexpr Capability**: Fully functional in compile-time `constexpr` contexts.
+- **Monadic Interface**:
+  - `IsSuccess()`, `has_value()`: Query status.
+  - `Value()`, `value()`: Access payload (asserts on failure).
+  - `error()`: Query `MathError` enumerator.
+  - `map(fn)`: Functorial transformation on success.
+  - `and_then(fn)`: Monadic bind for chaining fallible operations.
+
+---
+
+## 8. `NumericTraits`
+
+`AegisMath::Core::NumericTraits<T>` provides type-safe numerical queries:
+- `epsilon()`: Machine epsilon ($2.22 \times 10^{-16}$ for `double`, $1.19 \times 10^{-7}$ for `float`).
+- `almost_equal(a, b, abs_tol, rel_tol)`: Dual-tolerance comparison:
+  $$|a - b| \le \max(\text{abs\_tol}, \text{rel\_tol} \times \max(|a|, |b|))$$
+- Direct `==` comparisons on computed floating-point quantities are forbidden by Rule 9.
+
+---
+
+## 9. Math Functions
+
+Mathematical helpers in `Core::Math` enforce robust domain contracts:
+- `clamp(val, min_val, max_val)`: Constrains scalar to $[min, max]$.
+- `acos(val)`: Clamps input to $[-1.0, 1.0]$ before computing arc-cosine, preventing NaN generation from slight numerical overflow (e.g. $\arccos(-1.0000000000000002) = \pi$).
+- `asin(val)`: Clamps input to $[-1.0, 1.0]$.
+- `deg2rad(deg)`, `rad2deg(rad)`: Explicit conversion constants.
+
+---
+
+## 10. `Core::Math::sqrt` Exact Contract
+
+`Core::Math::sqrt(T x)` implements the **AegisMath project-specific domain policy**. It is NOT described as `std::sqrt`-compatible domain semantics or full IEEE-754 sqrt semantics, because of its intentional safety clamping on negative finite values.
+
+### 10.1 Domain Policy
+
+| Input Condition | Return Value | Rationale |
+| :--- | :--- | :--- |
+| Finite $x > 0$ | $\sqrt{x}$ | Standard square root approximation. |
+| $+0.0$ | $+0.0$ | Zero root. |
+| $-0.0$ | $+0.0$ | Signed zero normalized to $+0.0$. |
+| Finite $x < 0$ | $+0.0$ | Project-specific non-negative clamping for embedded loop resilience. |
+| $-\infty$ | $+0.0$ | Clamped to non-negative domain. |
+| $+\infty$ | $+\infty$ | Positive infinity preserved. |
+| $\text{NaN}$ | $\text{NaN}$ | Quiet NaN propagation. |
+
+> [!NOTE]
+> Returning $+0.0$ for negative finite inputs and $-\infty$ is registered in [`docs/DEVIATIONS.md`](DEVIATIONS.md) under **AML-DEVIATION-003**.
+
+### 10.2 Compile-Time Execution (`constexpr`)
+- Employs bounded Newton-Raphson iteration.
+- Hard iteration cap: `kMaxIterations = 64` (strictly enforcing Rule 7).
+- Initial estimate: IEEE-754 bit-manipulation integer bitshift (`0x5fe6eb50c7b537a9ULL` for `double`, `0x5f3759dfUL` for `float`).
+- Termination criterion: Relative and absolute tolerance convergence $|y_{k+1} - y_k| \le \epsilon \cdot \max(1.0, y_k)$.
+
+### 10.3 Runtime Execution
+- Delegates directly to the standard library `std::sqrt` implementation for non-negative values, guaranteeing compiler intrinsics and FPU vectorization without hand-rolled runtime loops.
+
+---
+
+## 11. Floating-Point Policy
+
+- Adheres strictly to Section 14–18 of Engineering Standard V1.
+- Fast-math optimization flags (`-ffast-math`, `/fp:fast`, `-Ofast`) are strictly forbidden in build configurations.
+- Subnormal numbers are preserved unless hardware flushing is explicitly requested at the system root level.
+- Non-finite inputs ($\text{NaN}$, $\pm\infty$) must be detected and rejected with `MathError::non_finite_input` where mathematical kernels require finite convergence.
+
+---
+
+## 12. Determinism
+
+- Follows pure state-in / state-out contracts.
+- Zero dependency on system clocks, wall time (`std::chrono::system_clock`), or hardware randomness (`std::random_device`, `rand`).
+- Bitwise determinism across different compilers or architectures is NOT claimed; reproducibility across identical compiler builds is guaranteed by pure functional evaluation.
+
+---
+
+## 13. Allocation Policy
+
+- Zero heap allocation (`new`, `malloc`, dynamic standard containers) in all `Core` headers.
+- All types are fixed-size, standard-layout, trivially destructible value objects.
+
+---
+
+## 14. Failure Modes
+
+| Failure Mode | Detection Mechanism | Handling Policy |
+| :--- | :--- | :--- |
+| Non-finite input | `std::isnan()`, `std::isinf()` | Return `Result::failure(MathError::non_finite_input)`. |
+| Zero norm divisor | `Traits::IsZero(sq_len)` | Return `Result::failure(MathError::zero_norm)`. |
+| Out of domain | Static concept or runtime boundary check | Clamped or return `MathError::out_of_range`. |
+| Iteration limit exceeded | Iteration counter $> kMaxIterations` | Return `MathError::iteration_limit_exceeded`. |
+
+---
+
+## 15. Verification Evidence
+
+The `Core` module contracts are verified by dedicated test suites:
+- [`tests/Core/NumericTraitsTest.cpp`](file:///Users/akiyama/CLionProjects/AegisMathLib/tests/Core/NumericTraitsTest.cpp): Machine epsilon, dual-tolerance comparison.
+- [`tests/Core/MathFunctionsTest.cpp`](file:///Users/akiyama/CLionProjects/AegisMathLib/tests/Core/MathFunctionsTest.cpp): `CoreSqrtTest` (signed zero, negative domain clamping, constexpr verification, convergence bounds), `acos`/`asin` boundary clamping.
+- [`tests/Core/ResultTest.cpp`](file:///Users/akiyama/CLionProjects/AegisMathLib/tests/Core/ResultTest.cpp): Monadic chaining, constexpr execution, ABI triviality.
+- [`tests/Core/PublicTemplateInstantiationTest.cpp`](file:///Users/akiyama/CLionProjects/AegisMathLib/tests/Core/PublicTemplateInstantiationTest.cpp): Explicit template instantiation for `float` and `double`.
+
+---
+
+## 16. Known Deviations
+
+1. **AML-DEVIATION-003**: `Core::Math::sqrt` non-negative domain clamping policy (returns `+0.0` for negative inputs rather than `NaN` or error).
+2. **AML-DEVIATION-004**: Top-level namespace `AegisMath::Core` instead of standard-mandated `aegis::math::core`.
