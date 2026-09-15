@@ -4,7 +4,7 @@
 > **Document**: Geometry Module Specification  
 > **Document Version**: 1.0  
 > **Status**: Authoritative Module Specification  
-> **Baseline Commit**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
+> **Code Baseline**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
 > **Last Updated**: 2026-09-15  
 > **Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](ENGINEERING_STANDARD_V1.md)
 
@@ -22,21 +22,21 @@ The `Geometry` module exposes **15 public headers** under `include/AegisMath/Geo
 
 | Header | Description |
 | :--- | :--- |
-| [`AlmostEqual.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Geometry/AlmostEqual.h) | Tolerance-aware comparison helpers for spatial and attitude types. |
-| [`Concepts.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Geometry/Concepts.h) | Frame tag concepts (`IsFrameTag`, `SameFrame`, `ValidRotationFrame`). |
-| [`CoordinateConvention.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Geometry/CoordinateConvention.h) | Right-handed axis conventions, NED/ENU frame documentation. |
-| [`Detail/ABI.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Geometry/Detail/ABI.h) | Standard layout, alignment, and size validation helpers for geometry types. |
-| [`Detail/RotationInvariant.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Geometry/Detail/RotationInvariant.h) | Orthogonality verification helper using squared Frobenius norm. |
-| [`FrameTags.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Geometry/FrameTags.h) | Semantic coordinate frame tags (`WorldFrame`, `BodyFrame`, `ECEFFrame`, etc.). |
-| [`Matrix3.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Geometry/Matrix3.h) | Generic, frame-agnostic numerical $3 \times 3$ matrix container in row-major storage. |
-| [`Point3.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Geometry/Point3.h) | Frame-tagged affine point in $\mathbb{R}^3$. |
-| [`Quaternion.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Geometry/Quaternion.h) | Frame-tagged Hamilton unit quaternion for $SO(3)$ rotations. |
-| [`RotationMatrix3.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Geometry/RotationMatrix3.h) | Frame-tagged direction cosine matrix (DCM) in $SO(3)$. |
-| [`SymmetricLinearSolver3.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Geometry/SymmetricLinearSolver3.h) | Fixed $3 \times 3$ analytic $LDL^T$ SPD linear solver with conditioning bounds. |
-| [`Traits.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Geometry/Traits.h) | Geometry precision traits and tolerance defaults. |
-| [`Transform3.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Geometry/Transform3.h) | Frame-tagged $SE(3)$ homogeneous rigid-body transformation (rotation + translation). |
-| [`UnitVector3.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Geometry/UnitVector3.h) | Normalized unit direction vector in $S^2$. |
-| [`Vector3.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Geometry/Vector3.h) | Frame-tagged Euclidean vector in $\mathbb{R}^3$. |
+| [`AlmostEqual.h`](../include/AegisMath/Geometry/AlmostEqual.h) | Tolerance-aware comparison helpers for spatial and attitude types. |
+| [`Concepts.h`](../include/AegisMath/Geometry/Concepts.h) | Frame tag concepts (`IsFrameTag`, `SameFrame`, `ValidRotationFrame`). |
+| [`CoordinateConvention.h`](../include/AegisMath/Geometry/CoordinateConvention.h) | Right-handed axis conventions, NED/ENU frame documentation. |
+| [`Detail/ABI.h`](../include/AegisMath/Geometry/Detail/ABI.h) | Standard layout, alignment, and size validation helpers for geometry types. |
+| [`Detail/RotationInvariant.h`](../include/AegisMath/Geometry/Detail/RotationInvariant.h) | Orthogonality verification helper using squared Frobenius norm. |
+| [`FrameTags.h`](../include/AegisMath/Geometry/FrameTags.h) | Semantic coordinate frame tags (`WorldFrame`, `BodyFrame`, `ECEFFrame`, etc.). |
+| [`Matrix3.h`](../include/AegisMath/Geometry/Matrix3.h) | Generic, frame-agnostic numerical $3 \times 3$ matrix container in row-major storage. |
+| [`Point3.h`](../include/AegisMath/Geometry/Point3.h) | Frame-tagged affine point in $\mathbb{R}^3$. |
+| [`Quaternion.h`](../include/AegisMath/Geometry/Quaternion.h) | Frame-tagged Hamilton unit quaternion for $SO(3)$ rotations. |
+| [`RotationMatrix3.h`](../include/AegisMath/Geometry/RotationMatrix3.h) | Frame-tagged direction cosine matrix (DCM) in $SO(3)$. |
+| [`SymmetricLinearSolver3.h`](../include/AegisMath/Geometry/SymmetricLinearSolver3.h) | Fixed $3 \times 3$ analytic $LDL^T$ SPD linear solver with conditioning bounds. |
+| [`Traits.h`](../include/AegisMath/Geometry/Traits.h) | Geometry precision traits and tolerance defaults. |
+| [`Transform3.h`](../include/AegisMath/Geometry/Transform3.h) | Frame-tagged $SE(3)$ homogeneous rigid-body transformation (rotation + translation). |
+| [`UnitVector3.h`](../include/AegisMath/Geometry/UnitVector3.h) | Normalized unit direction vector in $S^2$. |
+| [`Vector3.h`](../include/AegisMath/Geometry/Vector3.h) | Frame-tagged Euclidean vector in $\mathbb{R}^3$. |
 
 ---
 
@@ -125,26 +125,28 @@ $$\mathbf{M}_{AC} = \mathbf{M}_{BC} \mathbf{M}_{AB} \quad (\text{i.e. } \texttt{
 
 `SymmetricLinearSolver3<T>` provides an analytic $LDL^T$ decomposition for $3 \times 3$ symmetric positive definite (SPD) linear systems $A x = b$:
 - **Policy**: Strictly follows the **Solve-Not-Invert** rule (Section 17 of Engineering Standard V1). Never computes $A^{-1} b$.
-- **Conditioning Checks**:
+- **Conditioning & Robustness Checks**:
   1. Validates all entries are finite (`MathError::non_finite_input`).
-  2. Validates positive pivot thresholds during $LDL^T$ factorization (`MathError::not_positive_definite`).
-  3. Computes the infinity-norm relative backward error:
+  2. Validates scale-aware symmetry ($|A_{ij} - A_{ji}| \le \text{scale} \cdot \epsilon \cdot 100$, returning `MathError::invalid_argument` on asymmetry).
+  3. Validates positive pivot thresholds during $LDL^T$ factorization ($d_k \le \text{tol}_{\text{sing}}$ returns `MathError::singular_matrix`; $d_k < -\text{tol}_{\text{sing}}$ returns `MathError::invalid_state` indicating an indefinite or negative-definite matrix).
+  4. LDLT pivot-spread safeguard ($\min(d) / \max(d) \le 100 \cdot \epsilon$ triggers `MathError::ill_conditioned`).
+  5. Infinity-norm relative backward error verification:
      $$\eta = \frac{\|A x - b\|_\infty}{\|A\|_\infty \|x\|_\infty + \|b\|_\infty}$$
-     and rejects solutions where $\eta > \text{tol}$ (`MathError::ill_conditioned`).
+     rejects solutions where $\eta > 100 \cdot \epsilon$ with `MathError::ill_conditioned`.
 
 ---
 
 ## 9. Verification Evidence
 
-- [`tests/Geometry/Matrix3Test.cpp`](file:///Users/akiyama/CLionProjects/AegisMathLib/tests/Geometry/Matrix3Test.cpp): Adjoint cofactor inversion indices, aliasing prevention, pure numerical algebra.
-- [`tests/Geometry/SymmetricLinearSolver3Test.cpp`](file:///Users/akiyama/CLionProjects/AegisMathLib/tests/Geometry/SymmetricLinearSolver3Test.cpp): Analytic $LDL^T$ solve, backward error tracking, ill-conditioned rejection.
-- [`tests/Geometry/AttitudeEngineTest.cpp`](file:///Users/akiyama/CLionProjects/AegisMathLib/tests/Geometry/AttitudeEngineTest.cpp): Rotation composition, quaternion-to-matrix agreement.
-- [`tests/Geometry/GeometryComparisonTest.cpp`](file:///Users/akiyama/CLionProjects/AegisMathLib/tests/Geometry/GeometryComparisonTest.cpp): 13 dedicated tests for `operator==`, `AlmostEqual`, `RotationEquivalent`, $180^\circ$ edge cases, near-zero $w$, compile-time rejection guards.
+- [`tests/Geometry/Matrix3Test.cpp`](../tests/Geometry/Matrix3Test.cpp): Adjoint cofactor inversion indices, aliasing prevention, pure numerical algebra.
+- [`tests/Geometry/SymmetricLinearSolver3Test.cpp`](../tests/Geometry/SymmetricLinearSolver3Test.cpp): Analytic $LDL^T$ solve, backward error tracking, ill-conditioned rejection.
+- [`tests/Geometry/AttitudeEngineTest.cpp`](../tests/Geometry/AttitudeEngineTest.cpp): Rotation composition, quaternion-to-matrix agreement.
+- [`tests/Geometry/GeometryComparisonTest.cpp`](../tests/Geometry/GeometryComparisonTest.cpp): 13 dedicated tests for `operator==`, `AlmostEqual`, `RotationEquivalent`, $180^\circ$ edge cases, near-zero $w$, compile-time rejection guards.
 
 ---
 
 ## 10. Known Deviations
 
 1. **AML-DEVIATION-001**: Frame transformation pipeline composition syntax ($R_{AB} * R_{BC} \to R_{AC}$).
-2. **AML-DEVIATION-002**: Public mutable data members (`x, y, z` and `w, x, y, z`) for standard-layout ABI.
-3. **AML-DEVIATION-004**: Namespace `AegisMath::Geometry` instead of `aegis::math::geometry`.
+2. **AML-DEVIATION-002**: Public mutable data members (`x, y, z` and `w, x, y, z`) for existing API compatibility and aggregate direct access.
+3. **AML-DEVIATION-003**: Namespace `AegisMath::Geometry` instead of `aegis::math::geometry`.

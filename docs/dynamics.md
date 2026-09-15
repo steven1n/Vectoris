@@ -4,7 +4,7 @@
 > **Document**: Dynamics Module Specification  
 > **Document Version**: 1.0  
 > **Status**: Authoritative Module Specification  
-> **Baseline Commit**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
+> **Code Baseline**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
 > **Last Updated**: 2026-09-15  
 > **Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](ENGINEERING_STANDARD_V1.md)
 
@@ -31,17 +31,17 @@ The `Dynamics` module exposes **11 public headers** under `include/AegisMath/Dyn
 
 | Header | Description |
 | :--- | :--- |
-| [`Concepts.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Dynamics/Concepts.h) | Dynamics concepts (`DynamicsScalar`, `DynamicsFrameTag`). |
-| [`Detail/DynamicsABI.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Dynamics/Detail/DynamicsABI.h) | ABI standard layout, trivial copyability, and memory padding validation. |
-| [`Detail/StateTypes.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Dynamics/Detail/StateTypes.h) | Kinematic state definition and spatial vector type bindings. |
-| [`DynamicsConvention.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Dynamics/DynamicsConvention.h) | Body frame, inertial frame, and gravitational acceleration conventions. |
-| [`EulerIntegrator.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Dynamics/EulerIntegrator.h) | Transactionally safe 1st-order semi-implicit Euler state integrator. |
-| [`InertiaTensor3.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Dynamics/InertiaTensor3.h) | Symmetric positive definite $3 \times 3$ rigid-body inertia tensor. |
-| [`QuantityVector3.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Dynamics/QuantityVector3.h) | 3D spatial vector whose components are strongly typed `Quantity` instances. |
-| [`RigidBodyParameters.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Dynamics/RigidBodyParameters.h) | Mass, center of mass offset, and inertia tensor parameters. |
-| [`RigidBodyState.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Dynamics/RigidBodyState.h) | Full 6-DOF rigid-body dynamics derivative kernel and coupling equations. |
-| [`Twist6.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Dynamics/Twist6.h) | 6-DOF spatial velocity (linear velocity + angular velocity). |
-| [`Wrench6.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Dynamics/Wrench6.h) | 6-DOF spatial force and torque (linear force + rotational moment). |
+| [`Concepts.h`](../include/AegisMath/Dynamics/Concepts.h) | Dynamics concepts (`DynamicsScalar`, `DynamicsFrameTag`). |
+| [`Detail/DynamicsABI.h`](../include/AegisMath/Dynamics/Detail/DynamicsABI.h) | ABI standard layout, trivial copyability, and memory padding validation. |
+| [`Detail/StateTypes.h`](../include/AegisMath/Dynamics/Detail/StateTypes.h) | Kinematic state definition and spatial vector type bindings. |
+| [`DynamicsConvention.h`](../include/AegisMath/Dynamics/DynamicsConvention.h) | Body frame, inertial frame, and gravitational acceleration conventions. |
+| [`EulerIntegrator.h`](../include/AegisMath/Dynamics/EulerIntegrator.h) | Transactionally safe 1st-order semi-implicit Euler state integrator. |
+| [`InertiaTensor3.h`](../include/AegisMath/Dynamics/InertiaTensor3.h) | Symmetric positive definite $3 \times 3$ rigid-body inertia tensor. |
+| [`QuantityVector3.h`](../include/AegisMath/Dynamics/QuantityVector3.h) | 3D spatial vector whose components are strongly typed `Quantity` instances. |
+| [`RigidBodyParameters.h`](../include/AegisMath/Dynamics/RigidBodyParameters.h) | Mass, center of mass offset, and inertia tensor parameters. |
+| [`RigidBodyState.h`](../include/AegisMath/Dynamics/RigidBodyState.h) | Full 6-DOF rigid-body dynamics derivative kernel and coupling equations. |
+| [`Twist6.h`](../include/AegisMath/Dynamics/Twist6.h) | 6-DOF spatial velocity (linear velocity + angular velocity). |
+| [`Wrench6.h`](../include/AegisMath/Dynamics/Wrench6.h) | 6-DOF spatial force and torque (linear force + rotational moment). |
 
 ---
 
@@ -92,25 +92,26 @@ Under AegisMathLib's 8D Model B, $[\boldsymbol{\omega} \times \mathbf{L}]$ evalu
 
 ## 7. Full Rigid-Body Dynamics Kernel
 
-[`RigidBodyDynamicsKernel::ComputeDerivative`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Dynamics/RigidBodyState.h) evaluates the full Newton-Euler equations without diagonal-only simplifications:
-1. Translational acceleration:
-   $$\mathbf{a}_{\text{body}} = \frac{\mathbf{F}_{\text{body}}}{m}$$
+[`RigidBodyDynamicsKernel::ComputeDerivative`](../include/AegisMath/Dynamics/RigidBodyState.h) evaluates the full Newton-Euler equations without diagonal-only simplifications:
+1. Translational acceleration (resolved in `BodyFrame`, accounting for rotation transport / Coriolis coupling):
+   $$\mathbf{a}_{\text{body}} = \frac{\mathbf{F}_{\text{body}}}{m} - \boldsymbol{\omega}_{\text{body}} \times \mathbf{v}_{\text{body}}$$
+   where `linearVelocity` is stored and resolved in `BodyFrame` (`Velocity3<BodyFrame, T>`).
 2. Angular momentum:
    $$\mathbf{L} = \mathbf{I} \boldsymbol{\omega}$$
 3. Gyroscopic cross-coupling:
    $$\boldsymbol{\tau}_{\text{gyro}} = \operatorname{LieBracket}(\boldsymbol{\omega}, \mathbf{L})$$
 4. Net rotational torque:
    $$\boldsymbol{\tau}_{\text{net}} = \boldsymbol{\tau}_{\text{ext}} - \boldsymbol{\tau}_{\text{gyro}}$$
-5. Angular acceleration solve:
-   $$\mathbf{I} \boldsymbol{\alpha} = \boldsymbol{\tau}_{\text{net}} \implies \boldsymbol{\alpha} = \operatorname{TypedSolveSPD}(\mathbf{I}, \boldsymbol{\tau}_{\text{net}})$$
+5. Angular acceleration solve via analytic $LDL^T$ decomposition:
+   $$\mathbf{I} \boldsymbol{\alpha} = \boldsymbol{\tau}_{\text{net}} \implies \boldsymbol{\alpha} = \operatorname{SolveSPD}(\mathbf{I}, \boldsymbol{\tau}_{\text{net}})$$
 
-If the inertia tensor is ill-conditioned or non-SPD, `ComputeDerivative` immediately returns `Result::failure(MathError::not_positive_definite)` or `Result::failure(MathError::ill_conditioned)`.
+If the inertia tensor is singular, indefinite, or ill-conditioned, `ComputeDerivative` returns the exact failure code propagated by `SolveSPD` / `SolveSymmetricPositiveDefinite3x3` (`MathError::singular_matrix`, `MathError::invalid_state`, `MathError::ill_conditioned`, or `MathError::non_finite_input`).
 
 ---
 
 ## 8. `EulerIntegrator` Contract
 
-[`EulerIntegrator::Step`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Dynamics/EulerIntegrator.h) implements a deterministic, 1st-order semi-implicit integration step:
+[`EulerIntegrator::Step`](../include/AegisMath/Dynamics/EulerIntegrator.h) implements a deterministic, 1st-order semi-implicit integration step:
 
 ```cpp
 template <DynamicsScalar T, Geometry::FrameTag RefFrame, Geometry::FrameTag BodyFrame>
@@ -129,9 +130,9 @@ static constexpr Core::Result<bool, Core::MathError> Step(
 
 ### 8.2 Transactional Safety Semantics
 - **Zero Partial State Commitment**: Integration operates on a local stack copy (`auto candidate = state;`).
-- All derivatives, velocity increments, position updates, and quaternion attitude kinematics are calculated and verified.
-- The external caller state is mutated **if and only if all operations succeed**.
-- On any failure (e.g. singular inertia, invalid timestep, non-finite wrench), the function returns `Result::failure(...)` and the caller's state remains **100% unchanged**.
+- All derivatives, body velocity increments ($\mathbf{v}_{\text{body}} += \mathbf{a}_{\text{body}} \Delta t$, $\boldsymbol{\omega} += \boldsymbol{\alpha} \Delta t$), reference position advance ($\mathbf{r}_{\text{ref}} += (\mathbf{q} * \mathbf{v}_{\text{body}}) \Delta t$), and quaternion attitude kinematics are calculated and verified.
+- The external caller state reference is mutated (`state = candidate;`) **if and only if all operations succeed**, returning `Result<bool, MathError>::success(true)`.
+- On any numerical or domain failure (e.g. singular inertia, invalid timestep, non-finite wrench), the function returns `Result::failure(err)` and the caller's state remains **100% untouched**.
 
 ### 8.3 Attitude Kinematics Boundary
 - Quaternion kinematics $\dot{\mathbf{q}} = \frac{1}{2} \mathbf{q} \otimes \boldsymbol{\omega}_{\text{body}}$ consume dimensionless quaternion coordinates.
@@ -142,16 +143,16 @@ static constexpr Core::Result<bool, Core::MathError> Step(
 
 ## 9. Verification Evidence
 
-- [`tests/Dynamics/DynamicsConceptTest.cpp`](file:///Users/akiyama/CLionProjects/AegisMathLib/tests/Dynamics/DynamicsConceptTest.cpp): Scalar constraints and frame typing.
-- [`tests/Dynamics/InertiaTensorTest.cpp`](file:///Users/akiyama/CLionProjects/AegisMathLib/tests/Dynamics/InertiaTensorTest.cpp): Valid SPD checks, rejection of indefinite matrices with positive diagonals, symmetry checks, typed SPD solve.
-- [`tests/Dynamics/RigidBodyStateTest.cpp`](file:///Users/akiyama/CLionProjects/AegisMathLib/tests/Dynamics/RigidBodyStateTest.cpp): Non-diagonal inertia coupling matching reference analytic solutions, torque-free asymmetric body precession.
-- [`tests/Dynamics/EulerDynamicsTest.cpp`](file:///Users/akiyama/CLionProjects/AegisMathLib/tests/Dynamics/EulerDynamicsTest.cpp): Torque-free angular momentum conservation, transactional safety on singular inertia, timestep validation.
-- [`tests/Dynamics/PropagationTest.cpp`](file:///Users/akiyama/CLionProjects/AegisMathLib/tests/Dynamics/PropagationTest.cpp): Frame transformation propagation, attitude kinematic integration.
-- [`tests/Dynamics/Regression/FreeFallTest.cpp`](file:///Users/akiyama/CLionProjects/AegisMathLib/tests/Dynamics/Regression/FreeFallTest.cpp): Vertical drop under gravity, 1st-order convergence rate verification ($\mathcal{O}(\Delta t)$).
-- [`tests/Dynamics/DynamicsUnitsTest.cpp`](file:///Users/akiyama/CLionProjects/AegisMathLib/tests/Dynamics/DynamicsUnitsTest.cpp): Dimensional algebra assertions, combined frame and unit safety.
+- [`tests/Dynamics/DynamicsConceptTest.cpp`](../tests/Dynamics/DynamicsConceptTest.cpp): Scalar constraints and frame typing.
+- [`tests/Dynamics/InertiaTensorTest.cpp`](../tests/Dynamics/InertiaTensorTest.cpp): Valid SPD checks, rejection of indefinite matrices with positive diagonals, symmetry checks, typed SPD solve.
+- [`tests/Dynamics/RigidBodyStateTest.cpp`](../tests/Dynamics/RigidBodyStateTest.cpp): Non-diagonal inertia coupling matching reference analytic solutions, torque-free asymmetric body precession.
+- [`tests/Dynamics/EulerDynamicsTest.cpp`](../tests/Dynamics/EulerDynamicsTest.cpp): Torque-free angular momentum conservation, transactional safety on singular inertia, timestep validation.
+- [`tests/Dynamics/PropagationTest.cpp`](../tests/Dynamics/PropagationTest.cpp): Frame transformation propagation, attitude kinematic integration.
+- [`tests/Dynamics/Regression/FreeFallTest.cpp`](../tests/Dynamics/Regression/FreeFallTest.cpp): Vertical drop under gravity, 1st-order convergence rate verification ($\mathcal{O}(\Delta t)$).
+- [`tests/Dynamics/DynamicsUnitsTest.cpp`](../tests/Dynamics/DynamicsUnitsTest.cpp): Dimensional algebra assertions, combined frame and unit safety.
 
 ---
 
 ## 10. Known Deviations
 
-1. **AML-DEVIATION-004**: Namespace `AegisMath::Dynamics` instead of `aegis::math::dynamics`.
+1. **AML-DEVIATION-003**: Namespace `AegisMath::Dynamics` instead of `aegis::math::dynamics` (registered in [`docs/DEVIATIONS.md`](DEVIATIONS.md)).

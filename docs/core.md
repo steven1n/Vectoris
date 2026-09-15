@@ -4,7 +4,7 @@
 > **Document**: Core Module Specification  
 > **Document Version**: 1.0  
 > **Status**: Authoritative Module Specification  
-> **Baseline Commit**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
+> **Code Baseline**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
 > **Last Updated**: 2026-09-15  
 > **Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](ENGINEERING_STANDARD_V1.md)
 
@@ -43,16 +43,16 @@ The `Core` module exposes exactly **10 public headers** under `include/AegisMath
 
 | Header | Description |
 | :--- | :--- |
-| [`BasicTypes.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Core/BasicTypes.h) | Fundamental type aliases (`Real`, `Float32`, `Float64`, `Int32`, `UInt32`, `Bool`, etc.). |
-| [`Compiler.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Core/Compiler.h) | Standard compliance detection and compiler-specific attribute abstractions (`AEGIS_CPLUSPLUS`). |
-| [`Concepts.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Core/Concepts.h) | C++20 concepts (`Concepts::FloatingPoint`, `Concepts::RealScalar`, `Concepts::SupportedSqrtScalar`). |
-| [`Constants.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Core/Constants.h) | Mathematical constants ($\pi$, $e$, $\sqrt{2}$, $\ln 2$, machine epsilons) with full 64-bit precision. |
-| [`Math.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Core/Math.h) | Root namespace umbrella including `MathFunctions.h`, `NumericTraits.h`, and `Constants.h`. |
-| [`MathError.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Core/MathError.h) | Strongly typed error enum `MathError` and string converter `to_string(MathError)`. |
-| [`MathFunctions.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Core/MathFunctions.h) | Bounded numerical functions: `Core::Math::sqrt`, `clamp`, `acos`, `asin`, `deg2rad`, `rad2deg`. |
-| [`NumericTraits.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Core/NumericTraits.h) | Compile-time IEEE-754 traits: `AlmostEqual`, `IsZero`, `IsFinite`, `IsNaN`. |
-| [`Precision.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Core/Precision.h) | Default floating-point scalar alias `Scalar = double;`. |
-| [`Result.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Core/Result.h) | `std::variant`-backed monadic error container `Result<T, MathError>`. |
+| [`BasicTypes.h`](../include/AegisMath/Core/BasicTypes.h) | Fundamental type aliases (`Real`, `Float32`, `Float64`, `Int32`, `UInt32`, `Bool`, etc.). |
+| [`Compiler.h`](../include/AegisMath/Core/Compiler.h) | Standard compliance detection and compiler-specific attribute abstractions (`AEGIS_CPLUSPLUS`). |
+| [`Concepts.h`](../include/AegisMath/Core/Concepts.h) | C++20 concepts (`Concepts::FloatingPoint`, `Concepts::NumericInteger`, `Concepts::SupportedSqrtScalar`). |
+| [`Constants.h`](../include/AegisMath/Core/Constants.h) | Mathematical constants ($\pi$, $e$, $\sqrt{2}$, $\ln 2$, machine epsilons) with full 64-bit precision. |
+| [`Math.h`](../include/AegisMath/Core/Math.h) | Root namespace umbrella including `MathFunctions.h`, `NumericTraits.h`, and `Constants.h`. |
+| [`MathError.h`](../include/AegisMath/Core/MathError.h) | Strongly typed error enum `MathError` and string converter `to_string(MathError)`. |
+| [`MathFunctions.h`](../include/AegisMath/Core/MathFunctions.h) | Bounded numerical functions: `Core::Math::sqrt`, `clamp`, `acos`, `asin`, `deg2rad`, `rad2deg`. |
+| [`NumericTraits.h`](../include/AegisMath/Core/NumericTraits.h) | Compile-time IEEE-754 traits: `AlmostEqual`, `IsZero`, `IsFinite`, `IsNaN`. |
+| [`Precision.h`](../include/AegisMath/Core/Precision.h) | Default floating-point scalar alias `Scalar = double;`. |
+| [`Result.h`](../include/AegisMath/Core/Result.h) | `std::variant`-backed error container `Result<T, MathError>`. |
 
 ---
 
@@ -73,16 +73,17 @@ AegisMathLib enforces a strict **zero-exception** policy across all mathematical
 
 ```cpp
 namespace AegisMath::Core {
-    enum class MathError {
-        none = 0,
-        invalid_argument,
-        out_of_range,
-        singular_matrix,
-        not_positive_definite,
-        ill_conditioned,
+    enum class MathError : std::uint8_t {
+        invalid_argument = 1,
+        domain_error,
         non_finite_input,
-        iteration_limit_exceeded,
-        zero_norm
+        singular_matrix,
+        ill_conditioned,
+        zero_norm,
+        normalization_failure,
+        non_convergence,
+        max_iterations,
+        invalid_state
     };
 }
 ```
@@ -93,15 +94,17 @@ Swallowing errors or returning sentinel scalars (such as `-1` or `0.0` on invali
 
 ## 7. `Result<T, MathError>`
 
-All fallible mathematical operations return `Core::Result<T, MathError>`:
-- **Implementation**: Implemented via standard `std::variant<T, MathError>`. Placement-new and raw union allocations are eliminated.
+All fallible mathematical operations return `Core::Result<T, MathError>` (or `Core::Result<T, E>`):
+- **Implementation**: Backed by `std::variant<T, E>` (`storage_`). Placement-new and raw union allocations are eliminated.
 - **Constexpr Capability**: Fully functional in compile-time `constexpr` contexts.
-- **Monadic Interface**:
-  - `IsSuccess()`, `has_value()`: Query status.
-  - `Value()`, `value()`: Access payload (asserts on failure).
-  - `error()`: Query `MathError` enumerator.
-  - `map(fn)`: Functorial transformation on success.
-  - `and_then(fn)`: Monadic bind for chaining fallible operations.
+- **Contract & API Surface**:
+  - `has_value()`, `IsSuccess()`, `explicit operator bool()`: Query whether the result holds a valid value.
+  - `value()`, `Value()`: Access payload by reference/rvalue. Precondition: `has_value() == true`. Asserts in Debug; undefined behavior in Release if violated.
+  - `error()`: Access error enumerator by reference/rvalue. Precondition: `!has_value() == true`. Asserts in Debug; undefined behavior in Release if violated.
+  - `value_or(default_val)`: Returns value if successful, or fallback `default_val`.
+  - `value_if()`: Safe checked pointer accessor. Returns `const T*` / `T*` if successful, or `nullptr` on failure.
+  - `error_if()`: Safe checked pointer accessor. Returns `const E*` / `E*` on failure, or `nullptr` on success.
+  - `Result::success(...)`, `Result::failure(...)`: Explicit static factory functions.
 
 ---
 
@@ -142,13 +145,18 @@ Mathematical helpers in `Core::Math` enforce robust domain contracts:
 | $\text{NaN}$ | $\text{NaN}$ | Quiet NaN propagation. |
 
 > [!NOTE]
-> Returning $+0.0$ for negative finite inputs and $-\infty$ is registered in [`docs/DEVIATIONS.md`](DEVIATIONS.md) under **AML-DEVIATION-003**.
+> Returning $+0.0$ for negative finite inputs, signed zero (`-0.0`), and $-\infty$ is the intentional, project-specific numerical domain policy of `AegisMath::Core`, designed to safeguard recursive state estimation and long-term simulation loops against sudden NaN corruption.
 
 ### 10.2 Compile-Time Execution (`constexpr`)
-- Employs bounded Newton-Raphson iteration.
+- Employs bounded Newton-Raphson iteration (`Detail::BoundedNewtonSqrt`).
 - Hard iteration cap: `kMaxIterations = 64` (strictly enforcing Rule 7).
-- Initial estimate: IEEE-754 bit-manipulation integer bitshift (`0x5fe6eb50c7b537a9ULL` for `double`, `0x5f3759dfUL` for `float`).
-- Termination criterion: Relative and absolute tolerance convergence $|y_{k+1} - y_k| \le \epsilon \cdot \max(1.0, y_k)$.
+- Scale-aware initial estimate via IEEE-754 exponent halving (`Detail::InitialSqrtGuess`):
+  - Normal `double`: `(bits >> 1) + (1023ULL << 51)` using `std::bit_cast<uint64_t>`.
+  - Subnormal `double`: scaled by $2^{52}$, exponent halved, and scaled back by $2^{-26}$.
+  - Normal `float`: `(bits >> 1) + (127U << 22)` using `std::bit_cast<uint32_t>`.
+  - Subnormal `float`: scaled by $2^{24}$, exponent halved, and scaled back by $2^{-12}$.
+- Scale-aware termination criterion:
+  `curr == prev || abs(curr - prev) <= eps * (curr > prev ? curr : prev)`.
 
 ### 10.3 Runtime Execution
 - Delegates directly to the standard library `std::sqrt` implementation for non-negative values, guaranteeing compiler intrinsics and FPU vectorization without hand-rolled runtime loops.
@@ -168,14 +176,16 @@ Mathematical helpers in `Core::Math` enforce robust domain contracts:
 
 - Follows pure state-in / state-out contracts.
 - Zero dependency on system clocks, wall time (`std::chrono::system_clock`), or hardware randomness (`std::random_device`, `rand`).
-- Bitwise determinism across different compilers or architectures is NOT claimed; reproducibility across identical compiler builds is guaranteed by pure functional evaluation.
+- Production headers contain no hidden RNG, wall-clock dependencies, or mutable static state (Hidden nondeterminism source audit: PASS).
+- Bitwise reproducibility across differing compilers, architectures, or floating-point environments has not been benchmarked (Cross-build/runtime reproducibility: NOT RUN).
 
 ---
 
 ## 13. Allocation Policy
 
-- Zero heap allocation (`new`, `malloc`, dynamic standard containers) in all `Core` headers.
-- All types are fixed-size, standard-layout, trivially destructible value objects.
+- Zero explicit dynamic allocation APIs (`new`, `delete`, `malloc`, `free`) or dynamic containers (`std::vector`, `std::string`) in `Core` headers (Explicit Allocation Audit: PASS).
+- Runtime heap allocation interception under full workload stress is tracked as NOT RUN.
+- All core types are fixed-size, standard-layout, trivially destructible value objects.
 
 ---
 
@@ -185,22 +195,21 @@ Mathematical helpers in `Core::Math` enforce robust domain contracts:
 | :--- | :--- | :--- |
 | Non-finite input | `std::isnan()`, `std::isinf()` | Return `Result::failure(MathError::non_finite_input)`. |
 | Zero norm divisor | `Traits::IsZero(sq_len)` | Return `Result::failure(MathError::zero_norm)`. |
-| Out of domain | Static concept or runtime boundary check | Clamped or return `MathError::out_of_range`. |
-| Iteration limit exceeded | Iteration counter $> kMaxIterations` | Return `MathError::iteration_limit_exceeded`. |
+| Out of domain / Invalid argument | Boundary or sign check | Return `Result::failure(MathError::domain_error)` or `MathError::invalid_argument`. |
+| Iteration limit exceeded | Iteration counter $> kMaxIterations` | Return `Result::failure(MathError::max_iterations)`. |
 
 ---
 
 ## 15. Verification Evidence
 
 The `Core` module contracts are verified by dedicated test suites:
-- [`tests/Core/NumericTraitsTest.cpp`](file:///Users/akiyama/CLionProjects/AegisMathLib/tests/Core/NumericTraitsTest.cpp): Machine epsilon, dual-tolerance comparison.
-- [`tests/Core/MathFunctionsTest.cpp`](file:///Users/akiyama/CLionProjects/AegisMathLib/tests/Core/MathFunctionsTest.cpp): `CoreSqrtTest` (signed zero, negative domain clamping, constexpr verification, convergence bounds), `acos`/`asin` boundary clamping.
-- [`tests/Core/ResultTest.cpp`](file:///Users/akiyama/CLionProjects/AegisMathLib/tests/Core/ResultTest.cpp): Monadic chaining, constexpr execution, ABI triviality.
-- [`tests/Core/PublicTemplateInstantiationTest.cpp`](file:///Users/akiyama/CLionProjects/AegisMathLib/tests/Core/PublicTemplateInstantiationTest.cpp): Explicit template instantiation for `float` and `double`.
+- [`tests/Core/NumericTraitsTest.cpp`](../tests/Core/NumericTraitsTest.cpp): Machine epsilon, dual-tolerance comparison.
+- [`tests/Core/MathFunctionsTest.cpp`](../tests/Core/MathFunctionsTest.cpp): `CoreSqrtTest` (signed zero, negative domain clamping, constexpr verification, convergence bounds), `acos`/`asin` boundary clamping.
+- [`tests/Core/ResultTest.cpp`](../tests/Core/ResultTest.cpp): Monadic chaining, constexpr execution, ABI triviality.
+- [`tests/Core/PublicTemplateInstantiationTest.cpp`](../tests/Core/PublicTemplateInstantiationTest.cpp): Explicit template instantiation for `float` and `double`.
 
 ---
 
 ## 16. Known Deviations
 
-1. **AML-DEVIATION-003**: `Core::Math::sqrt` non-negative domain clamping policy (returns `+0.0` for negative inputs rather than `NaN` or error).
-2. **AML-DEVIATION-004**: Top-level namespace `AegisMath::Core` instead of standard-mandated `aegis::math::core`.
+1. **AML-DEVIATION-003**: Top-level namespace `AegisMath::Core` instead of standard-mandated `aegis::math::core` (registered in [`docs/DEVIATIONS.md`](DEVIATIONS.md)).

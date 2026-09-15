@@ -4,7 +4,7 @@
 > **Document**: Units Module Specification  
 > **Document Version**: 1.0  
 > **Status**: Authoritative Module Specification  
-> **Baseline Commit**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
+> **Code Baseline**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
 > **Last Updated**: 2026-09-15  
 > **Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](ENGINEERING_STANDARD_V1.md)
 
@@ -34,7 +34,7 @@ The 8 fundamental dimensions are:
 
 ## 3. Base Dimensions
 
-In [`include/AegisMath/Units/Dimension.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Units/Dimension.h), dimensions are tracked as integer template parameters:
+In [`include/AegisMath/Units/Dimension.h`](../include/AegisMath/Units/Dimension.h), dimensions are tracked as integer template parameters:
 
 ```cpp
 template<
@@ -121,14 +121,14 @@ The `Units` module defines **8 SI Base Units** under `include/AegisMath/Units/Ba
 
 | Quantity | Base Unit | Header |
 | :--- | :--- | :--- |
-| Length | `Meter` | [`Length.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Units/BaseUnits/Length.h) |
-| Mass | `Kilogram` | [`Mass.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Units/BaseUnits/Mass.h) |
-| Time | `Second` | [`Time.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Units/BaseUnits/Time.h) |
-| Current | `Ampere` | [`Current.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Units/BaseUnits/Current.h) |
-| Temperature | `Kelvin` | [`Temperature.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Units/BaseUnits/Temperature.h) |
-| Amount | `Mole` | [`Amount.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Units/BaseUnits/Amount.h) |
-| Luminosity | `Candela` | [`Luminosity.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Units/BaseUnits/Luminosity.h) |
-| Angle | `Radian` | [`Angle.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Units/BaseUnits/Angle.h) |
+| Length | `Meter` | [`Length.h`](../include/AegisMath/Units/BaseUnits/Length.h) |
+| Mass | `Kilogram` | [`Mass.h`](../include/AegisMath/Units/BaseUnits/Mass.h) |
+| Time | `Second` | [`Time.h`](../include/AegisMath/Units/BaseUnits/Time.h) |
+| Current | `Ampere` | [`Current.h`](../include/AegisMath/Units/BaseUnits/Current.h) |
+| Temperature | `Kelvin` | [`Temperature.h`](../include/AegisMath/Units/BaseUnits/Temperature.h) |
+| Amount | `Mole` | [`Amount.h`](../include/AegisMath/Units/BaseUnits/Amount.h) |
+| Luminosity | `Candela` | [`Luminosity.h`](../include/AegisMath/Units/BaseUnits/Luminosity.h) |
+| Angle | `Radian` | [`Angle.h`](../include/AegisMath/Units/BaseUnits/Angle.h) |
 
 ---
 
@@ -183,14 +183,14 @@ Calling `LieBracket(omega, L)` or `RotationalCross(omega, L)` explicitly perform
 
 ## 11. Frequency Contract
 
-[`include/AegisMath/Units/DerivedUnits/Frequency.h`](file:///Users/akiyama/CLionProjects/AegisMathLib/include/AegisMath/Units/DerivedUnits/Frequency.h) specifies:
+[`include/AegisMath/Units/DerivedUnits/Frequency.h`](../include/AegisMath/Units/DerivedUnits/Frequency.h) specifies:
 - Dimension: `FrequencyDimension = Dimension<0, 0, -1, 0, 0, 0, 0, 0>;` ($T^{-1}$).
 - Unit Tag: `struct HertzUnit { using Dimension = FrequencyDimension; using Ratio = std::ratio<1>; static constexpr bool IsBaseUnit = false; };`.
 - Quantity Aliases: `using Frequency = Quantity<Scalar, HertzUnit>;` and `using Hertz = Frequency;`.
 - Dimensional Algebra:
-  - $\text{Frequency} \times \text{Time} \implies \text{Dimensionless}$:
-    $$\text{Hertz}(50.0) \times \text{Second}(0.1) \implies \text{Quantity}<\text{Scalar}, \text{Dimensionless}>(5.0)$$
-  - $\text{Dimensionless} / \text{Time} \implies \text{Frequency}$:
+  - $\text{Frequency} \times \text{Time} \implies$ result dimension is `Dimensionless` ($[L^0 M^0 T^0 I^0 \Theta^0 N^0 J^0 A^0]$):
+    $$\text{Hertz}(50.0) \times \text{Second}(0.1) \implies \text{numerical scalar } 5.0 \text{ with dimensionless compound unit tag}$$
+  - $\text{Dimensionless} / \text{Time} \implies$ result dimension is `FrequencyDimension` ($[T^{-1}]$):
     $$5.0 / \text{Second}(0.1) \implies \text{Quantity}<\text{Scalar}, \text{HertzUnit}>(50.0)$$
 
 ---
@@ -203,7 +203,7 @@ All exported quantity types must satisfy `Detail::ValidateQuantityABI<Q>()`:
 - `std::is_standard_layout_v<Quantity<T, Unit>> == true`
 - `std::is_trivially_copyable_v<Quantity<T, Unit>> == true`
 
-This guarantees that `Quantity` can be safely passed across C ABI boundaries, mapped into DMA memory buffers, and serialized without padding or layout mismatches.
+These traits guarantee that `Quantity` introduces zero runtime memory or padding overhead beyond the underlying scalar `T`. While standard layout and trivial copyability allow predictable memory representations and low-overhead integration, portability across differing compiler ABI specifications or network wire formats depends on platform conventions.
 
 ---
 
@@ -219,9 +219,9 @@ This guarantees that `Quantity` can be safely passed across C ABI boundaries, ma
 
 ## 14. Verification Evidence
 
-- [`tests/Units/UnitsTest.cpp`](file:///Users/akiyama/CLionProjects/AegisMathLib/tests/Units/UnitsTest.cpp):
+- [`tests/Units/UnitsTest.cpp`](../tests/Units/UnitsTest.cpp):
   - `CRTPABIAndZeroInit`: ABI size, alignment, trivial copyability.
   - `StrictTypeConceptAndCast`: Concept checks, velocity derivation from length/time.
   - `RotationalAndInertiaUnits`: Torque, moment of inertia, power, angular momentum dimensional algebra.
   - `FrequencyCompileTimeContractAndAlgebra`: Hertz dimension exponents, ABI validation, frequency-time algebra, and exclusion of duplicate `NewtonUnit` symbol collision.
-- [`tests/Units/PublicTemplateInstantiationTest.cpp`](file:///Users/akiyama/CLionProjects/AegisMathLib/tests/Units/PublicTemplateInstantiationTest.cpp): Instantiation tests across `float` and `double`.
+- [`tests/Units/PublicTemplateInstantiationTest.cpp`](../tests/Units/PublicTemplateInstantiationTest.cpp): Instantiation tests across `float` and `double`.
