@@ -42,13 +42,22 @@ TEST(GeometryPublicTemplateTest, UnitVector3TryCreate) {
     EXPECT_FALSE(zero_res.IsSuccess());
     EXPECT_EQ(zero_res.error(), AegisMath::Core::MathError::zero_norm);
 
-    // Non-finite vector rejection
+    // Non-finite vector rejection (x, y, z)
     AegisMath::Geometry::Vector3<double, TestFrameA> nan_v(
         std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0
     );
     auto nan_res = AegisMath::Geometry::UnitVector3<double, TestFrameA>::TryCreate(nan_v);
     EXPECT_FALSE(nan_res.IsSuccess());
     EXPECT_EQ(nan_res.error(), AegisMath::Core::MathError::non_finite_input);
+
+    AegisMath::Geometry::Vector3<double, TestFrameA> nan_vy(0.0, std::numeric_limits<double>::quiet_NaN(), 0.0);
+    EXPECT_FALSE((AegisMath::Geometry::UnitVector3<double, TestFrameA>::TryCreate(nan_vy).IsSuccess()));
+
+    AegisMath::Geometry::Vector3<double, TestFrameA> nan_vz(0.0, 0.0, std::numeric_limits<double>::quiet_NaN());
+    EXPECT_FALSE((AegisMath::Geometry::UnitVector3<double, TestFrameA>::TryCreate(nan_vz).IsSuccess()));
+
+    bool fail_ok = AegisMath::Geometry::UnitVector3<double, TestFrameA>::TryCreate(zero_v, uv_out);
+    EXPECT_FALSE(fail_ok);
 
     // 4. Dot product with UnitVector3 and Vector3
     double d_self = uv.dot(uv);

@@ -5,7 +5,9 @@
 #include <limits>
 #include "AegisMath/Geometry/AlmostEqual.h"
 #include "AegisMath/Geometry/SymmetricLinearSolver3.h"
+#include "AegisMath/Core/MathError.h"
 
+using namespace AegisMath::Core;
 using namespace AegisMath::Geometry;
 
 namespace {
@@ -33,12 +35,30 @@ TEST(GeometryComparisonTest, Vector3EqualityAndAlmostEqual) {
     EXPECT_TRUE(AlmostEqual(v1, v3, 1e-2, 1e-2));
     EXPECT_FALSE(AlmostEqual(v1, v3, 1e-4, 1e-4));
 
+    // Vector - Vector
+    Vector3<double, FrameA> diff = v1 - v2;
+    EXPECT_DOUBLE_EQ(diff.x, 0.0);
+    EXPECT_DOUBLE_EQ(diff.y, 0.0);
+    EXPECT_DOUBLE_EQ(diff.z, 0.0);
+
+    Vector3<double, FrameA> vx(2.0, 2.0, 3.0);
+    Vector3<double, FrameA> vy(1.0, 3.0, 3.0);
+    Vector3<double, FrameA> vz(1.0, 2.0, 4.0);
+    EXPECT_FALSE(AlmostEqual(v1, vx, 1e-4, 1e-4));
+    EXPECT_FALSE(AlmostEqual(v1, vy, 1e-4, 1e-4));
+    EXPECT_FALSE(AlmostEqual(v1, vz, 1e-4, 1e-4));
+
     // Phase 3 Regression: operator== is exact component-wise value equality, NOT bitwise equality
     // +0.0 == -0.0 evaluates to true under C++ floating-point == semantics despite differing sign bits
     Vector3<double, FrameA> pz(+0.0, 1.0, 2.0);
     Vector3<double, FrameA> nz(-0.0, 1.0, 2.0);
     EXPECT_TRUE(pz == nz);
     EXPECT_FALSE(pz != nz);
+
+    Vector3<double, FrameA> v_diff_y(1.0, 9.0, 3.0);
+    EXPECT_FALSE(v1 == v_diff_y);
+    Vector3<double, FrameA> v_diff_z(1.0, 2.0, 9.0);
+    EXPECT_FALSE(v1 == v_diff_z);
 
     // NaN != NaN under standard IEEE-754 / C++ floating-point == semantics
     Vector3<double, FrameA> nan_vec(std::numeric_limits<double>::quiet_NaN(), 1.0, 2.0);
@@ -60,9 +80,37 @@ TEST(GeometryComparisonTest, Point3EqualityAndAlmostEqual) {
     EXPECT_FALSE(p1 == p3);
     EXPECT_TRUE(p1 != p3);
 
+    // Component-wise operator== variations
+    Point3<double, FrameA> p_diff_x(9.0, 2.0, 3.0);
+    EXPECT_FALSE(p1 == p_diff_x);
+    Point3<double, FrameA> p_diff_y(1.0, 5.0, 3.0);
+    EXPECT_FALSE(p1 == p_diff_y);
+    Point3<double, FrameA> p_diff_z(1.0, 2.0, 5.0);
+    EXPECT_FALSE(p1 == p_diff_z);
+
     EXPECT_TRUE(AlmostEqual(p1, p2));
     EXPECT_TRUE(AlmostEqual(p1, p3, 1e-2, 1e-2));
     EXPECT_FALSE(AlmostEqual(p1, p3, 1e-4, 1e-4));
+
+    // Point + Vector -> Point
+    Vector3<double, FrameA> v_shift(10.0, 20.0, 30.0);
+    Point3<double, FrameA> p_sum = p1 + v_shift;
+    EXPECT_DOUBLE_EQ(p_sum.x, 11.0);
+    EXPECT_DOUBLE_EQ(p_sum.y, 22.0);
+    EXPECT_DOUBLE_EQ(p_sum.z, 33.0);
+
+    // Point - Point -> Vector
+    Vector3<double, FrameA> p_diff = p3 - p1;
+    EXPECT_DOUBLE_EQ(p_diff.x, 0.0);
+    EXPECT_DOUBLE_EQ(p_diff.y, 0.0);
+    EXPECT_NEAR(p_diff.z, 0.001, 1e-12);
+
+    Point3<double, FrameA> px(2.0, 2.0, 3.0);
+    Point3<double, FrameA> py(1.0, 3.0, 3.0);
+    Point3<double, FrameA> pz_diff(1.0, 2.0, 4.0);
+    EXPECT_FALSE(AlmostEqual(p1, px, 1e-4, 1e-4));
+    EXPECT_FALSE(AlmostEqual(p1, py, 1e-4, 1e-4));
+    EXPECT_FALSE(AlmostEqual(p1, pz_diff, 1e-4, 1e-4));
 }
 
 // ----------------------------------------------------------------------------
@@ -92,6 +140,59 @@ TEST(GeometryComparisonTest, Matrix3EqualityAndAlmostEqual) {
 
     EXPECT_TRUE(AlmostEqual(m1, m3, 1e-2, 1e-2));
     EXPECT_FALSE(AlmostEqual(m1, m3, 1e-4, 1e-4));
+
+    // Element-wise operator== and AlmostEqual variations across all 9 entries
+    for (size_t i = 0; i < 9; ++i) {
+        Matrix3<double> m_diff = m1;
+        m_diff.m[i] += 10.0;
+        EXPECT_FALSE(m1 == m_diff);
+        EXPECT_TRUE(m1 != m_diff);
+        EXPECT_FALSE(AlmostEqual(m1, m_diff, 1e-4, 1e-4));
+    }
+
+    // Singular matrix inverse returning false
+    Matrix3<double> m_sing = Matrix3<double>::Zero();
+    Matrix3<double> m_inv;
+    EXPECT_FALSE(m_sing.TryInverse(m_inv));
+
+    // Rank-deficient matrix inverse returning false
+    Matrix3<double> m_rank1(
+        1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0,
+        1.0, 1.0, 1.0
+    );
+    EXPECT_FALSE(m_rank1.TryInverse(m_inv));
+
+    // Non-finite matrix entries in TryInverse
+    Matrix3<double> m_nan(
+        std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 1.0
+    );
+    EXPECT_FALSE(m_nan.TryInverse(m_inv));
+
+    Matrix3<double> m_inf(
+        std::numeric_limits<double>::infinity(), 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 1.0
+    );
+    EXPECT_FALSE(m_inf.TryInverse(m_inv));
+
+    // Near-singular matrix in TryInverse
+    Matrix3<double> m_near_sing(
+        1.0, 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 1e-18
+    );
+    EXPECT_FALSE(m_near_sing.TryInverse(m_inv));
+
+    // Negative determinant matrix in TryInverse (covers d < 0 branch at line 157)
+    Matrix3<double> m_neg_det(
+        -1.0, 0.0, 0.0,
+         0.0, 1.0, 0.0,
+         0.0, 0.0, 1.0
+    );
+    EXPECT_TRUE(m_neg_det.TryInverse(m_inv));
 }
 
 // ----------------------------------------------------------------------------
@@ -109,6 +210,48 @@ TEST(GeometryComparisonTest, UnitVector3EqualityAndAlmostEqual) {
     EXPECT_TRUE(u1 == u2);
     EXPECT_FALSE(u1 != u2);
     EXPECT_TRUE(AlmostEqual(u1, u2));
+
+    // Non-finite input (x, y, z individually)
+    auto uv_nan_x = UnitVector3<double, FrameA>::TryCreate(Vector3<double, FrameA>(std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0));
+    ASSERT_FALSE(uv_nan_x.IsSuccess());
+    EXPECT_EQ(uv_nan_x.error(), MathError::non_finite_input);
+
+    auto uv_nan_y = UnitVector3<double, FrameA>::TryCreate(Vector3<double, FrameA>(0.0, std::numeric_limits<double>::quiet_NaN(), 0.0));
+    ASSERT_FALSE(uv_nan_y.IsSuccess());
+    EXPECT_EQ(uv_nan_y.error(), MathError::non_finite_input);
+
+    auto uv_nan_z = UnitVector3<double, FrameA>::TryCreate(Vector3<double, FrameA>(0.0, 0.0, std::numeric_limits<double>::quiet_NaN()));
+    ASSERT_FALSE(uv_nan_z.IsSuccess());
+    EXPECT_EQ(uv_nan_z.error(), MathError::non_finite_input);
+
+    // Zero-norm input
+    auto uv_zero = UnitVector3<double, FrameA>::TryCreate(Vector3<double, FrameA>(0.0, 0.0, 0.0));
+    ASSERT_FALSE(uv_zero.IsSuccess());
+    EXPECT_EQ(uv_zero.error(), MathError::zero_norm);
+
+    // TryCreate with out param failure and success
+    auto uv_out = u1;
+    bool create_fail = UnitVector3<double, FrameA>::TryCreate(Vector3<double, FrameA>(0.0, 0.0, 0.0), uv_out);
+    EXPECT_FALSE(create_fail);
+
+    bool create_ok = UnitVector3<double, FrameA>::TryCreate(Vector3<double, FrameA>(0.0, 2.0, 0.0), uv_out);
+    EXPECT_TRUE(create_ok);
+    EXPECT_DOUBLE_EQ(uv_out.y, 1.0);
+
+    auto u3 = UnitVector3<double, FrameA>::TryCreate(Vector3<double, FrameA>(0.0, 1.0, 0.0)).Value();
+    auto u4 = UnitVector3<double, FrameA>::TryCreate(Vector3<double, FrameA>(0.0, 0.0, 1.0)).Value();
+    EXPECT_FALSE(u1 == u3);
+    EXPECT_TRUE(u1 != u3);
+    EXPECT_FALSE(u1 == u4);
+    auto u_z_neg = UnitVector3<double, FrameA>::TryCreate(Vector3<double, FrameA>(0.0, 0.0, -1.0)).Value();
+    EXPECT_FALSE(u4 == u_z_neg);
+    EXPECT_FALSE(AlmostEqual(u4, u_z_neg));
+
+    auto u_y_pos = UnitVector3<double, FrameA>::TryCreate(Vector3<double, FrameA>(0.0, 1.0, 0.0)).Value();
+    auto u_y_neg = UnitVector3<double, FrameA>::TryCreate(Vector3<double, FrameA>(0.0, -1.0, 0.0)).Value();
+    EXPECT_FALSE(u_y_pos == u_y_neg);
+    EXPECT_FALSE(AlmostEqual(u1, u3));
+    EXPECT_FALSE(AlmostEqual(u_y_pos, u_y_neg));
 }
 
 // ----------------------------------------------------------------------------
@@ -121,6 +264,23 @@ TEST(GeometryComparisonTest, RotationMatrix3EqualityAndAlmostEqual) {
     EXPECT_TRUE(r1 == r2);
     EXPECT_FALSE(r1 != r2);
     EXPECT_TRUE(AlmostEqual(r1, r2));
+
+    // Invalid rotation matrix with det != 1
+    Matrix3<double> m_scaled(
+        2.0, 0.0, 0.0,
+        0.0, 2.0, 0.0,
+        0.0, 0.0, 2.0
+    );
+    auto r_inv = RotationMatrix3<double, FrameA, FrameB>::TryCreate(m_scaled);
+    ASSERT_FALSE(r_inv.IsSuccess());
+    EXPECT_EQ(r_inv.error(), MathError::invalid_state);
+
+    // Mismatched rotation matrices
+    auto q_rot90 = Quaternion<double, FrameA, FrameB>::TryCreate(0.7071067811865476, 0.7071067811865476, 0.0, 0.0).Value();
+    auto r_diff = RotationMatrix3<double, FrameA, FrameB>::FromQuaternion(q_rot90);
+    EXPECT_FALSE(r1 == r_diff);
+    EXPECT_TRUE(r1 != r_diff);
+    EXPECT_FALSE(AlmostEqual(r1, r_diff));
 }
 
 // ----------------------------------------------------------------------------
@@ -133,6 +293,21 @@ TEST(GeometryComparisonTest, Transform3EqualityAndAlmostEqual) {
     EXPECT_TRUE(t1 == t2);
     EXPECT_FALSE(t1 != t2);
     EXPECT_TRUE(AlmostEqual(t1, t2));
+
+    // Different rotation
+    auto q_rot90_A = Quaternion<double, FrameA, FrameA>::TryCreate(0.7071067811865476, 0.7071067811865476, 0.0, 0.0).Value();
+    auto t_diff_rot = Transform3<double, FrameA, FrameA>::Create(q_rot90_A, Vector3<double, FrameA>(0.0, 0.0, 0.0));
+    EXPECT_FALSE(t1 == t_diff_rot);
+    EXPECT_TRUE(t1 != t_diff_rot);
+    EXPECT_FALSE(AlmostEqual(t1, t_diff_rot));
+
+    // Different offset
+    auto t_diff_offset = Transform3<double, FrameA, FrameA>::Create(
+        Quaternion<double, FrameA, FrameA>::Identity(), Vector3<double, FrameA>(1.0, 2.0, 3.0)
+    );
+    EXPECT_FALSE(t1 == t_diff_offset);
+    EXPECT_TRUE(t1 != t_diff_offset);
+    EXPECT_FALSE(AlmostEqual(t1, t_diff_offset));
 }
 
 // ----------------------------------------------------------------------------
@@ -144,6 +319,28 @@ TEST(GeometryComparisonTest, QuaternionEqualityAndRotationalEquivalence) {
 
     EXPECT_TRUE(q1 == q2);
     EXPECT_FALSE(q1 != q2);
+
+    // Non-finite input across all components
+    auto q_nan_w = Quaternion<double, FrameA, FrameB>::TryCreate(std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0, 0.0);
+    ASSERT_FALSE(q_nan_w.IsSuccess());
+    EXPECT_EQ(q_nan_w.error(), MathError::non_finite_input);
+
+    auto q_nan_x = Quaternion<double, FrameA, FrameB>::TryCreate(1.0, std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0);
+    ASSERT_FALSE(q_nan_x.IsSuccess());
+    EXPECT_EQ(q_nan_x.error(), MathError::non_finite_input);
+
+    auto q_nan_y = Quaternion<double, FrameA, FrameB>::TryCreate(1.0, 0.0, std::numeric_limits<double>::quiet_NaN(), 0.0);
+    ASSERT_FALSE(q_nan_y.IsSuccess());
+    EXPECT_EQ(q_nan_y.error(), MathError::non_finite_input);
+
+    auto q_nan_z = Quaternion<double, FrameA, FrameB>::TryCreate(1.0, 0.0, 0.0, std::numeric_limits<double>::quiet_NaN());
+    ASSERT_FALSE(q_nan_z.IsSuccess());
+    EXPECT_EQ(q_nan_z.error(), MathError::non_finite_input);
+
+    // Zero-norm input
+    auto q_zero = Quaternion<double, FrameA, FrameB>::TryCreate(0.0, 0.0, 0.0, 0.0);
+    ASSERT_FALSE(q_zero.IsSuccess());
+    EXPECT_EQ(q_zero.error(), MathError::zero_norm);
 
     // Audit Canonicalization: Public TryCreate normalizes sign to w >= 0
     // TryCreate(-1, 0, 0, 0) collapses to w = +1.0 canonical representative
@@ -157,23 +354,98 @@ TEST(GeometryComparisonTest, QuaternionEqualityAndRotationalEquivalence) {
         std::cos(half_angle), 0.0, std::sin(half_angle), 0.0
     ).Value();
 
-    // Phase 5 Transitional Policy: Intentionally constructs a non-canonical legacy representation
-    // to test RotationEquivalent robustness without claiming this instance satisfies canonical invariant
+    // Canonicalized with negative w
     auto minus_q = q_rot;
     minus_q.w = -q_rot.w;
     minus_q.x = -q_rot.x;
     minus_q.y = -q_rot.y;
     minus_q.z = -q_rot.z;
+    auto q_canon = minus_q.Canonicalized();
+    EXPECT_GE(q_canon.w, 0.0);
+
+    // Slerp non-finite t
+    auto slerp_nan = q1.Slerp(q2, std::numeric_limits<double>::quiet_NaN());
+    ASSERT_FALSE(slerp_nan.IsSuccess());
+    EXPECT_EQ(slerp_nan.error(), MathError::non_finite_input);
+
+    // Slerp identical quaternions (small angle linear path)
+    auto slerp_same = q1.Slerp(q1, 0.5);
+    ASSERT_TRUE(slerp_same.IsSuccess());
+    EXPECT_DOUBLE_EQ(slerp_same.Value().w, q1.w);
+
+    // Slerp spherical interpolation path (nontrivial angle ~ 60 degrees)
+    auto q_spherical_target = Quaternion<double, FrameA, FrameB>::TryCreate(
+        std::cos(std::numbers::pi / 6.0), std::sin(std::numbers::pi / 6.0), 0.0, 0.0
+    ).Value();
+    auto slerp_spherical = q1.Slerp(q_spherical_target, 0.5);
+    ASSERT_TRUE(slerp_spherical.IsSuccess());
+    EXPECT_NEAR(slerp_spherical.Value().w, std::cos(std::numbers::pi / 12.0), 1e-12);
+
+    // Slerp negative cos_theta path (dot product < 0)
+    auto q_pos = Quaternion<double, FrameA, FrameB>::TryCreate(0.5, 0.5, 0.5, 0.5).Value();
+    auto q_neg = Quaternion<double, FrameA, FrameB>::TryCreate(0.5, -0.5, -0.5, -0.5).Value();
+    auto slerp_neg_cos = q_pos.Slerp(q_neg, 0.5);
+    ASSERT_TRUE(slerp_neg_cos.IsSuccess());
 
     // 1. Exact value equality fails:
     EXPECT_FALSE(q_rot == minus_q);
     EXPECT_TRUE(q_rot != minus_q);
 
+    // Component-wise operator== and AlmostEqual variations
+    auto q_base = Quaternion<double, FrameA, FrameB>::TryCreate(0.6, 0.8, 0.0, 0.0).Value();
+    auto q_diff_w = Quaternion<double, FrameA, FrameB>::TryCreate(0.8, 0.6, 0.0, 0.0).Value();
+    auto q_diff_y = Quaternion<double, FrameA, FrameB>::TryCreate(0.6, 0.0, 0.8, 0.0).Value();
+    auto q_diff_z = Quaternion<double, FrameA, FrameB>::TryCreate(0.6, 0.0, 0.0, 0.8).Value();
+
+    EXPECT_FALSE(q_base == q_diff_w);
+    EXPECT_FALSE(q_base == q_diff_y);
+    EXPECT_FALSE(q_base == q_diff_z);
+    EXPECT_FALSE(AlmostEqual(q_base, q_diff_w));
+    EXPECT_FALSE(AlmostEqual(q_base, q_diff_y));
+    EXPECT_FALSE(AlmostEqual(q_base, q_diff_z));
+
+    auto q_wy1 = Quaternion<double, FrameA, FrameB>::TryCreate(0.6, 0.0, 0.8, 0.0).Value();
+    auto q_wy2 = Quaternion<double, FrameA, FrameB>::TryCreate(0.6, 0.0, -0.8, 0.0).Value();
+    EXPECT_FALSE(q_wy1 == q_wy2);
+    EXPECT_FALSE(AlmostEqual(q_wy1, q_wy2));
+
+    auto q_wz1 = Quaternion<double, FrameA, FrameB>::TryCreate(0.6, 0.0, 0.0, 0.8).Value();
+    auto q_wz2 = Quaternion<double, FrameA, FrameB>::TryCreate(0.6, 0.0, 0.0, -0.8).Value();
+    EXPECT_FALSE(q_wz1 == q_wz2);
+    EXPECT_FALSE(AlmostEqual(q_wz1, q_wz2));
+
     // 2. Tolerance-aware component-wise AlmostEqual fails:
     EXPECT_FALSE(AlmostEqual(q_rot, minus_q));
+    EXPECT_FALSE(AlmostEqual(q1, q_rot));
 
     // 3. SO(3) Rotational Equivalence succeeds (verifying the double cover q ~ -q):
     EXPECT_TRUE(RotationEquivalent(q_rot, minus_q));
+    EXPECT_TRUE(RotationEquivalent(q_base, q_base));
+
+    // Double cover 180-degree pure vector rotation equivalence
+    auto q_180_x = Quaternion<double, FrameA, FrameB>::TryCreate(0.0, 1.0, 0.0, 0.0).Value();
+    auto q_180_neg_x = Quaternion<double, FrameA, FrameB>::TryCreate(0.0, -1.0, 0.0, 0.0).Value();
+    EXPECT_TRUE(RotationEquivalent(q_180_x, q_180_neg_x));
+
+    // RotationEquivalent failures
+    EXPECT_FALSE(RotationEquivalent(q_base, q_180_x));
+    EXPECT_FALSE(RotationEquivalent(q_180_x, q_diff_y));
+    EXPECT_FALSE(RotationEquivalent(q_180_x, q_diff_z));
+    EXPECT_FALSE(RotationEquivalent(q_wz1, q_wz2));
+    auto q_180_y = Quaternion<double, FrameA, FrameB>::TryCreate(0.0, 0.0, 1.0, 0.0).Value();
+    EXPECT_FALSE(RotationEquivalent(q_180_x, q_180_y));
+
+    // RotationEquivalent line 210 and 211 false branches
+    // Line 210: a.w ~ -b.w (true), a.x ~ -b.x (true), a.y ~ -b.y (false)
+    const double sqrt2_inv = 0.7071067811865475;
+    auto q_xy_a = Quaternion<double, FrameA, FrameB>::TryCreate(0.0, sqrt2_inv, sqrt2_inv, 0.0).Value();
+    auto q_xy_b = Quaternion<double, FrameA, FrameB>::TryCreate(0.0, -sqrt2_inv, sqrt2_inv, 0.0).Value();
+    EXPECT_FALSE(RotationEquivalent(q_xy_a, q_xy_b));
+
+    // Line 211: a.w ~ -b.w (true), a.x ~ -b.x (true), a.y ~ -b.y (true), a.z ~ -b.z (false)
+    auto q_xz_a = Quaternion<double, FrameA, FrameB>::TryCreate(0.0, sqrt2_inv, 0.0, sqrt2_inv).Value();
+    auto q_xz_b = Quaternion<double, FrameA, FrameB>::TryCreate(0.0, -sqrt2_inv, 0.0, sqrt2_inv).Value();
+    EXPECT_FALSE(RotationEquivalent(q_xz_a, q_xz_b));
 
     // 4. Perturbed quaternion beyond tolerance fails:
     auto perturbed_q = q_rot;

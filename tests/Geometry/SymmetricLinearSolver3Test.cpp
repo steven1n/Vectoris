@@ -174,6 +174,13 @@ TEST(SymmetricLinearSolver3Test, FloatModerateSPDMatrixPasses) {
     EXPECT_NEAR(res.value().x, 0.2272727f, 1e-4f);
     EXPECT_NEAR(res.value().y, -0.4393939f, 1e-4f);
     EXPECT_NEAR(res.value().z, 1.6060606f, 1e-4f);
+
+    Vector3<float, TestFrame> b_zero_f(0.0f, 0.0f, 0.0f);
+    auto res_zero_f = SolveSymmetricPositiveDefinite3x3(A, b_zero_f);
+    ASSERT_TRUE(res_zero_f.has_value());
+    EXPECT_FLOAT_EQ(res_zero_f.value().x, 0.0f);
+    EXPECT_FLOAT_EQ(res_zero_f.value().y, 0.0f);
+    EXPECT_FLOAT_EQ(res_zero_f.value().z, 0.0f);
 }
 
 TEST(SymmetricLinearSolver3Test, FloatIllConditionedMatrixDetected) {
@@ -205,4 +212,125 @@ TEST(SymmetricLinearSolver3Test, NonFiniteInputDetected) {
     auto res2 = SolveSymmetricPositiveDefinite3x3(A_ok, b_inf);
     ASSERT_FALSE(res2.has_value());
     EXPECT_EQ(res2.error(), MathError::non_finite_input);
+
+    Vector3<double, TestFrame> b_nan_x(std::numeric_limits<double>::quiet_NaN(), 1.0, 1.0);
+    auto res_bx = SolveSymmetricPositiveDefinite3x3(A_ok, b_nan_x);
+    ASSERT_FALSE(res_bx.has_value());
+    EXPECT_EQ(res_bx.error(), MathError::non_finite_input);
+
+    Vector3<double, TestFrame> b_nan_z(1.0, 1.0, std::numeric_limits<double>::quiet_NaN());
+    auto res_bz = SolveSymmetricPositiveDefinite3x3(A_ok, b_nan_z);
+    ASSERT_FALSE(res_bz.has_value());
+    EXPECT_EQ(res_bz.error(), MathError::non_finite_input);
+}
+
+TEST(SymmetricLinearSolver3Test, ComprehensiveDefensiveFailureModes) {
+    Vector3<double, TestFrame> b(1.0, 2.0, 3.0);
+
+    // 1. Zero scale matrix
+    Matrix3<double> A_zero = Matrix3<double>::Zero();
+    auto res_zero = SolveSymmetricPositiveDefinite3x3(A_zero, b);
+    ASSERT_FALSE(res_zero.has_value());
+    EXPECT_EQ(res_zero.error(), MathError::singular_matrix);
+
+    // 2. Asymmetric matrix: (0,1) vs (1,0)
+    Matrix3<double> A_asym1(
+        1.0, 0.5, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 1.0
+    );
+    auto res_asym1 = SolveSymmetricPositiveDefinite3x3(A_asym1, b);
+    ASSERT_FALSE(res_asym1.has_value());
+    EXPECT_EQ(res_asym1.error(), MathError::invalid_argument);
+
+    // Asymmetric matrix: (0,2) vs (2,0)
+    Matrix3<double> A_asym2(
+        1.0, 0.0, 0.5,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 1.0
+    );
+    auto res_asym2 = SolveSymmetricPositiveDefinite3x3(A_asym2, b);
+    ASSERT_FALSE(res_asym2.has_value());
+    EXPECT_EQ(res_asym2.error(), MathError::invalid_argument);
+
+    // Asymmetric matrix: (1,2) vs (2,1)
+    Matrix3<double> A_asym3(
+        1.0, 0.0, 0.0,
+        0.0, 1.0, 0.5,
+        0.0, 0.0, 1.0
+    );
+    auto res_asym3 = SolveSymmetricPositiveDefinite3x3(A_asym3, b);
+    ASSERT_FALSE(res_asym3.has_value());
+    EXPECT_EQ(res_asym3.error(), MathError::invalid_argument);
+
+    // 3. Negative diagonal pivot d1 < -tol
+    Matrix3<double> A_neg1(
+        -1.0, 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 1.0
+    );
+    auto res_neg1 = SolveSymmetricPositiveDefinite3x3(A_neg1, b);
+    ASSERT_FALSE(res_neg1.has_value());
+    EXPECT_EQ(res_neg1.error(), MathError::invalid_state);
+
+    // 4. Singular leading pivot d1 <= tol
+    Matrix3<double> A_sing1(
+        0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 1.0
+    );
+    auto res_sing1 = SolveSymmetricPositiveDefinite3x3(A_sing1, b);
+    ASSERT_FALSE(res_sing1.has_value());
+    EXPECT_EQ(res_sing1.error(), MathError::singular_matrix);
+
+    // 5. Indefinite pivot d2 < -tol
+    Matrix3<double> A_indef2(
+        1.0, 2.0, 0.0,
+        2.0, 1.0, 0.0,
+        0.0, 0.0, 1.0
+    );
+    auto res_indef2 = SolveSymmetricPositiveDefinite3x3(A_indef2, b);
+    ASSERT_FALSE(res_indef2.has_value());
+    EXPECT_EQ(res_indef2.error(), MathError::invalid_state);
+
+    // 6. Indefinite pivot d3 < -tol
+    Matrix3<double> A_indef3(
+        1.0, 0.0, 2.0,
+        0.0, 1.0, 0.0,
+        2.0, 0.0, 1.0
+    );
+    auto res_indef3 = SolveSymmetricPositiveDefinite3x3(A_indef3, b);
+    ASSERT_FALSE(res_indef3.has_value());
+    EXPECT_EQ(res_indef3.error(), MathError::invalid_state);
+
+    // 7. Singular pivot d3 <= tol
+    Matrix3<double> A_sing3(
+        1.0, 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0
+    );
+    auto res_sing3 = SolveSymmetricPositiveDefinite3x3(A_sing3, b);
+    ASSERT_FALSE(res_sing3.has_value());
+    EXPECT_EQ(res_sing3.error(), MathError::singular_matrix);
+}
+
+TEST(SymmetricLinearSolver3Test, ZeroVectorRightHandSideAndOverflow) {
+    Matrix3<double> A_ok = Matrix3<double>::Identity();
+    Vector3<double, TestFrame> b_zero(0.0, 0.0, 0.0);
+    auto res_zero = SolveSymmetricPositiveDefinite3x3(A_ok, b_zero);
+    ASSERT_TRUE(res_zero.has_value());
+    EXPECT_DOUBLE_EQ(res_zero.value().x, 0.0);
+    EXPECT_DOUBLE_EQ(res_zero.value().y, 0.0);
+    EXPECT_DOUBLE_EQ(res_zero.value().z, 0.0);
+
+    // Coupled matrix and large b causing intermediate overflow in solution x
+    Matrix3<double> A_coupled(
+        1.0, -0.999, 0.0,
+        -0.999, 1.0, 0.0,
+        0.0, 0.0, 1.0
+    );
+    Vector3<double, TestFrame> b_overflow(1e308, 0.0, 0.0);
+    auto res_huge = SolveSymmetricPositiveDefinite3x3(A_coupled, b_overflow);
+    ASSERT_FALSE(res_huge.has_value());
+    EXPECT_EQ(res_huge.error(), MathError::ill_conditioned);
 }

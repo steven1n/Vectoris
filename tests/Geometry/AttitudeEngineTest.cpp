@@ -46,6 +46,17 @@ TEST(QuaternionTest, CascadingOrder_Q002_Fix) {
     EXPECT_NEAR(vec_C.x, 0.0, 1e-6);
     EXPECT_NEAR(vec_C.y, 1.0, 1e-6);
     EXPECT_NEAR(vec_C.z, 0.0, 1e-6);
+
+    // Cover TryCreate validation branches for FrameA->FrameB and FrameB->FrameC instantiations
+    EXPECT_FALSE((Quaternion<double, FrameA, FrameB>::TryCreate(0.0, 0.0, 0.0, 0.0).IsSuccess()));
+    EXPECT_FALSE((Quaternion<double, FrameA, FrameB>::TryCreate(std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0, 0.0).IsSuccess()));
+    auto q_neg1 = Quaternion<double, FrameA, FrameB>::TryCreate(-1.0, 0.0, 0.0, 0.0);
+    EXPECT_TRUE(q_neg1.IsSuccess());
+
+    EXPECT_FALSE((Quaternion<double, FrameB, FrameC>::TryCreate(0.0, 0.0, 0.0, 0.0).IsSuccess()));
+    EXPECT_FALSE((Quaternion<double, FrameB, FrameC>::TryCreate(std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0, 0.0).IsSuccess()));
+    auto q_neg2 = Quaternion<double, FrameB, FrameC>::TryCreate(-1.0, 0.0, 0.0, 0.0);
+    EXPECT_TRUE(q_neg2.IsSuccess());
 }
 
 // ============================================================================
