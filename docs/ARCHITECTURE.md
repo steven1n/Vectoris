@@ -1,13 +1,22 @@
 # AegisMathLib Architecture Specification
 
+> [!WARNING]
+> **Status**: DEPRECATED / HISTORICAL (Non-Authoritative)  
+> This legacy document has been formally superseded by the authoritative project specifications:
+> - Normative Baseline (SSOT): [`docs/ENGINEERING_STANDARD_V1.md`](ENGINEERING_STANDARD_V1.md)
+> - Cross-Module Conventions: [`docs/MATHEMATICAL_CONVENTIONS.md`](MATHEMATICAL_CONVENTIONS.md)
+> - Subsystem Specifications: [`docs/core.md`](core.md), [`docs/units.md`](units.md), [`docs/geometry.md`](geometry.md), [`docs/dynamics.md`](dynamics.md)
+> 
+> This document is preserved for historical reference only and carries zero normative authority.
+
 Version:
 1.0
 
 Architecture Revision:
 B.2.5
 
-Status:
-Foundation Freeze Candidate
+Historical Status:
+Foundation Freeze Candidate (Superseded)
 
 
 ---

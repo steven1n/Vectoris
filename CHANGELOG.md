@@ -1,6 +1,8 @@
 # AegisMathLib Geometry Foundation v1.0
 
-## Phase 2.4 / Phase 2.5 Finalization
+> [!NOTE]
+> **Status**: HISTORICAL / ARCHIVE (Non-Authoritative)  
+> This file contains pre-governance historical development notes. For authoritative release and qualification status, consult [`README.md`](README.md) and [`docs/audits/AegisMathLib_Stable_Core_Qualification_v1.md`](docs/audits/AegisMathLib_Stable_Core_Qualification_v1.md).
 
 ### Added
 
