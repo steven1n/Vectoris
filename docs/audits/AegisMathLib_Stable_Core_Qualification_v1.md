@@ -7,7 +7,7 @@
 > **Code Baseline**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
 > **Last Updated**: 2026-09-15  
 > **Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](../ENGINEERING_STANDARD_V1.md)  
-> **Certification Status**: **NOT CERTIFIED** (Pending static analysis and cross-compiler qualification)
+> **Certification Status**: **NOT CERTIFIED** (Pending cross-compiler qualification)
 
 ---
 
@@ -92,8 +92,7 @@ Based on Sections 5, 48, 50, 85, 86, 88, 89, 90, 101, 104, and 124 of [`docs/ENG
 > Tool unavailability on the local host (such as `clang-tidy` or `cppcheck` missing from PATH) is **NOT** a code finding; it represents an unfulfilled qualification gate whose status is recorded as `NOT RUN`.
 
 ### Authoritative Blocker Ledger
-1. **Required Static Analysis Gates**: Clang-Tidy and Cppcheck static-analysis qualification not executed (Section 90).
-2. **Required Cross-Compiler Matrix**: Portability qualification across GCC, Clang, and MSVC not executed (Sections 2 & 89).
+1. **Required Cross-Compiler Matrix**: Portability qualification across GCC, Clang, and MSVC not executed (Sections 2 & 89).
 
 ---
 
@@ -112,8 +111,8 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
 | **Repository Hygiene** | Sec 89, 92 | **PASS** | AML-MED-006: Boilerplate library.* and obsolete scripts removed. | **NO** | Remediated (3d79ed2) |
 | **Public Header Isolation** | Sec 5, 89 | **PASS** | Standalone self-containment: PASS (66/66 public headers compiled in isolated TUs with zero warnings in Debug & Release). Unresolved transitive-include reliance: NONE OBSERVED. Aggregate order-poisoning TUs (2/2): PASS. | **NO** | Remediated (P2-C) |
 | **Install / Export Validation** | Sec 89 | **NOT RUN** | FOLLOW-UP QUALIFICATION / PACKAGING DEBT. CMake package export is not an explicit DoD blocker in ENGINEERING_STANDARD_V1.md Sec 124. | **NO** | Packaging Debt |
-| **Clang-Tidy** | Sec 90 | **NOT RUN** | Tool not installed locally; no `.clang-tidy` config file. | **YES** | **P2-D** |
-| **Cppcheck** | Sec 90 | **NOT RUN** | Tool not installed locally; no `cppcheck` config file. | **YES** | **P2-D** |
+| **Clang-Tidy** | Sec 87, 90, 124 | **PASS** | Target-scoped `AegisMathLib_ClangTidy` with `.clang-tidy` config; LLVM 23.0.0git; 122 checks across `clang-analyzer-*`, `bugprone-*`, `cert-*`, `performance-*`, `portability-*`, `cppcoreguidelines-*`; all 95 translation units analyzed with `--warnings-as-errors`; 0 diagnostics in `include/AegisMath/**`. | **NO** | Remediated (P2-STA) |
+| **Cppcheck** | Sec 87, 90 | **NOT RUN** | Recommended analyzer per Sec 87 (clang-tidy is mandatory); tool not installed on macOS host; recorded as NOT RUN per audit policy. | **NO** | Tooling Debt |
 | **AddressSanitizer (ASan)** | Sec 88, 124 | **PASS** | Target-scoped `AEGISMATH_ENABLE_ASAN` enabled; 108/108 tests pass with `ASAN_OPTIONS=halt_on_error=1:abort_on_error=1`; no ASan diagnostics observed; header isolation (68/68 TUs) compile-qualified with ASan instrumentation; leak detection: NOT QUALIFIED in P2-SAN (unsupported on macOS host); dynamic init-order checking: NOT SUPPORTED on macOS host. | **NO** | Remediated (P2-SAN) |
 | **UndefinedBehaviorSanitizer (UBSan)** | Sec 88, 124 | **PASS** | Target-scoped `AEGISMATH_ENABLE_UBSAN` enabled; 108/108 tests pass with `UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1`; no diagnostics observed from checks enabled by `-fsanitize=undefined`; header isolation (68/68 TUs) compile-qualified with UBSan instrumentation. | **NO** | Remediated (P2-SAN) |
 | **ThreadSanitizer (TSan)** | Sec 88 | **NOT RUN** | Single-threaded kernels; periodic verification item; not an immediate P2 blocker. | **NO** | Periodic |
@@ -137,8 +136,8 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
 ### 6.1 Tool Availability
 - `clang++`: `/usr/bin/clang++` (Apple clang version 21.0.0, `clang-2100.1.1.101`, Target: `x86_64-apple-darwin25.6.0`)
 - `g++`: `/usr/bin/g++` (Apple clang symlink/wrapper, **NOT** real GNU GCC)
-- `clang-tidy`: **Not found** on host system
-- `cppcheck`: **Not found** on host system
+- `clang-tidy`: `/Applications/CLion.app/Contents/bin/clang/mac/x64/bin/clang-tidy` (LLVM version 23.0.0git)
+- `cppcheck`: **Not found** on host system (Status: `NOT RUN`)
 - `llvm-cov`: Available via `xcrun llvm-cov` (Apple LLVM version 21.0.0)
 - `llvm-profdata`: Available via `xcrun llvm-profdata` (Apple LLVM version 21.0.0)
 - `gcov`: `/usr/bin/gcov` (Present, wrapper around Apple LLVM coverage)
@@ -282,6 +281,30 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
   - Scope manifest: `tools/coverage/coverage_scope.json`
   - Custom build targets: `AegisMathLib_Coverage` (console text report and threshold verification) and `AegisMathLib_Coverage_HTML` (generates detailed HTML reports under `build/coverage-html/`).
 
+### 6.8 Static Analysis Qualification (P2-STA)
+- **Status**: **PASS**
+- **Standards Reference**: [`docs/ENGINEERING_STANDARD_V1.md`](../ENGINEERING_STANDARD_V1.md) Section 87, Section 90, and Section 124 (DoD Gate 14).
+- **Tool Availability & Versions**:
+  - `clang-tidy`: `/Applications/CLion.app/Contents/bin/clang/mac/x64/bin/clang-tidy` (LLVM version 23.0.0git) — **PASS**
+  - `cppcheck`: Not found on host system (`which cppcheck` returned empty) — **NOT RUN** (Recommended per Sec 87; toolchain not artificially modified).
+- **Configuration & Scope**:
+  - Configuration file: [`.clang-tidy`](../../.clang-tidy) at repository root.
+  - Required Check Categories: 122 enabled checks across `clang-analyzer-core.*`, `clang-analyzer-cplusplus.*`, `clang-analyzer-deadcode.*`, `clang-analyzer-nullability.*`, `clang-analyzer-security.*`, `clang-analyzer-unix.*`, `bugprone-*`, `cert-*`, `performance-*`, `portability-*`, `cppcoreguidelines-*`.
+  - HeaderFilterRegex: `.*/include/AegisMath/.*`
+  - Production Scope: `include/AegisMath/**` across all 95 translation units in `compile_commands.json` (including all 66 standalone header isolation TUs and 27 test suite TUs).
+- **Diagnostic Ledger**:
+  - Baseline Total Diagnostics: 1 (in test suite `DummyNonTrivial` struct; resolved with defaulted rule-of-5 special member functions)
+  - Baseline Production Diagnostics: **0**
+  - Unresolved Production Diagnostics: **0**
+  - Production Warnings as Errors: **PASS** (all 95 TUs exit code 0)
+- **NOLINT Baseline & Hygiene**:
+  - Baseline NOLINT directives in codebase: **0**
+  - Current NOLINT directives in codebase: **0**
+  - Zero suppression directives introduced.
+- **CMake Integration**:
+  - Custom targets: `AegisMathLib_ClangTidy`, `AegisMathLib_Cppcheck`, `AegisMathLib_StaticAnalysis` in `cmake/StaticAnalysis.cmake`.
+  - Non-contamination: All targets excluded from default build (`ALL`).
+
 ---
 
 ## 7. Recommended P2 Execution Roadmap
@@ -311,8 +334,8 @@ graph TD
    - Registered all formal `AML-DEVIATION` records in `docs/DEVIATIONS.md` (**AML-MED-008** Remediated).
 4. **P2-SAN — Dynamic Sanitizers (ASan / UBSan)** (Remediated):
    - Configured target-scoped `AEGISMATH_ENABLE_ASAN` and `AEGISMATH_ENABLE_UBSAN` in CMake; verified 100% clean test and header isolation execution.
-5. **P2-D — Static Analysis Infrastructure**:
-   - Establish `.clang-tidy` and `cppcheck` configuration rules and CI definitions.
+5. **P2-D — Static Analysis Infrastructure** (Remediated — P2-STA):
+   - Established `.clang-tidy` and configured `AegisMathLib_ClangTidy`, `AegisMathLib_Cppcheck`, `AegisMathLib_StaticAnalysis` targets. Verified 0 production diagnostics under 122 rules with `WarningsAsErrors` across all 95 translation units.
 6. **P2-F — Test Coverage Gate** (Remediated — P2-COV / P2-COV.1):
    - Instrument build with LLVM source-based coverage (`xcrun llvm-cov`); verify 100.00% function, 98.99% line, 90.72% branch coverage across all 66 public headers (30 runtime coverage headers, 3 template definition headers, 36 compile-time-only headers).
 7. **P2-G — Cross-Compiler Matrix & Benchmark Baseline**:
