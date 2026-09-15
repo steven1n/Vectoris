@@ -1,367 +1,167 @@
 # AegisMathLib Mathematical Conventions
 
-Version:
-
-1.0
-
-
-Status:
-
-Foundation Architecture Specification
-
-
-Applies to:
-
-- Algebra
-- Geometry
-- Coordinate
-- Navigation
-- Physics
-- Simulation
-
+> [!IMPORTANT]
+> **Document**: Cross-Module Mathematical Conventions  
+> **Document Version**: 1.0  
+> **Status**: Authoritative Architectural Specification  
+> **Baseline Commit**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
+> **Last Updated**: 2026-09-15  
+> **Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](ENGINEERING_STANDARD_V1.md)
 
 ---
 
-# 1. Purpose
+## 1. Purpose
 
+This document defines the mathematical conventions used throughout AegisMathLib to eliminate ambiguity across coordinate frames, spatial transformations, attitude representations, dimensional algebra, and physical equations.
 
-This document defines the mathematical conventions used throughout AegisMathLib.
-
-
-The purpose is to eliminate ambiguity between:
-
-- coordinate systems
-- transformations
-- rotations
-- vector operations
-- physical quantities
-
-
-All modules MUST follow these conventions.
-
+For detailed API definitions, consult the respective module specifications:
+- [`docs/core.md`](core.md) — Fundamental types, scalar policy, numerical traits, error model.
+- [`docs/units.md`](units.md) — Model B 8D dimensional system, unit tags, derived units.
+- [`docs/geometry.md`](geometry.md) — Frame safety, matrices, quaternions, equality model.
+- [`docs/dynamics.md`](dynamics.md) — Rigid-body dynamics, inertia tensor, Euler integrator.
+- [`docs/DEVIATIONS.md`](DEVIATIONS.md) — Formal approved deviations ledger.
 
 ---
 
-# 2. Numerical Convention
+## 2. Numerical Convention
 
-
-## Floating Point Type
-
-
-Default scalar type:
-
-
+### 2.1 Floating-Point Scalar Type
+The canonical floating-point type for all mathematical computations is:
 ```cpp
-using Scalar = double;
-Reason:
-aerospace simulation accuracy
-navigation calculation stability
-long propagation periods
-Single precision may only be used explicitly.
-Example:
-Quantity<float, MeterUnit>
-requires explicit declaration.
-3. Coordinate System Convention
-AegisMathLib uses:
-Right-Handed Coordinate System
-The positive rotation follows:
-Right Hand Rule
-3.1 Axis Convention
-Default Cartesian frame:
-        Z+
+using Scalar = double; // IEEE-754 64-bit double precision
+```
+Rationale: Aerospace simulation accuracy, navigation state stability, and numerical integration over extended propagation intervals require 64-bit precision. Single precision (`float`) is supported where explicitly declared (e.g. `Quantity<float, MeterUnit>`).
+
+---
+
+## 3. Coordinate System Convention
+
+AegisMathLib standardizes on a **Right-Handed Coordinate System** with positive rotations governed by the **Right-Hand Rule**.
+
+### 3.1 Default Cartesian Frame (ENU Orientation)
+```text
+        Z+ (Up)
         |
         |
         |
-        O------ X+
+        O────── X+ (Forward / East)
        /
       /
-    Y+
-Definition:
-Axis	Direction
-X	Forward
-Y	Right
-Z	Up
+    Y+ (Right / North)
+```
 
-This is the default mathematical frame.
-3.2 Aerospace Frame Convention
-Aerospace systems frequently use:
-NED Frame
-North-East-Down:
-        North(X)
-
-          |
-          |
-          O------ East(Y)
-
-         /
-        /
-      Down(Z)
-Definition:
-Axis	Direction
-X	North
-Y	East
-Z	Down
-
-NED is NOT identical to the default Cartesian frame.
-Conversion MUST be explicit.
-Example:
-Transform<
-    ENU,
-    NED
->
-4. Vector Convention
-A vector represents:
-direction + magnitude
-Example:
-Vector3<Velocity>
-means:
-vx
-vy
-vz
-4.1 Vector Storage Order
-All vectors use:
-[X,Y,Z]
-Memory layout:
-struct Vector3
-{
-    Scalar x;
-    Scalar y;
-    Scalar z;
-};
-No padding fields are allowed.
-4.2 Vector Operations
-Addition
-Allowed:
-Vector + Vector
-Example:
-velocity + acceleration
-only if dimensions match.
-Forbidden:
-Position + Position
-A point and vector are different concepts.
-5. Point Convention
-Point represents:
-absolute location
-Example:
-Aircraft position
-Allowed:
-Point + Vector = Point
-Example:
-position + displacement
-Forbidden:
-Point + Point
-6. Matrix Convention
-AegisMathLib uses:
-Column Vector Convention
-Vectors are represented as:
-v =
-[
-x
-y
-z
-]
-6.1 Matrix Multiplication
-Transformation:
-v' = M * v
-NOT:
-v' = v * M
-Example:
-Rotation:
-v_body = R_body_world * v_world
-6.2 Matrix Storage
-Internal storage:
-Default:
-Row-major
-Reason:
-cache efficiency
-interoperability
-External interfaces may convert explicitly.
-7. Rotation Convention
-Rotations use:
-Active Rotation
-Meaning:
-A rotation transforms the object/vector.
-Example:
-v_rotated = R * v
-Passive frame transformation requires inverse:
-R_frameA_frameB =
-(R_frameB_frameA)^T
-8. Quaternion Convention
-AegisMathLib uses:
-Hamilton Quaternion
-Format:
-q = w + xi + yj + zk
-Storage:
-struct Quaternion
-{
-    Scalar w;
-    Scalar x;
-    Scalar y;
-    Scalar z;
-};
-8.1 Quaternion Multiplication
-Hamilton product:
-q = q1 * q2
-means:
-apply q2 first,
-then q1
-Example:
-q_total = q_rotation2 * q_rotation1
-8.2 Quaternion Normalization
-All rotation quaternions MUST satisfy:
-|q| = 1
-Before use:
-q.normalize();
-9. Euler Angle Convention
-Euler angles are dangerous.
-AegisMathLib requires explicit order.
-Default aerospace convention:
-ZYX
-Meaning:
-Yaw
- ↓
-Pitch
- ↓
-Roll
-Equivalent:
-R = Rz(yaw)
-    *
-    Ry(pitch)
-    *
-    Rx(roll)
-9.1 Angle Units
-All internal angles use:
-Radians
-Degrees require explicit conversion.
-Example:
-auto rad =
-degree_cast<Radian>(angle);
-10. Coordinate Transformation Convention
-All transformations must specify:
-Source Frame
-
-Target Frame
-Example:
-Transform<
-    WorldFrame,
-    BodyFrame
->
-Meaning:
-World coordinates
+### 3.2 Aerospace Navigation Frame (NED Orientation)
+Aerospace and navigation algorithms frequently operate in the North-East-Down (NED) frame:
+```text
+        North (X+)
         |
-        v
-Body coordinates
-10.1 Transform Composition
-Given:
-A -> B
+        |
+        O────── East (Y+)
+       /
+      /
+    Down (Z+)
+```
 
-B -> C
-combined:
-A -> C
-is:
-Tca = Tcb * Tba
-11. Physical Quantity Convention
-All physical values MUST use Units.
-Forbidden:
-double altitude;
-Correct:
-Length altitude;
-11.1 SI Base System
-Internal representation:
-SI Units
-Examples:
-meter
-second
-kilogram
-radian
-12. Gravity Convention
-Default gravity:
-+Z upward
-Therefore:
-Gravity acceleration:
-g = [0,0,-9.80665]
-in Cartesian frame.
-13. Navigation Convention
-Navigation systems may use:
-ECEF
-
-ECI
-
-ENU
-
-NED
-
-Body
-Each frame MUST be represented as a unique type.
-Example:
-Position<ECEF>
-
-Position<NED>
-Conversion:
-convert<ECEF,NED>();
-14. Radar Coordinate Convention
-Radar systems commonly use:
-Spherical coordinates:
-Range
-Azimuth
-Elevation
-Definition:
-Range:
-distance from sensor
-
-
-Azimuth:
-rotation around Z axis
-
-
-Elevation:
-angle above horizon
-Angles:
-Radians
-15. Forbidden Practices
-The following are prohibited:
-Implicit Coordinate Conversion
-Forbidden:
-ECEFPosition p = nedPosition;
-Raw Angle Usage
-Forbidden:
-double heading;
-Use:
-Angle heading;
-Unspecified Rotation
-Forbidden:
-Quaternion q;
-without declaring:
-frame
-direction
-16. API Requirement
-Every mathematical type must document:
-coordinate frame
-unit
-storage order
-multiplication direction
-rotation convention
-17. Summary
-AegisMathLib global conventions:
-Category	Standard
-Coordinate System	Right-handed
-Vector	Column vector
-Matrix	Row-major storage
-Matrix Operation	M*v
-Rotation	Active
-Quaternion	Hamilton
-Quaternion Order	w,x,y,z
-Euler	ZYX
-Angle	Radian
-Units	SI
-Gravity	-Z
-Scalar	double
-
-These conventions are mandatory for all future modules.
+> [!IMPORTANT]
+> ENU and NED frames are mathematically distinct. Cross-frame conversion MUST be explicit using frame-tagged transformations: `Transform3<T, ENUFrame, NEDFrame>`.
 
 ---
 
-# 18. Rotational Dimensional Analysis & Angle Base Dimension Convention
+## 4. Vector Convention
+
+A spatial vector represents direction and magnitude in $\mathbb{R}^3$.
+- **Storage Order**: Components are ordered as `[x, y, z]` without internal padding.
+- **Affine Separation**: Vectors and points are distinct types:
+  - $\text{Vector} + \text{Vector} \implies \text{Vector}$
+  - $\text{Point} + \text{Vector} \implies \text{Point}$
+  - $\text{Point} - \text{Point} \implies \text{Vector}$
+  - $\text{Point} + \text{Point}$ is strictly forbidden at compile time.
+
+---
+
+## 5. Matrix Convention
+
+### 5.1 Column Vector Mapping
+AegisMathLib adopts the standard **column vector convention**:
+$$\mathbf{v}' = \mathbf{M} \mathbf{v}$$
+
+### 5.2 Storage Layout
+`Matrix3<T>` stores 9 scalar components in **row-major order**:
+```cpp
+// Indexing: m[row][col] -> data_[row * 3 + col]
+```
+Row-major storage provides optimal cache locality for vector dot products and interoperability with standard linear algebra libraries.
+
+---
+
+## 6. Attitude & Rotation Conventions
+
+### 6.1 Active Rotation
+All rotation operators represent **active rotations** transforming vectors from `FromFrame` to `ToFrame`:
+$$\mathbf{v}_{\text{Target}} = \mathbf{R}_{\text{Source} \to \text{Target}} \mathbf{v}_{\text{Source}}$$
+
+### 6.2 Hamilton Quaternions
+Quaternions follow the **Hamilton convention**:
+$$q = w + x\mathbf{i} + y\mathbf{j} + z\mathbf{k}, \quad \mathbf{i}^2 = \mathbf{j}^2 = \mathbf{k}^2 = \mathbf{i}\mathbf{j}\mathbf{k} = -1$$
+- **Storage Order**: `[w, x, y, z]` (scalar component first).
+- **Unit Constraint**: All rotation quaternions satisfy $\|\mathbf{q}\| = 1$.
+
+### 6.3 Euler Angle Convention (Aerospace ZYX)
+When converting to or from Euler angles, the canonical sequence is **Yaw-Pitch-Roll (ZYX)**:
+$$\mathbf{R} = \mathbf{R}_z(\psi) \mathbf{R}_y(\theta) \mathbf{R}_x(\phi)$$
+All internal angles are strictly represented in **Radians** ($[A^1]$).
+
+---
+
+## 7. Frame Transformation Pipeline Composition
+
+Per **AML-DEVIATION-001**, `operator*` on `RotationMatrix3` and `Quaternion` implements a **left-to-right transformation pipeline syntax**:
+
+$$\mathbf{R}_{A \to B} * \mathbf{R}_{B \to C} \implies \mathbf{R}_{A \to C}$$
+
+When applied to a vector $\mathbf{v}_A$, the chained operator pipeline evaluates left-to-right:
+$$(\mathbf{R}_{A \to B} * \mathbf{R}_{B \to C}) * \mathbf{v}_A \approx \mathbf{R}_{B \to C} * (\mathbf{R}_{A \to B} * \mathbf{v}_A) = \mathbf{v}_C$$
+
+Underlying Direction Cosine Matrix multiplication:
+$$\mathbf{M}_{AC} = \mathbf{M}_{BC} \mathbf{M}_{AB} \quad (\texttt{rhs.ToMatrix() * dcm\_})$$
+
+---
+
+## 8. Physical Quantity Convention
+
+Raw untyped scalars (`double`, `float`) are forbidden at public API boundaries where physical quantities are modeled. All physical values enter the `Units` system:
+- Strict SI base units: `Meter`, `Second`, `Kilogram`, `Radian`, `Kelvin`, `Ampere`, `Mole`, `Candela`.
+- Implicit dimension promotion or conversion is forbidden.
+
+---
+
+## 9. Gravity Convention
+
+In the standard Cartesian coordinate frame ($Z+$ upward), gravitational acceleration is:
+$$\mathbf{g} = [0, 0, -9.80665]^T \text{ m/s}^2$$
+In the aerospace NED coordinate frame ($Z+$ downward), gravitational acceleration is:
+$$\mathbf{g}_{\text{NED}} = [0, 0, +9.80665]^T \text{ m/s}^2$$
+
+---
+
+## 10. Summary Matrix
+
+| Category | Standard Convention | Reference |
+| :--- | :--- | :--- |
+| **Coordinate System** | Right-handed, right-hand rule | Sec 3 |
+| **Vector Layout** | Column vector, `[x, y, z]` | Sec 4, [`geometry.md`](geometry.md) |
+| **Matrix Layout** | Row-major storage in memory | Sec 5, [`geometry.md`](geometry.md) |
+| **Transformation Syntax** | Pipeline composition: $R_{AB} * R_{BC} \to R_{AC}$ | Sec 7, [`DEVIATIONS.md`](DEVIATIONS.md) |
+| **Rotation Sense** | Active rotation | Sec 6, [`geometry.md`](geometry.md) |
+| **Quaternion System** | Hamilton convention, storage `[w, x, y, z]` | Sec 6, [`geometry.md`](geometry.md) |
+| **Euler Sequence** | ZYX (Yaw $\to$ Pitch $\to$ Roll) | Sec 6 |
+| **Angle Base Unit** | Radian ($[A^1]$) | Sec 6, [`units.md`](units.md) |
+| **Dimensional System** | Model B 8-dimensional system | Sec 11, [`units.md`](units.md) |
+| **Default Scalar** | IEEE-754 `double` | Sec 2, [`core.md`](core.md) |
+
+---
+
+## 11. Rotational Dimensional Analysis & Angle Base Dimension Convention
 
 Per Engineering Standard Section 10–13, AegisMathLib treats Plane Angle ($A = \text{Angle}$) as an independent semantic physical base dimension within its 8-dimensional system (`Length`, `Mass`, `Time`, `Current`, `Temperature`, `Amount`, `Luminosity`, `Angle`).
 
@@ -398,11 +198,11 @@ Quaternion components are dimensionless scalars in $\mathbb{R}^4$ with unit cons
 
 ---
 
-# 19. Dimensionful Angle and SO(3) Lie Algebra
+## 12. Dimensionful Angle and SO(3) Lie Algebra
 
 When Plane Angle is treated as an independent physical dimension ($A$), the ordinary Cartesian cross product and the $\mathfrak{so}(3)$ Lie bracket / adjoint operation represent dimensionally distinct operations.
 
-### 19.1 Ordinary Cross Product vs. Lie Bracket
+### 12.1 Ordinary Cross Product vs. Lie Bracket
 - **Ordinary Vector Cross Product**:
   For general 3D vectors $\mathbf{u}, \mathbf{v}$, the cross product computes Cartesian components via $\mathbf{u} \times \mathbf{v}$. Its dimension is the strict product of the operand dimensions:
   $$[\mathbf{u} \times \mathbf{v}] = [\mathbf{u}] \cdot [\mathbf{v}]$$
@@ -414,7 +214,7 @@ When Plane Angle is treated as an independent physical dimension ($A$), the ordi
   $$[\boldsymbol{\omega} \times \mathbf{L}] = [A \cdot T^{-1}] \cdot [M \cdot L^2 \cdot A^{-1} \cdot T^{-1}] = [M \cdot L^2 \cdot T^{-2}]$$
   This has dimension of **Energy / Work ($A^0$)**, NOT **Torque ($A^{-1}$)**.
 
-### 19.2 Explicit Radian Normalization Factor
+### 12.2 Explicit Radian Normalization Factor
 Standard engineering textbooks treat the radian as dimensionless ($1$), implicitly suppressing the normalization factor $1 / \text{rad}$. Under AegisMathLib's rigorous 8-dimensional type system, this hidden convention is forbidden.
 
 The true Lie bracket operation in dimensionful mechanics carries an explicit normalization by $1\text{ rad}$ ($[A^1]$):
@@ -422,7 +222,7 @@ $$\operatorname{RotationalCross}(\boldsymbol{\omega}, \mathbf{L}) \triangleq \fr
 Dimensionally:
 $$[\operatorname{RotationalCross}(\boldsymbol{\omega}, \mathbf{L})] = \frac{[M \cdot L^2 \cdot T^{-2}]}{[A^1]} = [M \cdot L^2 \cdot A^{-1} \cdot T^{-2}] \equiv [\boldsymbol{\tau}]$$
 
-### 19.3 Compile-Time Type Safety Directives
+### 12.3 Compile-Time Type Safety Directives
 1. **Generic Cross Product Preservation**: `Cross(a, b)` remains a pure Cartesian vector product. It must never implicitly divide by radians.
 2. **Dedicated Rotational Operator**: Rotational dynamics code MUST call `RotationalCross(omega, L)` (or `LieBracket(omega, L)`).
 3. **Compile-Time Static Guard**: The type system statically prevents subtracting `Cross(omega, L)` from `Torque3`, because $[M \cdot L^2 \cdot T^{-2} \cdot A^0] \neq [M \cdot L^2 \cdot T^{-2} \cdot A^{-1}]$.
@@ -430,9 +230,9 @@ $$[\operatorname{RotationalCross}(\boldsymbol{\omega}, \mathbf{L})] = \frac{[M \
 
 ---
 
-# 20. Geometry Semantics, Matrix3 Scope, and Floating-Point Comparisons
+## 13. Geometry Semantics, Matrix3 Scope, and Floating-Point Comparisons
 
-### 20.1 Matrix3 Scope & Frame Separation
+### 13.1 Matrix3 Scope & Frame Separation
 - **Unframed Generic Numerical Matrix**: `Matrix3<T>` is a generic numerical matrix container in $\mathbb{R}^{3 \times 3}$. It may represent coefficients, Jacobians, covariance blocks, solver matrices, or temporarily extracted tensor coefficients. It does not itself imply a geometric frame transformation and intentionally carries no coordinate frame tags (`FromFrame`, `ToFrame`, or `FrameType`).
 - **Generic Linear Algebra Preservation**: Pure numerical routines—such as the $LDL^T$ symmetric positive definite solver (`SolveSymmetricPositiveDefinite3x3`), matrix determinants, adjoint inverses, covariances, and Jacobians—MUST accept `Matrix3<T>` without coordinate frame tags.
 - **Dedicated Spatial Transformation Wrappers**: Coordinate frame semantics (`FromFrame -> ToFrame`) are strictly carried by semantic geometric types:
@@ -441,7 +241,7 @@ $$[\operatorname{RotationalCross}(\boldsymbol{\omega}, \mathbf{L})] = \frac{[M \
   - `Quaternion<T, FromFrame, ToFrame>`
 - **Typed Inertia Bridge**: Inertia tensors (`InertiaTensor3<T, BodyFrame>`) hold coordinate frame tags; they construct local `Matrix3<T>` instances purely to invoke numerical solvers, preventing frame tags from polluting general linear algebra.
 
-### 20.2 Coordinate Transformation & Composition Convention
+### 13.2 Coordinate Transformation & Composition Convention
 - **Vector Transformation**:
   $$\mathbf{v}_{\text{Target}} = \mathbf{R}_{\text{Source} \to \text{Target}} \mathbf{v}_{\text{Source}}$$
 - **Rotation Composition (Pipeline Convention)**:
@@ -456,7 +256,7 @@ $$[\operatorname{RotationalCross}(\boldsymbol{\omega}, \mathbf{L})] = \frac{[M \
   For any unit quaternion $\mathbf{q} \in SO(3)$ and vector $\mathbf{v}$:
   $$\mathbf{q} * \mathbf{v} \equiv \mathbf{R}(\mathbf{q}) * \mathbf{v}$$
 
-### 20.3 Floating-Point Equality & Comparison Policy
+### 13.3 Floating-Point Equality & Comparison Policy
 In compliance with Rule 9 ("Never trust floating-point equality"):
 1. **Exact Component-Wise Stored-Value Equality (`operator==`, `operator!=`)**:
    - Compares stored IEEE-754 components directly under standard C++ floating-point `==` semantics (`a.x == b.x && a.y == b.y && a.z == b.z`).
