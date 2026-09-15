@@ -16,8 +16,8 @@ The library architecture is inspired by and aligned with principles from safety-
 | **Open HIGH Findings** | **0** |
 | **Code-Level MEDIUM Blockers** | **0** |
 | **Public Headers Standalone Isolation** | **PASS** (66 / 66 headers, 68 / 68 TUs in `AegisMathLib_HeaderIsolation`) |
-| **Test Suite Execution** | **108 / 108 PASS (100%)** in Debug and Release |
-| **Stable-Core Qualification** | **IN PROGRESS** (5 qualification gates remaining: ASan, UBSan, Coverage, Cross-Compiler, Static Analysis) |
+| **Test Suite Execution** | **117 / 117 PASS (100%)** in Debug and Release |
+| **Stable-Core Qualification** | **IN PROGRESS** (2 qualification gates remaining: Static Analysis, Cross-Compiler Matrix) |
 | **Stable-Core Certification** | **NOT CERTIFIED** (Pending resolution of qualification gates) |
 
 ---
