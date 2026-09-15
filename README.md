@@ -68,7 +68,9 @@ Lower layers NEVER depend on higher layers. Cyclic dependencies and umbrella hea
 
 ### Prerequisites
 - CMake $\ge 3.14$
-- C++20 compliant compiler (Apple Clang $\ge 15.0$, LLVM Clang $\ge 16.0$, GCC $\ge 13.0$, or MSVC $\ge 2022$)
+- C++20 compliant compiler:
+  - Locally verified: AppleClang 21.0.0 (macOS x86_64/arm64)
+  - Intended cross-compiler matrix (gate `NOT RUN`): GCC $\ge 13$, LLVM Clang $\ge 16$, MSVC $\ge 2022$
 
 ### Build and Run Tests
 ```bash
@@ -108,4 +110,4 @@ cmake --build build --target AegisMathLib_HeaderIsolation --parallel
 
 ## License
 
-This project is licensed under the Apache License 2.0.
+No license file is currently committed to this repository. All rights reserved pending formal licensing.

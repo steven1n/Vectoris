@@ -4,7 +4,7 @@
 > **Document**: Cross-Module Mathematical Conventions  
 > **Document Version**: 1.0  
 > **Status**: Authoritative Architectural Specification  
-> **Baseline Commit**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
+> **Code Baseline**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
 > **Last Updated**: 2026-09-15  
 > **Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](ENGINEERING_STANDARD_V1.md)
 
@@ -104,7 +104,7 @@ $$\mathbf{v}_{\text{Target}} = \mathbf{R}_{\text{Source} \to \text{Target}} \mat
 Quaternions follow the **Hamilton convention**:
 $$q = w + x\mathbf{i} + y\mathbf{j} + z\mathbf{k}, \quad \mathbf{i}^2 = \mathbf{j}^2 = \mathbf{k}^2 = \mathbf{i}\mathbf{j}\mathbf{k} = -1$$
 - **Storage Order**: `[w, x, y, z]` (scalar component first).
-- **Unit Constraint**: All rotation quaternions satisfy $\|\mathbf{q}\| = 1$.
+- **Unit Constraint**: Rotation quaternions produced through validated construction APIs satisfy $\|\mathbf{q}\| \approx 1$. (Because coordinate components $w, x, y, z$ remain public mutable members per AML-DEVIATION-002, unit normalization is a construction-time guarantee, not an immutable lifetime invariant).
 
 ### 6.3 Euler Angle Convention (Aerospace ZYX)
 When converting to or from Euler angles, the canonical sequence is **Yaw-Pitch-Roll (ZYX)**:

@@ -4,7 +4,7 @@
 > **Document**: Engineering & Design Standard  
 > **Document Version**: 1.0 (V1)  
 > **Status**: Normative Single Source of Truth (SSOT)  
-> **Baseline Commit**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
+> **Code Baseline**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
 > **Last Updated**: 2026-09-15  
 > **Authority**: Single Source of Truth (Top Priority)
 
