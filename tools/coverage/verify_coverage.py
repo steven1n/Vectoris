@@ -75,17 +75,51 @@ def main():
         print(f"ERROR: Export contains files outside {production_root}:\n" + "\n".join(invalid_files), file=sys.stderr)
         sys.exit(1)
 
-    # Scope manifest validation against missing coverage-participating files
+    # Phase 17 & 18: Comprehensive Scope Manifest Validation
     manifest_path = os.path.join(repo_root, "tools", "coverage", "coverage_scope.json")
     if os.path.exists(manifest_path):
         with open(manifest_path, "r", encoding="utf-8") as f_man:
             manifest = json.load(f_man)
-        expected_files = set(manifest.get("coverage_participating_headers", []))
-        missing_files = expected_files - found_relpaths
-        if missing_files:
-            print("ERROR: Missing expected coverage file(s):", file=sys.stderr)
-            for m in sorted(missing_files):
+
+        tracked_headers = set(manifest.get("tracked_production_headers", []))
+        runtime_headers = set(manifest.get("runtime_coverage_headers", []))
+        compile_time_headers = set(manifest.get("compile_time_only_headers", []))
+        template_headers = set(manifest.get("template_definition_headers", []))
+        template_evidence = manifest.get("template_qualification_evidence", {})
+
+        # 1. Unclassified and unknown header check
+        classified = runtime_headers | compile_time_headers
+        unclassified = tracked_headers - classified
+        if unclassified:
+            print("ERROR: Manifest contains unclassified tracked production headers:", file=sys.stderr)
+            for u in sorted(unclassified):
+                print(f"  - {u}", file=sys.stderr)
+            sys.exit(1)
+
+        unknown = classified - tracked_headers
+        if unknown:
+            print("ERROR: Manifest contains unknown headers not in tracked production headers:", file=sys.stderr)
+            for unk in sorted(unknown):
+                print(f"  - {unk}", file=sys.stderr)
+            sys.exit(1)
+
+        # 2. Check that all runtime_coverage_headers are present in llvm-cov export
+        missing_runtime = runtime_headers - found_relpaths
+        if missing_runtime:
+            print("ERROR: Missing expected runtime coverage file(s) in llvm-cov export:", file=sys.stderr)
+            for m in sorted(missing_runtime):
                 print(f"  - {m}", file=sys.stderr)
+            sys.exit(1)
+
+        # 3. Check that every template_definition_header has explicit qualification evidence
+        missing_evidence = []
+        for th in template_headers:
+            if th not in template_evidence or not template_evidence[th].get("symbols"):
+                missing_evidence.append(th)
+        if missing_evidence:
+            print("ERROR: Template definition headers lack explicit qualification evidence:", file=sys.stderr)
+            for me in sorted(missing_evidence):
+                print(f"  - {me}", file=sys.stderr)
             sys.exit(1)
 
     # Module breakdown
