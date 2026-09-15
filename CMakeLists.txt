@@ -175,3 +175,8 @@ gtest_discover_tests(AegisMathLib_Tests)
 # 6. 公共头文件独立编译隔离性验证 (Public Header Standalone Isolation Qualification)
 # ==============================================================================
 include(cmake/PublicHeaderIsolation.cmake)
+
+# ==============================================================================
+# 7. 静态代码分析资格验证 (Static Analysis Qualification: Clang-Tidy & Cppcheck)
+# ==============================================================================
+include(cmake/StaticAnalysis.cmake)

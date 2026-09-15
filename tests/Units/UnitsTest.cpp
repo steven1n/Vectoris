@@ -243,6 +243,9 @@ TEST(UnitsSystemCoverageTest, DetailABIRuntimeExercise) {
         DummyNonTrivial() : a(0.0) {}
         DummyNonTrivial(const DummyNonTrivial& o) : a(o.a) {}
         DummyNonTrivial& operator=(const DummyNonTrivial& o) { a = o.a; return *this; }
+        ~DummyNonTrivial() = default;
+        DummyNonTrivial(DummyNonTrivial&&) = default;
+        DummyNonTrivial& operator=(DummyNonTrivial&&) = default;
     };
     EXPECT_FALSE(AegisMath::Units::Detail::QuantityABIValidator<DummyNonTrivial>::Validate());
 }
