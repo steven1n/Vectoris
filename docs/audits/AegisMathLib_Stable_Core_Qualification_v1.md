@@ -111,7 +111,7 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
 | **Repository Hygiene** | Sec 89, 92 | **PASS** | AML-MED-006: Boilerplate library.* and obsolete scripts removed. | **NO** | Remediated (3d79ed2) |
 | **Public Header Isolation** | Sec 5, 89 | **PASS** | Standalone self-containment: PASS (66/66 public headers compiled in isolated TUs with zero warnings in Debug & Release). Unresolved transitive-include reliance: NONE OBSERVED. Aggregate order-poisoning TUs (2/2): PASS. | **NO** | Remediated (P2-C) |
 | **Install / Export Validation** | Sec 89 | **NOT RUN** | FOLLOW-UP QUALIFICATION / PACKAGING DEBT. CMake package export is not an explicit DoD blocker in ENGINEERING_STANDARD_V1.md Sec 124. | **NO** | Packaging Debt |
-| **Clang-Tidy** | Sec 87, 90, 124 | **PASS** | Target-scoped `AegisMathLib_ClangTidy` with `.clang-tidy` config; LLVM 23.0.0git; 122 checks across `clang-analyzer-*`, `bugprone-*`, `cert-*`, `performance-*`, `portability-*`, `cppcoreguidelines-*`; all 95 translation units analyzed with `--warnings-as-errors`; 0 diagnostics in `include/AegisMath/**`. | **NO** | Remediated (P2-STA) |
+| **Clang-Tidy** | Sec 87, 90, 124 | **PASS** | Target-scoped `AegisMathLib_ClangTidy` with `.clang-tidy` config; LLVM 23.0.0git frontend with AppleClang 21 compdb; 56 configured patterns expanding to 123 effective checks across `clang-analyzer-*`, `bugprone-*`, `cert-*`, `performance-*`, `portability-*`, `cppcoreguidelines-*`; all 95 translation units (66 standalone + 2 poison + 27 test TUs) analyzed with `--warnings-as-errors`; stdout + stderr parsed with canonical path containment and deduplication; 0 production diagnostics (0 unique, 0 raw) in `include/AegisMath/**`. | **NO** | Remediated (P2-STA) |
 | **Cppcheck** | Sec 87, 90 | **NOT RUN** | Recommended analyzer per Sec 87 (clang-tidy is mandatory); tool not installed on macOS host; recorded as NOT RUN per audit policy. | **NO** | Tooling Debt |
 | **AddressSanitizer (ASan)** | Sec 88, 124 | **PASS** | Target-scoped `AEGISMATH_ENABLE_ASAN` enabled; 108/108 tests pass with `ASAN_OPTIONS=halt_on_error=1:abort_on_error=1`; no ASan diagnostics observed; header isolation (68/68 TUs) compile-qualified with ASan instrumentation; leak detection: NOT QUALIFIED in P2-SAN (unsupported on macOS host); dynamic init-order checking: NOT SUPPORTED on macOS host. | **NO** | Remediated (P2-SAN) |
 | **UndefinedBehaviorSanitizer (UBSan)** | Sec 88, 124 | **PASS** | Target-scoped `AEGISMATH_ENABLE_UBSAN` enabled; 108/108 tests pass with `UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1`; no diagnostics observed from checks enabled by `-fsanitize=undefined`; header isolation (68/68 TUs) compile-qualified with UBSan instrumentation. | **NO** | Remediated (P2-SAN) |
@@ -286,24 +286,60 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
 - **Standards Reference**: [`docs/ENGINEERING_STANDARD_V1.md`](../ENGINEERING_STANDARD_V1.md) Section 87, Section 90, and Section 124 (DoD Gate 14).
 - **Tool Availability & Versions**:
   - `clang-tidy`: `/Applications/CLion.app/Contents/bin/clang/mac/x64/bin/clang-tidy` (LLVM version 23.0.0git) — **PASS**
-  - `cppcheck`: Not found on host system (`which cppcheck` returned empty) — **NOT RUN** (Recommended per Sec 87; toolchain not artificially modified).
-- **Configuration & Scope**:
+  - `cppcheck`: Not found on host system (`which cppcheck` returned empty) — **NOT RUN (NON-BLOCKING)** (Recommended per Sec 87; toolchain not artificially modified; `--error-exitcode=1` enforced in qualification runner).
+- **Toolchain Distinction & Configuration**:
+  - **Compilation Database Compiler**: Apple Clang version 21.0.0 (`clang-2100.1.1.101`, target `x86_64-apple-darwin25.6.0`, `/usr/bin/c++`).
+  - **Static Analyzer Frontend**: CLion bundled Clang-Tidy (LLVM version 23.0.0git).
+  - **macOS SDK**: `/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk` (queried via `xcrun --show-sdk-path`).
+  - **Compiler Resource Directory**: `/Library/Developer/CommandLineTools/usr/lib/clang/21/include` (queried deterministically via `/usr/bin/c++ -print-resource-dir`).
+  - **Harness Compatibility**: Analysis flags (`--target`, `-nostdinc++`, `-isystem`, `-isysroot`) serve strictly as a qualification harness shim between AppleClang and upstream LLVM frontend; not claimed as cross-compiler evidence.
+- **Check Accounting & Scope**:
   - Configuration file: [`.clang-tidy`](../../.clang-tidy) at repository root.
-  - Required Check Categories: 122 enabled checks across `clang-analyzer-core.*`, `clang-analyzer-cplusplus.*`, `clang-analyzer-deadcode.*`, `clang-analyzer-nullability.*`, `clang-analyzer-security.*`, `clang-analyzer-unix.*`, `bugprone-*`, `cert-*`, `performance-*`, `portability-*`, `cppcoreguidelines-*`.
-  - HeaderFilterRegex: `.*/include/AegisMath/.*`
-  - Production Scope: `include/AegisMath/**` across all 95 translation units in `compile_commands.json` (including all 66 standalone header isolation TUs and 27 test suite TUs).
-- **Diagnostic Ledger**:
-  - Baseline Total Diagnostics: 1 (in test suite `DummyNonTrivial` struct; resolved with defaulted rule-of-5 special member functions)
-  - Baseline Production Diagnostics: **0**
-  - Unresolved Production Diagnostics: **0**
-  - Production Warnings as Errors: **PASS** (all 95 TUs exit code 0)
+  - **Configured Check Patterns**: **56 patterns** (plus disable `-*`).
+  - **Expanded Effective Checks**: Exactly **123 unique checks** generated machine-readably:
+    - `clang-analyzer-core`: 20 checks
+    - `clang-analyzer-cplusplus`: 10 checks
+    - `clang-analyzer-deadcode`: 1 check
+    - `clang-analyzer-nullability`: 5 checks
+    - `clang-analyzer-security`: 22 checks
+    - `clang-analyzer-unix`: 15 checks
+    - `bugprone`: 16 checks
+    - `cert`: 11 checks
+    - `cppcoreguidelines`: 10 checks
+    - `performance`: 12 checks
+    - `portability`: 1 check
+  - **Translation Unit Accounting**: **95 translation units** analyzed across `compile_commands.json`:
+    - **66** standalone public header isolation TUs (`iso_AegisMath_*.cpp`)
+    - **2** include-order poisoning TUs (`order_poison_forward.cpp`, `order_poison_reverse.cpp`)
+    - **27** test suite TUs (`tests/**`)
+    - Exact accounting: $66 + 2 + 27 = 95$.
+- **Diagnostic Capture & Deduplication**:
+  - Qualification runner captures and parses both `stdout` and `stderr`.
+  - Canonical path containment enforced via `os.path.commonpath([production_root, candidate]) == production_root` against `include/AegisMath/`.
+  - Findings deduplicated via key `(canonical_path, line, col, check, message)`.
+  - **Raw Diagnostic Occurrences**: **0**
+  - **Unique Diagnostics**: **0**
+  - **Production Diagnostics (`include/AegisMath/**`)**: **0 unique (0 raw)**
+  - **Test Diagnostics (`tests/**`)**: **0 unique (0 raw)**
+  - **System / External Diagnostics**: **0 unique (0 raw)**
+  - **Failed Translation Units**: **0**
+  - Production Warnings as Errors: **PASS** (all 95 TUs exit code 0).
+- **Test Fixture Maintenance & Coverage Confirmation**:
+  - Test fixture class `DummyNonTrivial` in `tests/Units/UnitsTest.cpp` updated with defaulted Rule of 5 special member functions (`~DummyNonTrivial() = default; DummyNonTrivial(DummyNonTrivial&&) = default; DummyNonTrivial& operator=(DummyNonTrivial&&) = default;`) to satisfy `cppcoreguidelines-special-member-functions`.
+  - Production code modified: **NO** (0 changes in `include/AegisMath/**`).
+  - Test fixture modified: **YES**.
+  - New test cases added: **NO** (suite remains 120 tests).
+  - Sanitizer Rerun Exemption: ASan / UBSan rerun NOT REQUIRED (only defaulted special members in a type traits fixture; no new runtime paths, no new production instantiations).
+  - Current-HEAD Coverage Rerun (`AegisMathLib_Coverage`): Functions **100.00%** (191/191), Lines **98.99%** (1082/1093), Branches **90.72%** (352/388). All thresholds satisfied.
 - **NOLINT Baseline & Hygiene**:
   - Baseline NOLINT directives in codebase: **0**
   - Current NOLINT directives in codebase: **0**
   - Zero suppression directives introduced.
 - **CMake Integration**:
-  - Custom targets: `AegisMathLib_ClangTidy`, `AegisMathLib_Cppcheck`, `AegisMathLib_StaticAnalysis` in `cmake/StaticAnalysis.cmake`.
-  - Non-contamination: All targets excluded from default build (`ALL`).
+  - Opt-in configuration gate: `AEGISMATH_ENABLE_STATIC_ANALYSIS` (default `OFF`).
+  - When `OFF`: No static-analysis targets created; Python3 dependency not invoked.
+  - When `ON`: Targets `AegisMathLib_ClangTidy`, `AegisMathLib_Cppcheck`, and `AegisMathLib_StaticAnalysis` created.
+  - All targets excluded from default build (`ALL`).
 
 ---
 
@@ -334,8 +370,8 @@ graph TD
    - Registered all formal `AML-DEVIATION` records in `docs/DEVIATIONS.md` (**AML-MED-008** Remediated).
 4. **P2-SAN — Dynamic Sanitizers (ASan / UBSan)** (Remediated):
    - Configured target-scoped `AEGISMATH_ENABLE_ASAN` and `AEGISMATH_ENABLE_UBSAN` in CMake; verified 100% clean test and header isolation execution.
-5. **P2-D — Static Analysis Infrastructure** (Remediated — P2-STA):
-   - Established `.clang-tidy` and configured `AegisMathLib_ClangTidy`, `AegisMathLib_Cppcheck`, `AegisMathLib_StaticAnalysis` targets. Verified 0 production diagnostics under 122 rules with `WarningsAsErrors` across all 95 translation units.
+5. **P2-D — Static Analysis Infrastructure** (Remediated — P2-STA / P2-STA.1):
+   - Established `.clang-tidy` and configured `AegisMathLib_ClangTidy`, `AegisMathLib_Cppcheck`, `AegisMathLib_StaticAnalysis` targets. Verified 0 production diagnostics under 56 configured patterns (123 effective expanded checks) with `WarningsAsErrors` across all 95 translation units.
 6. **P2-F — Test Coverage Gate** (Remediated — P2-COV / P2-COV.1):
    - Instrument build with LLVM source-based coverage (`xcrun llvm-cov`); verify 100.00% function, 98.99% line, 90.72% branch coverage across all 66 public headers (30 runtime coverage headers, 3 template definition headers, 36 compile-time-only headers).
 7. **P2-G — Cross-Compiler Matrix & Benchmark Baseline**:
