@@ -630,11 +630,11 @@ expected_z evaluates to 4.9033249999999997, and
 - **Risk**: Confusion for GNC engineers expecting $p * q = p \otimes q$.
 - **Recommended Direction**: Provide an explicit named method `compose(rhs)` or strictly document this divergence as an audited deviation.
 - **Remediation**:
-  - **Status**: APPROVED DEVIATION (`AML-DEVIATION-001`)
+  - **Status**: REMEDIATED (Documented Convention; formerly `AML-DEVIATION-001`)
   - **Resolution**:
     - Harmonized rotation composition pipeline ordering across `RotationMatrix3` and `Quaternion` such that `operator*` evaluates left-to-right: $\mathbf{R}_{A \to B} * \mathbf{R}_{B \to C} \implies \mathbf{R}_{A \to C}$.
-    - Formally approved and registered as `AML-DEVIATION-001` in `docs/DEVIATIONS.md`.
-    - Documented in `docs/MATHEMATICAL_CONVENTIONS.md` Section 3 and `docs/geometry.md` Section 6.
+    - Evaluated against Sections 22–24: confirmed that unified, frame-safe pipeline composition satisfies all normative requirements and is tracked as an architectural convention in `docs/MATHEMATICAL_CONVENTIONS.md` (historical deviation `AML-DEVIATION-001` retired).
+    - Documented in `docs/MATHEMATICAL_CONVENTIONS.md` Section 7 and `docs/geometry.md` Section 7.
   - **Verification**:
     - `tests/Geometry/GeometryComparisonTest.cpp`: `RotationCompositionProperty` passes.
     - `tests/Geometry/AttitudeEngineTest.cpp`: `CascadingOrder_Q002_Fix` passes.
@@ -690,12 +690,12 @@ expected_z evaluates to 4.9033249999999997, and
   - **Remediation Commit**: `docs(governance): establish formal deviation ledger` (P2-DOC baseline)
   - **Resolution**:
     - Established the formal approved deviation ledger `docs/DEVIATIONS.md` in strict accordance with Sections 101 & 102.
-    - Formally registered and approved all architectural and design deviations:
-      - `AML-DEVIATION-001`: Left-to-Right Frame Transformation Pipeline Composition (Scope: `Geometry`, Sec 22/24)
+    - Formally registered and approved all architectural and design deviations with immutable ID governance:
+      - `AML-DEVIATION-001`: Left-to-Right Frame Transformation Pipeline Composition (Withdrawn / Reclassified as Convention, Sec 22/24)
       - `AML-DEVIATION-002`: Public Mutable Coordinate Data Members (Scope: `Geometry`, Sec 9/29)
       - `AML-DEVIATION-003`: PascalCase Root Namespace `AegisMath` (Scope: Global, Sec 8)
   - **Verification**:
-    - Verified all 3 deviations against unit test evidence and standard requirements.
+    - Verified all deviation records and architectural conventions against unit test evidence and standard requirements.
 
 ---
 
@@ -948,7 +948,7 @@ grep -rn "static " include/
 | **AML-MED-002** | Sec 6 | MEDIUM | Deprecated Units/Unit.h creates namespace duplicate with Quantity.h (Remediated: `d168798`). |
 | **AML-MED-003** | Sec 18 | MEDIUM | InertiaTensor3::IsValid uses positive diagonal as positive definiteness check (Remediated: `5b6c938`). |
 | **AML-MED-004** | Rule 7 | MEDIUM | Core::Math::sqrt contains unbounded while loop (Remediated: `bc54c0e`). |
-| **AML-MED-005** | Sec 24 | MEDIUM | Quaternion operator* reverses Hamilton multiplication order (Approved Deviation: `AML-DEVIATION-001`). |
+| **AML-MED-005** | Sec 24 | MEDIUM | Quaternion operator* reverses Hamilton multiplication order (Remediated: documented architectural convention in `docs/MATHEMATICAL_CONVENTIONS.md`). |
 | **AML-MED-006** | Sec 89, 92 | MEDIUM | Uncommitted regex python scripts and template library.cpp in repo root (Remediated: `3d79ed2`). |
 | **AML-MED-007** | Sec 87, 88 | MEDIUM | Zero module specification documents exist under docs/ (Remediated: `docs/core.md`, `units.md`, `geometry.md`, `dynamics.md`). |
 | **AML-MED-008** | Sec 101, 102 | MEDIUM | Zero AML-DEVIATION tags in codebase (Remediated: `docs/DEVIATIONS.md`). |
