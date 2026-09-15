@@ -1,5 +1,13 @@
 # AegisMathLib Engineering Standard Compliance Audit v1
 
+> [!IMPORTANT]
+> **Document**: Compliance Baseline Audit V1  
+> **Document Version**: 1.0  
+> **Status**: Historical Compliance Finding & Remediation Ledger  
+> **Baseline Commit**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
+> **Last Updated**: 2026-09-15  
+> **Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](../ENGINEERING_STANDARD_V1.md)
+
 > **Audit Date**: 2026-09-14
 > **Auditor**: Antigravity (Google DeepMind)
 > **Governing Specification**: [docs/ENGINEERING_STANDARD_V1.md](../ENGINEERING_STANDARD_V1.md)
@@ -30,12 +38,13 @@ However, the audit identified **critical mathematical bugs, coordinate frame mix
 | **Compiler Warnings** | **0** | Zero warnings under `-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror` |
 | **Documented Intentional Deviations** | **0** | Zero formal `AML-DEVIATION` tags in codebase (true bugs must be fixed, not masked as deviations) |
 
-### Current Remediation Status (P0 Closure)
+### Current Remediation Status (P2-DOC Baseline)
 
 ```text
-Critical Findings Identified: 3
-Critical Findings Remediated: 3
-Critical Findings Open: 0
+Critical Findings: 3 Identified | 3 Remediated | 0 Open
+High Findings:     6 Identified | 6 Remediated | 0 Open
+Medium Findings:   8 Identified | 7 Remediated | 1 Approved Deviation (AML-MED-005) | 0 Open
+Low Findings:      5 Identified | 1 Closed | 2 Style/Test Debt | 2 Approved/Deferred Deviations
 ```
 
 ---
@@ -620,6 +629,15 @@ expected_z evaluates to 4.9033249999999997, and
   The C++ `operator*` is overloaded to compute the reverse Hamilton product ($q_{rhs} \otimes q_{this}$) to emulate function composition order. While motivated by frame tagging readability ($A \to B \to C$), overloading standard algebraic `*` to perform reverse multiplication violates mathematician expectations and Hamilton algebra rules unless explicitly designated.
 - **Risk**: Confusion for GNC engineers expecting $p * q = p \otimes q$.
 - **Recommended Direction**: Provide an explicit named method `compose(rhs)` or strictly document this divergence as an audited deviation.
+- **Remediation**:
+  - **Status**: APPROVED DEVIATION (`AML-DEVIATION-001`)
+  - **Resolution**:
+    - Harmonized rotation composition pipeline ordering across `RotationMatrix3` and `Quaternion` such that `operator*` evaluates left-to-right: $\mathbf{R}_{A \to B} * \mathbf{R}_{B \to C} \implies \mathbf{R}_{A \to C}$.
+    - Formally approved and registered as `AML-DEVIATION-001` in `docs/DEVIATIONS.md`.
+    - Documented in `docs/MATHEMATICAL_CONVENTIONS.md` Section 3 and `docs/geometry.md` Section 6.
+  - **Verification**:
+    - `tests/Geometry/GeometryComparisonTest.cpp`: `RotationCompositionProperty` passes.
+    - `tests/Geometry/AttitudeEngineTest.cpp`: `CascadingOrder_Q002_Fix` passes.
 
 ---
 
@@ -646,6 +664,17 @@ expected_z evaluates to 4.9033249999999997, and
   No module specification documents exist under `docs/` (e.g. `docs/core.md`, `docs/units.md`, `docs/geometry.md`, `docs/dynamics.md`). Only high-level standards (`ENGINEERING_STANDARD_V1.md`, `ARCHITECTURE.md`, `MATHEMATICAL_CONVENTIONS.md`, `CODING_STANDARD.md`) are present.
 - **Risk**: Lack of formal mathematical formulation, error bounds, and pre/post-conditions for individual modules.
 - **Recommended Direction**: Author module specification documents following Section 88 of the standard.
+- **Remediation**:
+  - **Status**: REMEDIATED
+  - **Remediation Commit**: `docs(core)`, `docs(units)`, `docs(geometry)`, `docs(dynamics)` (P2-DOC baseline)
+  - **Resolution**:
+    - Authored authoritative module specification documents satisfying all Section 88 requirements:
+      - `docs/core.md` (Version 1.0, 16 sections covering scalar policies, project-specific sqrt domain, error handling)
+      - `docs/units.md` (Version 1.0, 14 sections covering Model B 8D dimensional system, rotational inverse-angle algebra, ABI)
+      - `docs/geometry.md` (Version 1.0, 10 sections covering unframed generic Matrix3, frame-safe spatial types, 3-tier equality model)
+      - `docs/dynamics.md` (Version 1.0, 10 sections covering 3-tier LDLT inertia tensor validation, rigid-body solve-not-invert kernel, transactional integrator semantics)
+  - **Verification**:
+    - All module specifications cross-linked, consistent with source headers, and verified against unit test suites.
 
 ---
 
@@ -656,6 +685,18 @@ expected_z evaluates to 4.9033249999999997, and
   Grep for `AML-DEVIATION` yields zero occurrences across all headers and source files. Standard governance mandates distinguishing true bugs (which must be fixed) from intentional design trade-offs (which must be registered as formal deviations). Currently, documented intentional deviations: 0.
 - **Risk**: Violates auditability and governance enforcement.
 - **Recommended Direction**: Distinguish true bugs from architectural trade-offs; register only justified, approved deviations with formal `AML-DEVIATION` comments.
+- **Remediation**:
+  - **Status**: REMEDIATED
+  - **Remediation Commit**: `docs(governance): establish formal deviation ledger` (P2-DOC baseline)
+  - **Resolution**:
+    - Established the formal approved deviation ledger `docs/DEVIATIONS.md` in strict accordance with Sections 101 & 102.
+    - Formally registered and approved all architectural and design deviations:
+      - `AML-DEVIATION-001`: Left-to-Right Frame Transformation Pipeline Composition (Scope: `Geometry`, Sec 22/24)
+      - `AML-DEVIATION-002`: Public Mutable Coordinate Data Members for Standard-Layout ABI (Scope: `Geometry`, Sec 9/29)
+      - `AML-DEVIATION-003`: Project-Specific Non-Negative Domain Clamping for `Core::Math::sqrt` (Scope: `Core`, Sec 14/48)
+      - `AML-DEVIATION-004`: PascalCase Root Namespace `AegisMath` (Scope: Global, Sec 8)
+  - **Verification**:
+    - Verified all 4 deviations against unit test evidence and standard requirements.
 
 ---
 
@@ -904,14 +945,14 @@ grep -rn "static " include/
 | **AML-HIGH-004** | Rule 1, Sec 10 | HIGH | Dynamics API boundaries expose untyped floating-point physical quantities. |
 | **AML-HIGH-005** | Rule 2, Rule 9 | HIGH | Matrix3 lacks FrameTag; geometry classes lack tolerance-aware AlmostEqual. |
 | **AML-HIGH-006** | Rule 6, Sec 36, 44 | HIGH | Result<T> uses non-constexpr placement new and lacks MathError payload. |
-| **AML-MED-001** | Sec 89 | MEDIUM | FreeFallTest.cpp erroneously added to INTERFACE library sources in CMake. |
-| **AML-MED-002** | Sec 6 | MEDIUM | Deprecated Units/Unit.h creates namespace duplicate with Quantity.h. |
-| **AML-MED-003** | Sec 18 | MEDIUM | InertiaTensor3::IsValid uses positive diagonal as positive definiteness check. |
-| **AML-MED-004** | Rule 7 | MEDIUM | Core::Math::sqrt contains unbounded while loop. |
-| **AML-MED-005** | Sec 24 | MEDIUM | Quaternion operator* reverses Hamilton multiplication order. |
-| **AML-MED-006** | Sec 89, 92 | MEDIUM | Uncommitted regex python scripts and template library.cpp in repo root. |
-| **AML-MED-007** | Sec 87, 88 | MEDIUM | Zero module specification documents exist under docs/. |
-| **AML-MED-008** | Sec 101, 102 | MEDIUM | Zero AML-DEVIATION tags in codebase (undocumented deviations). |
+| **AML-MED-001** | Sec 89 | MEDIUM | FreeFallTest.cpp erroneously added to INTERFACE library sources in CMake (Remediated: `1bb81c0`). |
+| **AML-MED-002** | Sec 6 | MEDIUM | Deprecated Units/Unit.h creates namespace duplicate with Quantity.h (Remediated: `d168798`). |
+| **AML-MED-003** | Sec 18 | MEDIUM | InertiaTensor3::IsValid uses positive diagonal as positive definiteness check (Remediated: `5b6c938`). |
+| **AML-MED-004** | Rule 7 | MEDIUM | Core::Math::sqrt contains unbounded while loop (Remediated: `bc54c0e`). |
+| **AML-MED-005** | Sec 24 | MEDIUM | Quaternion operator* reverses Hamilton multiplication order (Approved Deviation: `AML-DEVIATION-001`). |
+| **AML-MED-006** | Sec 89, 92 | MEDIUM | Uncommitted regex python scripts and template library.cpp in repo root (Remediated: `3d79ed2`). |
+| **AML-MED-007** | Sec 87, 88 | MEDIUM | Zero module specification documents exist under docs/ (Remediated: `docs/core.md`, `units.md`, `geometry.md`, `dynamics.md`). |
+| **AML-MED-008** | Sec 101, 102 | MEDIUM | Zero AML-DEVIATION tags in codebase (Remediated: `docs/DEVIATIONS.md`). |
 | **AML-LOW-001** | Sec 8, 9 | LOW | PascalCase namespace AegisMath vs standard aegis::math. |
 | **AML-LOW-002** | Sec 9 | LOW | Inconsistent member variable naming (x vs x_). |
 | **AML-LOW-003** | Sec 9 | LOW | Inconsistent function naming (TryInverse vs dot). |
