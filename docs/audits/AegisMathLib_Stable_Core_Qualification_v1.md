@@ -227,14 +227,23 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
 - **Normative Coverage Thresholds**:
   - Function Coverage: **100.0%** mandatory
   - Line Coverage: **$\ge 95.0\%$** mandatory
-  - Branch Coverage: **$\ge 90.0\%$** mandatory
+  - Branch Coverage: **$\ge 90.0\%$** mandatory (overall Stable-Core aggregate; no module-level branch threshold is currently normative)
   - Denominator Scope: Strictly limited to production headers under `include/AegisMath/**` (all 66 public headers). Excludes test code, GoogleTest, build artifacts, and system headers. Zero exclusion directives (`LCOV_EXCL` or `#pragma`) permitted in production code.
+- **Production Header Inventory & Coverage Scope Manifest**:
+  - Tracked Production Headers: **66** (`include/AegisMath/**/*.h`)
+  - Filesystem Production Headers: **66** (100% agreement with Git tracking; 0 untracked, 0 missing)
+  - Header Isolation Translation Units: **68** (66 standalone TUs + 2 order-poisoning TUs)
+  - Scope Manifest: [`tools/coverage/coverage_scope.json`](../../tools/coverage/coverage_scope.json)
+    - **Coverage-Participating Headers**: **27 files** containing executable function/method bodies.
+    - **Declarative Headers**: **39 files** consisting purely of C++20 concepts, type aliases, enums, constants, compile-time ratio/dimension arithmetic, or ABI layout traits with no emitted executable machine instructions (Category A).
 - **Measured Metrics** (`cmake-build-p2cov`):
   - **Functions**: **100.00%** (188 / 188) — **PASS**
   - **Lines**: **98.97%** (1055 / 1066) — **PASS**
   - **Branches**: **90.67%** (350 / 386) — **PASS**
-  - **Instantiations**: **94.64%** (636 / 672) (informational)
+  - **Instantiations**: **94.64%** (636 / 672) (informational; 100% LLVM function coverage does not imply 100% instantiation of all potential template permutations)
   - **Regions**: **93.33%** (672 / 720) (informational)
+- **Baseline Evolution Evidence**:
+  - Initial exact aggregate metrics prior to test addition were not retained as qualification evidence. The final authoritative metrics are recorded above.
 - **Module Coverage Breakdown**:
   - **`Dynamics`**: Functions **100.0%** (32/32), Lines **100.0%** (244/244), Branches **100.0%** (52/52)
   - **`Geometry`**: Functions **100.0%** (78/78), Lines **99.2%** (520/524), Branches **95.7%** (199/208)
@@ -244,6 +253,17 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
   - `Core` and `Units` contain low branch denominators (123 and 3 total branches respectively).
   - In `Result.h`, standard library `assert(!has_value() && "message")` compiles in Debug into a short-circuit expression where the string literal pointer is non-null at compile time; runtime execution can never take the False branch for a constant address.
   - No exclusions were added to production headers to artificially inflate scores. Across the entire public API surface, total branch coverage is **350 / 386 = 90.67%**, exceeding the mandatory $\ge 90.0\%$ threshold.
+- **Denominator Integrity & Gate Hardening**:
+  - **Canonical Path Containment**: Replaces substring checks with `os.path.commonpath` against canonicalized `include/AegisMath/` root.
+  - **Missing Header Detection**: `verify_coverage.py` asserts that every file listed in `coverage-participating` scope is present in the LLVM export; missing files immediately trigger gate failure.
+  - **Empty Denominator & Vacuous Pass Rejection**: Checks enforce `export_files > 0`, `func_count > 0`, `line_count > 0`, `branch_count > 0`. A $0/0$ state is unconditionally rejected as `FAIL`.
+  - **Fresh Profile Protection**: `run_coverage.py` cleans the raw profile directory and removes stale `.profdata` / JSON summaries prior to executing the test binary.
+  - **Raw Profile Count**: Exactly 1 `.profraw` file is collected per single-process test execution.
+- **Toolchain Pairing**:
+  - Compiler: `/usr/bin/c++` (Apple clang version 21.0.0, `clang-2100.1.1.101`)
+  - Profiler: `/Library/Developer/CommandLineTools/usr/bin/llvm-profdata` (Apple LLVM version 21.0.0)
+  - Coverage: `/Library/Developer/CommandLineTools/usr/bin/llvm-cov` (Apple LLVM version 21.0.0)
+  - Preference Policy: On macOS with AppleClang, CMake prioritizes `xcrun` tools matching the host developer toolchain, while supporting explicit cache overrides (`AEGISMATH_LLVM_COV`, `AEGISMATH_LLVM_PROFDATA`).
 - **Clean Build Non-Contamination**: **PASS**
   - Clean Debug configuration (`cmake-build-p2cov-normal`) inspected via `compile_commands.json` confirmed 0 occurrences of `-fprofile-instr-generate` or `-fcoverage-mapping`.
   - Normal Debug build: 117 / 117 tests pass with 0 warnings.
@@ -254,6 +274,7 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
 - **Automated Gate & Report Tooling**:
   - Automated coverage harness: `tools/coverage/run_coverage.py`
   - Automated threshold verification: `tools/coverage/verify_coverage.py`
+  - Scope manifest: `tools/coverage/coverage_scope.json`
   - Custom build targets: `AegisMathLib_Coverage` (console text report and threshold verification) and `AegisMathLib_Coverage_HTML` (generates detailed HTML reports under `build/coverage-html/`).
 
 ---
