@@ -1,5 +1,12 @@
 #include <gtest/gtest.h>
+#include <cstdint>
+
+#include "AegisMath/Units/BaseUnits/Length.h"
+#include "AegisMath/Units/BaseUnits/Mass.h"
+#include "AegisMath/Units/Detail/Ratio.h"
 #include "AegisMath/Units/Literals.h"
+#include "AegisMath/Units/QuantityABI.h"
+#include "AegisMath/Units/UnitCast.h"
 
 TEST(UnitsPublicTemplateTest, LiteralsInstantiation) {
     using namespace AegisMath::Units::Literals;
@@ -30,4 +37,43 @@ TEST(UnitsPublicTemplateTest, QuantityArithmeticWithLiterals) {
 
     EXPECT_DOUBLE_EQ(sum.value(), 8.0);
     EXPECT_DOUBLE_EQ(diff.value(), 2.0);
+}
+
+TEST(UnitsPublicTemplateTest, UnitCastInstantiationAndExecution) {
+    using namespace AegisMath::Units;
+
+    Kilogram kg(2.5);
+    // Cross-unit conversion between matching dimensions (Kilogram -> Gram)
+    Gram g = unit_cast<GramUnit>(kg);
+    EXPECT_DOUBLE_EQ(g.value(), 2500.0);
+
+    // Inverse conversion (Gram -> Kilogram)
+    Kilogram kg_rec = unit_cast<KilogramUnit>(g);
+    EXPECT_DOUBLE_EQ(kg_rec.value(), 2.5);
+
+    // Identity conversion (same ToUnit and FromUnit)
+    Kilogram kg_ident = unit_cast<KilogramUnit>(kg);
+    EXPECT_DOUBLE_EQ(kg_ident.value(), 2.5);
+
+    // Single-precision float unit_cast
+    Quantity<float, KilogramUnit> kg_f(1.5f);
+    Quantity<float, GramUnit> g_f = unit_cast<GramUnit>(kg_f);
+    EXPECT_FLOAT_EQ(g_f.value(), 1500.0f);
+}
+
+TEST(UnitsPublicTemplateTest, QuantityABIPublicValidatorExecution) {
+    using namespace AegisMath::Units;
+
+    EXPECT_TRUE(QuantityABIValidator<Meter>::Validate());
+    EXPECT_TRUE(QuantityABIValidator<Kilogram>::Validate());
+    EXPECT_TRUE(QuantityABIRegistration<Meter>);
+    EXPECT_TRUE(QuantityABIRegistration<Kilogram>);
+}
+
+TEST(UnitsPublicTemplateTest, DetailSafeAbsRuntimeExecution) {
+    using namespace AegisMath::Units::Detail;
+
+    EXPECT_EQ(SafeAbs(static_cast<std::intmax_t>(100)), 100);
+    EXPECT_EQ(SafeAbs(static_cast<std::intmax_t>(-100)), 100);
+    EXPECT_EQ(SafeAbs(static_cast<std::intmax_t>(0)), 0);
 }
