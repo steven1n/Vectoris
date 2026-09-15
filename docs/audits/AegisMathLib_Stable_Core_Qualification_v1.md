@@ -17,8 +17,8 @@
 - **Primary Compiler**: Apple Clang version 21.0.0 (`clang-2100.1.1.101`, target `x86_64-apple-darwin25.6.0`)
 - **CMake Version**: 4.4.3
 - **Test Suite Execution**:
-  - **Debug** (`cmake-build-p2cov-normal`): **117 / 117 PASS (100%), 0 warnings**
-  - **Release** (`cmake-build-p2cov-release`): **117 / 117 PASS (100%), 0 warnings**
+  - **Debug** (`cmake-build-p2cov-normal`): **120 / 120 PASS (100%), 0 warnings**
+  - **Release** (`cmake-build-p2cov-release`): **120 / 120 PASS (100%), 0 warnings**
 - **Public Header Standalone Isolation Execution**:
   - **Debug** (`AegisMathLib_HeaderIsolation`): **68 / 68 TUs PASS (66 standalone + 2 order poisoning), 0 warnings**
   - **Release** (`AegisMathLib_HeaderIsolation`): **68 / 68 TUs PASS (66 standalone + 2 order poisoning), 0 warnings**
@@ -103,9 +103,9 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
 
 | Qualification Gate | Standard Reference | Status | Evidence / Notes | Blocker? | Remediation Phase |
 | :--- | :--- | :---: | :--- | :---: | :---: |
-| **Correctness Audit** | Sec 60–74, 80 | **PASS** | 117/117 tests pass; all CRITICAL/HIGH closed; no algorithmic regressions. | **NO** | — |
+| **Correctness Audit** | Sec 60–74, 80 | **PASS** | 120/120 tests pass; all CRITICAL/HIGH closed; no algorithmic regressions. | **NO** | — |
 | **Numerical Reliability** | Sec 14–18, 48 | **PASS** | IEEE-754 enforced; Solve-Not-Invert adopted; condition bounds active. | **NO** | — |
-| **Debug Build & Tests** | Sec 89, 90, 124 | **PASS** | `cmake-build-p2cov-normal`: 117/117 tests pass, 0 warnings. | **NO** | — |
+| **Debug Build & Tests** | Sec 89, 90, 124 | **PASS** | `cmake-build-p2cov-normal`: 120/120 tests pass, 0 warnings. | **NO** | — |
 | **Zero Compiler Warnings** | Sec 3, 90 | **PASS** | `-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror`: 0 warnings. | **NO** | — |
 | **Bounded Numerical Loops** | Rule 7, Sec 48 | **PASS** | AML-MED-004: Core::Math::sqrt bounded to $kMaxIterations = 64$. | **NO** | Remediated (bc54c0e) |
 | **Single Concept per File** | Sec 6 | **PASS** | AML-MED-002: Duplicate Units/Unit.h removed. | **NO** | Remediated (d168798) |
@@ -117,7 +117,7 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
 | **AddressSanitizer (ASan)** | Sec 88, 124 | **PASS** | Target-scoped `AEGISMATH_ENABLE_ASAN` enabled; 108/108 tests pass with `ASAN_OPTIONS=halt_on_error=1:abort_on_error=1`; no ASan diagnostics observed; header isolation (68/68 TUs) compile-qualified with ASan instrumentation; leak detection: NOT QUALIFIED in P2-SAN (unsupported on macOS host); dynamic init-order checking: NOT SUPPORTED on macOS host. | **NO** | Remediated (P2-SAN) |
 | **UndefinedBehaviorSanitizer (UBSan)** | Sec 88, 124 | **PASS** | Target-scoped `AEGISMATH_ENABLE_UBSAN` enabled; 108/108 tests pass with `UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1`; no diagnostics observed from checks enabled by `-fsanitize=undefined`; header isolation (68/68 TUs) compile-qualified with UBSan instrumentation. | **NO** | Remediated (P2-SAN) |
 | **ThreadSanitizer (TSan)** | Sec 88 | **NOT RUN** | Single-threaded kernels; periodic verification item; not an immediate P2 blocker. | **NO** | Periodic |
-| **Test Coverage Gate** | Sec 86, 124 | **PASS** | Target-scoped LLVM source-based coverage (`cmake-build-p2cov`); 117/117 tests pass; Functions: **100.00%** (188/188, required 100.00%); Lines: **98.97%** (1055/1066, required >= 95.00%); Branches: **90.67%** (350/386, required >= 90.00%); Instantiations: 94.64% (636/672); Regions: 93.33% (672/720); all 66 public headers under `include/AegisMath/` included; zero file/branch exclusions. | **NO** | Remediated (P2-COV) |
+| **Test Coverage Gate** | Sec 86, 124 | **PASS** | Target-scoped LLVM source-based coverage (`cmake-build-p2cov`); 120/120 tests pass; Functions: **100.00%** (191/191, required 100.00%); Lines: **98.99%** (1082/1093, required >= 95.00%); Branches: **90.72%** (352/388, required >= 90.00%); Instantiations: 94.74% (648/684); Regions: 93.40% (679/727); all 66 public headers semantically classified (30 runtime coverage headers, 3 template definition headers, 36 compile-time-only headers); zero file/branch exclusions. | **NO** | Remediated (P2-COV / P2-COV.1) |
 | **Module Specification Docs** | Sec 87, 88 | **PASS** | AML-MED-007: `docs/core.md`, `docs/units.md`, `docs/geometry.md`, `docs/dynamics.md` authored and verified. | **NO** | Remediated (P2-DOC) |
 | **Formal Deviation Records** | Sec 101, 102 | **PASS** | AML-MED-008: `docs/DEVIATIONS.md` established with formal governance, immutable ID policy, and active deviations AML-DEVIATION-002 & 003. | **NO** | Remediated (P2-DOC) |
 | **Cross-Compiler Matrix: GCC** | Sec 2, 89 | **NOT RUN** | Local `/usr/bin/g++` is AppleClang wrapper; true GNU GCC not executed. | **YES** | **P2-H** |
@@ -221,7 +221,7 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
   - Zero unbounded `while` loops exist in the production header tree.
   - `Core::Math::sqrt` employs bounded iteration with hard cap `kMaxIterations = 64` and scale-aware relative tolerance.
 
-### 6.7 Test Coverage Gate (P2-COV)
+### 6.7 Test Coverage Gate (P2-COV / P2-COV.1)
 - **Status**: **PASS**
 - **Standards Reference**: [`docs/ENGINEERING_STANDARD_V1.md`](../ENGINEERING_STANDARD_V1.md) Section 86 & Section 124 (DoD Gate 4).
 - **Normative Coverage Thresholds**:
@@ -234,28 +234,33 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
   - Filesystem Production Headers: **66** (100% agreement with Git tracking; 0 untracked, 0 missing)
   - Header Isolation Translation Units: **68** (66 standalone TUs + 2 order-poisoning TUs)
   - Scope Manifest: [`tools/coverage/coverage_scope.json`](../../tools/coverage/coverage_scope.json)
-    - **Coverage-Participating Headers**: **27 files** containing executable function/method bodies.
-    - **Declarative Headers**: **39 files** consisting purely of C++20 concepts, type aliases, enums, constants, compile-time ratio/dimension arithmetic, or ABI layout traits with no emitted executable machine instructions (Category A).
+    - **Runtime Coverage Headers**: **30 files** containing executable function/method bodies emitted into LLVM coverage.
+    - **Template Definition Headers**: **3 files** (`include/AegisMath/Units/Detail/Ratio.h`, `include/AegisMath/Units/QuantityABI.h`, `include/AegisMath/Units/UnitCast.h`) containing public executable template bodies, all verified via focused instantiation test evidence in `tests/Units/PublicTemplateInstantiationTest.cpp`.
+    - **Compile-Time-Only Headers**: **36 files** consisting purely of C++20 concepts, type aliases, enums, constants, compile-time ratio/dimension arithmetic, or ABI layout traits with no emitted executable machine instructions.
+    - **Unclassified / Unknown Headers**: **0** (complete partition).
 - **Measured Metrics** (`cmake-build-p2cov`):
-  - **Functions**: **100.00%** (188 / 188) — **PASS**
-  - **Lines**: **98.97%** (1055 / 1066) — **PASS**
-  - **Branches**: **90.67%** (350 / 386) — **PASS**
-  - **Instantiations**: **94.64%** (636 / 672) (informational; 100% LLVM function coverage does not imply 100% instantiation of all potential template permutations)
-  - **Regions**: **93.33%** (672 / 720) (informational)
+  - **Functions**: **100.00%** (191 / 191) — **PASS**
+  - **Lines**: **98.99%** (1082 / 1093) — **PASS**
+  - **Branches**: **90.72%** (352 / 388) — **PASS**
+  - **Instantiations**: **94.74%** (648 / 684) (informational; 100% LLVM function coverage does not imply 100% instantiation of all potential template permutations)
+  - **Regions**: **93.40%** (679 / 727) (informational)
 - **Baseline Evolution Evidence**:
-  - Initial exact aggregate metrics prior to test addition were not retained as qualification evidence. The final authoritative metrics are recorded above.
+  - P2-COV Initial: 117 tests, 27 reporting files, Functions 188/188 (100.0%), Lines 1055/1066 (98.97%), Branches 350/386 (90.67%).
+  - P2-COV.1 Corrective Audit: 120 tests, 30 reporting files (+3 template definition headers qualified), Functions 191/191 (100.00%), Lines 1082/1093 (98.99%), Branches 352/388 (90.72%).
 - **Module Coverage Breakdown**:
   - **`Dynamics`**: Functions **100.0%** (32/32), Lines **100.0%** (244/244), Branches **100.0%** (52/52)
   - **`Geometry`**: Functions **100.0%** (78/78), Lines **99.2%** (520/524), Branches **95.7%** (199/208)
   - **`Core`**: Functions **100.0%** (44/44), Lines **97.0%** (227/234), Branches **79.7%** (98/123)
-  - **`Units`**: Functions **100.0%** (34/34), Lines **100.0%** (64/64), Branches **33.3%** (1/3)
+  - **`Units`**: Functions **100.0%** (37/37), Lines **100.0%** (91/91), Branches **60.0%** (3/5)
 - **Branch Analysis & Short-Circuit Mechanics**:
-  - `Core` and `Units` contain low branch denominators (123 and 3 total branches respectively).
+  - `Core` and `Units` contain low branch denominators (123 and 5 total branches respectively).
   - In `Result.h`, standard library `assert(!has_value() && "message")` compiles in Debug into a short-circuit expression where the string literal pointer is non-null at compile time; runtime execution can never take the False branch for a constant address.
-  - No exclusions were added to production headers to artificially inflate scores. Across the entire public API surface, total branch coverage is **350 / 386 = 90.67%**, exceeding the mandatory $\ge 90.0\%$ threshold.
+  - No exclusions were added to production headers to artificially inflate scores. Across the entire public API surface, total branch coverage is **352 / 388 = 90.72%**, exceeding the mandatory $\ge 90.0\%$ threshold.
 - **Denominator Integrity & Gate Hardening**:
   - **Canonical Path Containment**: Replaces substring checks with `os.path.commonpath` against canonicalized `include/AegisMath/` root.
-  - **Missing Header Detection**: `verify_coverage.py` asserts that every file listed in `coverage-participating` scope is present in the LLVM export; missing files immediately trigger gate failure.
+  - **Missing Header Detection**: `verify_coverage.py` asserts that every file listed in `runtime_coverage_headers` scope is present in the LLVM export; missing files immediately trigger gate failure.
+  - **Template Qualification Verification**: Asserts that every header in `template_definition_headers` has recorded symbol qualification evidence.
+  - **Unclassified / Unknown Header Detection**: Asserts exact set equality between `tracked_production_headers` and `runtime_coverage_headers | compile_time_only_headers`.
   - **Empty Denominator & Vacuous Pass Rejection**: Checks enforce `export_files > 0`, `func_count > 0`, `line_count > 0`, `branch_count > 0`. A $0/0$ state is unconditionally rejected as `FAIL`.
   - **Fresh Profile Protection**: `run_coverage.py` cleans the raw profile directory and removes stale `.profdata` / JSON summaries prior to executing the test binary.
   - **Raw Profile Count**: Exactly 1 `.profraw` file is collected per single-process test execution.
@@ -266,8 +271,8 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
   - Preference Policy: On macOS with AppleClang, CMake prioritizes `xcrun` tools matching the host developer toolchain, while supporting explicit cache overrides (`AEGISMATH_LLVM_COV`, `AEGISMATH_LLVM_PROFDATA`).
 - **Clean Build Non-Contamination**: **PASS**
   - Clean Debug configuration (`cmake-build-p2cov-normal`) inspected via `compile_commands.json` confirmed 0 occurrences of `-fprofile-instr-generate` or `-fcoverage-mapping`.
-  - Normal Debug build: 117 / 117 tests pass with 0 warnings.
-  - Normal Release build: 117 / 117 tests pass with 0 warnings.
+  - Normal Debug build: 120 / 120 tests pass with 0 warnings.
+  - Normal Release build: 120 / 120 tests pass with 0 warnings.
   - Header Isolation: 68 / 68 translation units pass with 0 warnings.
 - **Sanitizer Mutual Exclusion**: **PASS**
   - Enforced in `cmake/Coverage.cmake`. Enabling `AEGISMATH_ENABLE_COVERAGE=ON` simultaneously with `AEGISMATH_ENABLE_ASAN` or `AEGISMATH_ENABLE_UBSAN` triggers an explicit `FATAL_ERROR`.
@@ -308,8 +313,8 @@ graph TD
    - Configured target-scoped `AEGISMATH_ENABLE_ASAN` and `AEGISMATH_ENABLE_UBSAN` in CMake; verified 100% clean test and header isolation execution.
 5. **P2-D — Static Analysis Infrastructure**:
    - Establish `.clang-tidy` and `cppcheck` configuration rules and CI definitions.
-6. **P2-F — Test Coverage Gate** (Remediated — P2-COV):
-   - Instrument build with LLVM source-based coverage (`xcrun llvm-cov`); verify 100.00% function, 98.97% line, 90.67% branch coverage across all 66 public headers.
+6. **P2-F — Test Coverage Gate** (Remediated — P2-COV / P2-COV.1):
+   - Instrument build with LLVM source-based coverage (`xcrun llvm-cov`); verify 100.00% function, 98.99% line, 90.72% branch coverage across all 66 public headers (30 runtime coverage headers, 3 template definition headers, 36 compile-time-only headers).
 7. **P2-G — Cross-Compiler Matrix & Benchmark Baseline**:
    - Establish cross-compiler portability matrix (GCC, Clang, MSVC) and microbenchmark baseline.
 8. **P2-H — Stable-Core Certification**:
