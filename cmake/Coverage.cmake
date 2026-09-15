@@ -14,11 +14,19 @@ if(AEGISMATH_ENABLE_COVERAGE)
         message(FATAL_ERROR "Coverage qualification requires sanitizer options (AEGISMATH_ENABLE_ASAN and AEGISMATH_ENABLE_UBSAN) to be OFF to prevent profile distortion.")
     endif()
 
-    # Locate LLVM coverage tools
-    find_program(LLVM_PROFDATA_BIN NAMES llvm-profdata)
-    find_program(LLVM_COV_BIN NAMES llvm-cov)
+    # Support explicit cache overrides
+    set(AEGISMATH_LLVM_PROFDATA "" CACHE FILEPATH "Path to llvm-profdata executable override")
+    set(AEGISMATH_LLVM_COV "" CACHE FILEPATH "Path to llvm-cov executable override")
 
-    if(APPLE)
+    if(AEGISMATH_LLVM_PROFDATA)
+        set(LLVM_PROFDATA_BIN "${AEGISMATH_LLVM_PROFDATA}")
+    endif()
+    if(AEGISMATH_LLVM_COV)
+        set(LLVM_COV_BIN "${AEGISMATH_LLVM_COV}")
+    endif()
+
+    # On macOS with AppleClang, prefer developer toolchain tools via xcrun
+    if(APPLE AND CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
         if(NOT LLVM_PROFDATA_BIN)
             execute_process(
                 COMMAND xcrun --find llvm-profdata
@@ -44,8 +52,16 @@ if(AEGISMATH_ENABLE_COVERAGE)
         endif()
     endif()
 
+    # Fallback or other Clang compilers
+    if(NOT LLVM_PROFDATA_BIN)
+        find_program(LLVM_PROFDATA_BIN NAMES llvm-profdata)
+    endif()
+    if(NOT LLVM_COV_BIN)
+        find_program(LLVM_COV_BIN NAMES llvm-cov)
+    endif()
+
     if(NOT LLVM_PROFDATA_BIN OR NOT LLVM_COV_BIN)
-        message(FATAL_ERROR "llvm-profdata and/or llvm-cov could not be found. Please ensure LLVM tools are installed.")
+        message(FATAL_ERROR "llvm-profdata and/or llvm-cov could not be found. Please ensure matching LLVM tools are installed.")
     endif()
 endif()
 

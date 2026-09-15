@@ -47,18 +47,46 @@ def main():
     export_files = data["data"][0].get("files", [])
     totals = data["data"][0].get("totals", {})
 
-    # Phase 19: Verify export scope (all files must be under include/AegisMath/)
+    # Vacuous PASS / empty denominator guard
+    if not export_files:
+        print("ERROR: Coverage export contains no files (empty denominator).", file=sys.stderr)
+        sys.exit(1)
+
+    # Repository canonical path validation
+    repo_root = os.path.realpath(args.repo_root)
+    production_root = os.path.realpath(os.path.join(repo_root, "include", "AegisMath"))
+
     invalid_files = []
+    found_relpaths = set()
     for entry in export_files:
         fn = entry.get("filename", "")
-        # normalize path
-        fn_norm = os.path.normpath(fn)
-        if "include/AegisMath/" not in fn_norm and not fn_norm.endswith("include/AegisMath"):
+        file_real = os.path.realpath(fn)
+        try:
+            if os.path.commonpath([production_root, file_real]) != production_root:
+                invalid_files.append(fn)
+                continue
+        except ValueError:
             invalid_files.append(fn)
+            continue
+        rel_from_repo = os.path.relpath(file_real, repo_root)
+        found_relpaths.add(rel_from_repo)
 
     if invalid_files:
-        print(f"ERROR: Export contains files outside include/AegisMath/:\n" + "\n".join(invalid_files), file=sys.stderr)
+        print(f"ERROR: Export contains files outside {production_root}:\n" + "\n".join(invalid_files), file=sys.stderr)
         sys.exit(1)
+
+    # Scope manifest validation against missing coverage-participating files
+    manifest_path = os.path.join(repo_root, "tools", "coverage", "coverage_scope.json")
+    if os.path.exists(manifest_path):
+        with open(manifest_path, "r", encoding="utf-8") as f_man:
+            manifest = json.load(f_man)
+        expected_files = set(manifest.get("coverage_participating_headers", []))
+        missing_files = expected_files - found_relpaths
+        if missing_files:
+            print("ERROR: Missing expected coverage file(s):", file=sys.stderr)
+            for m in sorted(missing_files):
+                print(f"  - {m}", file=sys.stderr)
+            sys.exit(1)
 
     # Module breakdown
     module_data = {}
@@ -84,23 +112,32 @@ def main():
     # Metrics from totals
     func_count = totals.get("functions", {}).get("count", 0)
     func_covered = totals.get("functions", {}).get("covered", 0)
-    func_pct = (func_covered / func_count * 100.0) if func_count > 0 else 100.0
+    if func_count == 0:
+        print("ERROR: Total function count is 0 (vacuous pass rejected).", file=sys.stderr)
+        sys.exit(1)
+    func_pct = func_covered / func_count * 100.0
 
     line_count = totals.get("lines", {}).get("count", 0)
     line_covered = totals.get("lines", {}).get("covered", 0)
-    line_pct = (line_covered / line_count * 100.0) if line_count > 0 else 100.0
+    if line_count == 0:
+        print("ERROR: Total line count is 0 (vacuous pass rejected).", file=sys.stderr)
+        sys.exit(1)
+    line_pct = line_covered / line_count * 100.0
 
     branch_count = totals.get("branches", {}).get("count", 0)
     branch_covered = totals.get("branches", {}).get("covered", 0)
-    branch_pct = (branch_covered / branch_count * 100.0) if branch_count > 0 else 100.0
+    if branch_count == 0:
+        print("ERROR: Total branch count is 0 (vacuous pass rejected).", file=sys.stderr)
+        sys.exit(1)
+    branch_pct = branch_covered / branch_count * 100.0
 
     inst_count = totals.get("instantiations", {}).get("count", 0)
     inst_covered = totals.get("instantiations", {}).get("covered", 0)
-    inst_pct = (inst_covered / inst_count * 100.0) if inst_count > 0 else 100.0
+    inst_pct = (inst_covered / inst_count * 100.0) if inst_count > 0 else 0.0
 
     reg_count = totals.get("regions", {}).get("count", 0)
     reg_covered = totals.get("regions", {}).get("covered", 0)
-    reg_pct = (reg_covered / reg_count * 100.0) if reg_count > 0 else 100.0
+    reg_pct = (reg_covered / reg_count * 100.0) if reg_count > 0 else 0.0
 
     print("=" * 80)
     print("AegisMathLib Stable-Core Test Coverage Report (P2-COV)")
@@ -110,9 +147,9 @@ def main():
     print(f"{'Metric':<18} | {'Covered':<10} | {'Total':<10} | {'Percent':<10} | {'Threshold':<12} | {'Status'}")
     print("-" * 80)
 
-    func_pass = (func_covered == func_count) if func_count > 0 else True
-    line_pass = line_pct >= REQ_LINE_PERCENT
-    branch_pass = branch_pct >= REQ_BRANCH_PERCENT
+    func_pass = (func_covered == func_count) and (func_count > 0)
+    line_pass = (line_pct >= REQ_LINE_PERCENT) and (line_count > 0)
+    branch_pass = (branch_pct >= REQ_BRANCH_PERCENT) and (branch_count > 0)
 
     print(f"{'Functions':<18} | {func_covered:<10} | {func_count:<10} | {func_pct:>7.2f}%   | {REQ_FUNCTION_PERCENT:>7.2f}%    | {'PASS' if func_pass else 'FAIL'}")
     print(f"{'Lines':<18} | {line_covered:<10} | {line_count:<10} | {line_pct:>7.2f}%   | >={REQ_LINE_PERCENT:>5.2f}%    | {'PASS' if line_pass else 'FAIL'}")

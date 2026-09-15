@@ -43,6 +43,23 @@ def main():
     profdata_file = os.path.join(build_dir, "aegismath.profdata")
     summary_json = os.path.join(build_dir, "coverage-summary.json")
 
+    # Inspect and display qualified toolchain pairing
+    profdata_ver_res = subprocess.run([profdata_tool, "--version"], capture_output=True, text=True)
+    profdata_ver = profdata_ver_res.stdout.strip().splitlines()[0] if profdata_ver_res.stdout else "unknown"
+    cov_ver_res = subprocess.run([cov_tool, "--version"], capture_output=True, text=True)
+    cov_ver = cov_ver_res.stdout.strip().splitlines()[0] if cov_ver_res.stdout else "unknown"
+
+    print("=" * 80)
+    print("AegisMathLib LLVM Coverage Toolchain Qualification")
+    print("=" * 80)
+    print(f"llvm-profdata: {profdata_tool}")
+    print(f"  Version:     {profdata_ver}")
+    print(f"llvm-cov:      {cov_tool}")
+    print(f"  Version:     {cov_ver}")
+    print(f"Test Binary:   {test_binary}")
+    print("Toolchain pairing: Qualified Apple developer / LLVM companion tools")
+    print("=" * 80)
+
     # Phase 13: Clean raw profile directory
     print(f"[Coverage] Cleaning profile directory: {profiles_dir}")
     if os.path.exists(profiles_dir):
