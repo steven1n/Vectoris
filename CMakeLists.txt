@@ -163,6 +163,10 @@ target_link_libraries(AegisMathLib_Tests
 include(cmake/Sanitizers.cmake)
 aegismath_apply_sanitizers(AegisMathLib_Tests)
 
+include(cmake/Coverage.cmake)
+aegismath_apply_coverage(AegisMathLib_Tests)
+aegismath_register_coverage_target(AegisMathLib_Tests)
+
 enable_testing()
 include(GoogleTest)
 gtest_discover_tests(AegisMathLib_Tests)

@@ -1,3 +1,5 @@
 # CMake / CLion build outputs
 build/
 cmake-build-*/
+*.profraw
+*.profdata
