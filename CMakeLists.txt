@@ -160,6 +160,10 @@ target_link_libraries(AegisMathLib_Tests
         gtest_main
 )
 
+include(cmake/Sanitizers.cmake)
+aegismath_apply_sanitizers(AegisMathLib_Tests)
+
+enable_testing()
 include(GoogleTest)
 gtest_discover_tests(AegisMathLib_Tests)
 

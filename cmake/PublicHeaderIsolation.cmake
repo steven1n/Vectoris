@@ -70,3 +70,4 @@ set_target_properties(AegisMathLib_HeaderIsolation PROPERTIES
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
+aegismath_apply_sanitizers(AegisMathLib_HeaderIsolation)
