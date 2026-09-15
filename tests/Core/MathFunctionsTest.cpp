@@ -238,3 +238,86 @@ TEST(CoreSqrtTest, Float32Support) {
     }
     EXPECT_LE(max_observed_iters_f, 5U);
 }
+
+TEST(CoreSqrtTest, ExtendedCoverageEdgeCases) {
+    // 1. Math::abs negative branch
+    EXPECT_EQ(Core::Math::abs(-42), 42);
+    EXPECT_DOUBLE_EQ(Core::Math::abs(-3.14159), 3.14159);
+    EXPECT_FLOAT_EQ(Core::Math::abs(-2.718f), 2.718f);
+
+    // 2. Math::sqrt zero and negative input branches
+    EXPECT_DOUBLE_EQ(Core::Math::sqrt(0.0), 0.0);
+    EXPECT_DOUBLE_EQ(Core::Math::sqrt(-1.0), 0.0);
+    EXPECT_DOUBLE_EQ(Core::Math::sqrt(-100.0), 0.0);
+    EXPECT_FLOAT_EQ(Core::Math::sqrt(0.0f), 0.0f);
+    EXPECT_FLOAT_EQ(Core::Math::sqrt(-4.0f), 0.0f);
+
+    // 3. Math::acos float boundary overshoots (> 1 + tol and < -1 - tol)
+    EXPECT_TRUE(std::isnan(Core::Math::acos(1.5f)));
+    EXPECT_TRUE(std::isnan(Core::Math::acos(-1.5f)));
+    EXPECT_TRUE(std::isnan(Core::Math::acos(2.0)));
+    EXPECT_TRUE(std::isnan(Core::Math::acos(-2.0)));
+
+    // 4. Detail::BoundedNewtonSqrt NaN inputs (with and without iterations_out)
+    std::size_t iters = 999;
+    EXPECT_TRUE(std::isnan(Core::Detail::BoundedNewtonSqrt(std::numeric_limits<double>::quiet_NaN(), &iters)));
+    EXPECT_EQ(iters, 0U);
+    EXPECT_TRUE(std::isnan(Core::Detail::BoundedNewtonSqrt(std::numeric_limits<double>::quiet_NaN())));
+
+    iters = 999;
+    EXPECT_TRUE(std::isnan(Core::Detail::BoundedNewtonSqrt(std::numeric_limits<float>::quiet_NaN(), &iters)));
+    EXPECT_EQ(iters, 0U);
+    EXPECT_TRUE(std::isnan(Core::Detail::BoundedNewtonSqrt(std::numeric_limits<float>::quiet_NaN())));
+
+    // 5. Detail::BoundedNewtonSqrt non-positive inputs (with and without iterations_out)
+    iters = 999;
+    EXPECT_DOUBLE_EQ(Core::Detail::BoundedNewtonSqrt(-1.0, &iters), 0.0);
+    EXPECT_EQ(iters, 0U);
+    EXPECT_DOUBLE_EQ(Core::Detail::BoundedNewtonSqrt(-1.0), 0.0);
+    EXPECT_DOUBLE_EQ(Core::Detail::BoundedNewtonSqrt(0.0, &iters), 0.0);
+    EXPECT_EQ(iters, 0U);
+    EXPECT_DOUBLE_EQ(Core::Detail::BoundedNewtonSqrt(0.0), 0.0);
+
+    iters = 999;
+    EXPECT_FLOAT_EQ(Core::Detail::BoundedNewtonSqrt(-1.0f, &iters), 0.0f);
+    EXPECT_EQ(iters, 0U);
+    EXPECT_FLOAT_EQ(Core::Detail::BoundedNewtonSqrt(-1.0f), 0.0f);
+    EXPECT_FLOAT_EQ(Core::Detail::BoundedNewtonSqrt(0.0f, &iters), 0.0f);
+    EXPECT_EQ(iters, 0U);
+    EXPECT_FLOAT_EQ(Core::Detail::BoundedNewtonSqrt(0.0f), 0.0f);
+
+    // 6. Detail::BoundedNewtonSqrt positive infinity inputs (with and without iterations_out)
+    const double inf_d = std::numeric_limits<double>::infinity();
+    iters = 999;
+    EXPECT_DOUBLE_EQ(Core::Detail::BoundedNewtonSqrt(inf_d, &iters), inf_d);
+    EXPECT_EQ(iters, 0U);
+    EXPECT_DOUBLE_EQ(Core::Detail::BoundedNewtonSqrt(inf_d), inf_d);
+
+    const float inf_f = std::numeric_limits<float>::infinity();
+    iters = 999;
+    EXPECT_FLOAT_EQ(Core::Detail::BoundedNewtonSqrt(inf_f, &iters), inf_f);
+    EXPECT_EQ(iters, 0U);
+    EXPECT_FLOAT_EQ(Core::Detail::BoundedNewtonSqrt(inf_f), inf_f);
+
+    // 7. Detail::BoundedNewtonSqrt without iterations_out (nullptr branch on valid inputs)
+    EXPECT_NEAR(Core::Detail::BoundedNewtonSqrt(9.0), 3.0, 1e-15);
+    EXPECT_NEAR(Core::Detail::BoundedNewtonSqrt(9.0f), 3.0f, 1e-7f);
+
+    // 8. Detail::BoundedNewtonSqrt float subnormal input
+    const float denorm_min_f = std::numeric_limits<float>::denorm_min();
+    iters = 0;
+    const float denorm_res_f = Core::Detail::BoundedNewtonSqrt(denorm_min_f, &iters);
+    EXPECT_FLOAT_EQ(denorm_res_f, std::sqrt(denorm_min_f));
+    EXPECT_LE(iters, 64U);
+
+    // 9. Float value triggering ULP oscillation in Newton iteration
+    const float osc_f = 5.16958886e-26f;
+    EXPECT_NEAR(Core::Detail::BoundedNewtonSqrt(osc_f), std::sqrt(osc_f), 1e-19f);
+
+    // 10. Math functions: sin, cos, sqrt (float and double)
+    EXPECT_DOUBLE_EQ(Core::Math::sin(0.0), 0.0);
+    EXPECT_FLOAT_EQ(Core::Math::sin(0.0f), 0.0f);
+    EXPECT_DOUBLE_EQ(Core::Math::cos(0.0), 1.0);
+    EXPECT_FLOAT_EQ(Core::Math::cos(0.0f), 1.0f);
+    EXPECT_FLOAT_EQ(Core::Math::sqrt(4.0f), 2.0f);
+}

@@ -90,18 +90,33 @@ TEST(ResultTest, ErrorPayload) {
 
     auto r4 = Result<double>::failure(MathError::ill_conditioned);
     EXPECT_EQ(r4.error(), MathError::ill_conditioned);
+    EXPECT_STREQ(to_string(r4.error()), "ill_conditioned");
 
     auto r5 = Result<double>::failure(MathError::normalization_failure);
     EXPECT_EQ(r5.error(), MathError::normalization_failure);
+    EXPECT_STREQ(to_string(r5.error()), "normalization_failure");
 
     auto r6 = Result<double>::failure(MathError::non_convergence);
     EXPECT_EQ(r6.error(), MathError::non_convergence);
+    EXPECT_STREQ(to_string(r6.error()), "non_convergence");
 
     auto r7 = Result<double>::failure(MathError::max_iterations);
     EXPECT_EQ(r7.error(), MathError::max_iterations);
+    EXPECT_STREQ(to_string(r7.error()), "max_iterations");
 
     auto r8 = Result<double>::failure(MathError::invalid_state);
     EXPECT_EQ(r8.error(), MathError::invalid_state);
+    EXPECT_STREQ(to_string(r8.error()), "invalid_state");
+
+    auto r9 = Result<double>::failure(MathError::invalid_argument);
+    EXPECT_EQ(r9.error(), MathError::invalid_argument);
+    EXPECT_STREQ(to_string(r9.error()), "invalid_argument");
+
+    auto r10 = Result<double>::failure(MathError::domain_error);
+    EXPECT_EQ(r10.error(), MathError::domain_error);
+    EXPECT_STREQ(to_string(r10.error()), "domain_error");
+
+    EXPECT_STREQ(to_string(static_cast<MathError>(255)), "unknown_error");
 }
 
 TEST(ResultTest, ConstexprSuccess) {
@@ -233,4 +248,53 @@ TEST(ResultTest, ErrorIfSuccess) {
 
     const auto& cr = r;
     EXPECT_EQ(cr.error_if(), nullptr);
+}
+
+#include "AegisMath/Geometry/Quaternion.h"
+
+TEST(ResultTest, RvalueAndRefQualifiedAccessors) {
+    // Value() &
+    auto r_ok = Result<int>::success(100);
+    EXPECT_EQ(r_ok.Value(), 100);
+    r_ok.Value() = 105;
+    EXPECT_EQ(r_ok.value(), 105);
+
+    // const T& Value() const &
+    const auto r_const_ref = Result<int>::success(200);
+    EXPECT_EQ(r_const_ref.Value(), 200);
+
+    // const T&& Value() const &&
+    const auto r_const = Result<std::string>::success("const_str");
+    EXPECT_EQ(std::move(r_const).Value(), "const_str");
+
+    // T&& Value() &&
+    auto r_str = Result<std::string>::success("move_str");
+    EXPECT_EQ(std::move(r_str).Value(), "move_str");
+
+    // T&& value() &&
+    auto r_str2 = Result<std::string>::success("move_val");
+    EXPECT_EQ(std::move(r_str2).value(), "move_val");
+
+    // value_or with rvalue Result
+    auto r_val_or_ok = Result<std::string>::success("hello");
+    EXPECT_EQ(std::move(r_val_or_ok).value_or("default"), "hello");
+
+    auto r_val_or_fail = Result<std::string>::failure(MathError::domain_error);
+    EXPECT_EQ(std::move(r_val_or_fail).value_or("default"), "default");
+
+    // error() &&
+    auto r_fail = Result<int>::failure(MathError::ill_conditioned);
+    EXPECT_EQ(std::move(r_fail).error(), MathError::ill_conditioned);
+
+    // const error() const &&
+    const auto r_fail_const = Result<int>::failure(MathError::max_iterations);
+    EXPECT_EQ(std::move(r_fail_const).error(), MathError::max_iterations);
+
+    // Quaternion Result instantiation coverage
+    struct ResultFrameA {};
+    struct ResultFrameB {};
+    using QuatT = AegisMath::Geometry::Quaternion<double, ResultFrameA, ResultFrameB>;
+    auto q_res = Result<QuatT>::failure(MathError::invalid_state);
+    EXPECT_EQ(q_res.error(), MathError::invalid_state);
+    EXPECT_EQ(std::move(q_res).error(), MathError::invalid_state);
 }
