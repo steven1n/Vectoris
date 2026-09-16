@@ -186,11 +186,14 @@ jobs:
       - name: Phase 18 — Configure MSVC
         shell: pwsh
         run: |
+          Write-Host "=== Available Generators ==="
+          & cmake.exe --help
+          Write-Host "=== Installed VS Instances ==="
+          & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -all -products *
+          # Try default or detected generator
           & cmake.exe `
             -S . `
             -B build-msvc `
-            -G "Visual Studio 17 2022" `
-            -A x64 `
             -DAEGISMATH_ENABLE_ASAN=OFF `
             -DAEGISMATH_ENABLE_UBSAN=OFF `
             -DAEGISMATH_ENABLE_COVERAGE=OFF `
