@@ -1,0 +1,225 @@
+name: Cross-Compiler Qualification (P2-XCC)
+
+on:
+  push:
+    branches:
+      - main
+      - 'qualification/**'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================================
+  # 1. GCC / Linux Qualification
+  # ============================================================================
+  gcc-linux:
+    name: GCC / Linux (ubuntu-latest)
+    runs-on: ubuntu-latest
+    env:
+      CC: gcc
+      CXX: g++
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Capture Environment Identity (Phase 5)
+        run: |
+          mkdir -p artifacts-gcc
+          {
+            echo "=== Host Environment ==="
+            uname -a
+            echo "=== C Compiler ==="
+            gcc --version
+            echo "=== C++ Compiler ==="
+            g++ --version
+            echo "=== CMake ==="
+            cmake --version
+            echo "=== Git SHA ==="
+            git rev-parse HEAD
+          } | tee artifacts-gcc/environment.txt
+
+      - name: Phase 10 — GCC Debug Build & Test
+        run: |
+          cmake \
+            -S . \
+            -B build-gcc-debug \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DAEGISMATH_ENABLE_ASAN=OFF \
+            -DAEGISMATH_ENABLE_UBSAN=OFF \
+            -DAEGISMATH_ENABLE_COVERAGE=OFF \
+            -DAEGISMATH_ENABLE_STATIC_ANALYSIS=OFF \
+            | tee artifacts-gcc/configure-debug.log
+          cmake --build build-gcc-debug --parallel 2>&1 | tee artifacts-gcc/build-debug.log
+          ctest --test-dir build-gcc-debug --output-on-failure 2>&1 | tee artifacts-gcc/test-debug.log
+
+      - name: Phase 11 — GCC Header Isolation
+        run: |
+          cmake --build build-gcc-debug --target AegisMathLib_HeaderIsolation --parallel 2>&1 | tee artifacts-gcc/header-isolation.log
+
+      - name: Phase 12 — GCC Release Build & Test
+        run: |
+          cmake \
+            -S . \
+            -B build-gcc-release \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DAEGISMATH_ENABLE_ASAN=OFF \
+            -DAEGISMATH_ENABLE_UBSAN=OFF \
+            -DAEGISMATH_ENABLE_COVERAGE=OFF \
+            -DAEGISMATH_ENABLE_STATIC_ANALYSIS=OFF \
+            | tee artifacts-gcc/configure-release.log
+          cmake --build build-gcc-release --parallel 2>&1 | tee artifacts-gcc/build-release.log
+          ctest --test-dir build-gcc-release --output-on-failure 2>&1 | tee artifacts-gcc/test-release.log
+
+      - name: Upload GCC Qualification Artifacts (Phase 34)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gcc-linux-qualification-logs
+          path: artifacts-gcc/
+
+  # ============================================================================
+  # 2. LLVM Clang / Linux Qualification
+  # ============================================================================
+  clang-linux:
+    name: LLVM Clang / Linux (ubuntu-latest)
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+      CXX: clang++
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Capture Environment Identity (Phase 5, Phase 13)
+        run: |
+          mkdir -p artifacts-clang
+          {
+            echo "=== Host Environment ==="
+            uname -a
+            echo "=== C Compiler ==="
+            clang --version
+            echo "=== C++ Compiler ==="
+            clang++ --version
+            echo "=== CMake ==="
+            cmake --version
+            echo "=== Git SHA ==="
+            git rev-parse HEAD
+          } | tee artifacts-clang/environment.txt
+
+      - name: Phase 14 — LLVM Clang Debug Build & Test
+        run: |
+          cmake \
+            -S . \
+            -B build-clang-debug \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DAEGISMATH_ENABLE_ASAN=OFF \
+            -DAEGISMATH_ENABLE_UBSAN=OFF \
+            -DAEGISMATH_ENABLE_COVERAGE=OFF \
+            -DAEGISMATH_ENABLE_STATIC_ANALYSIS=OFF \
+            | tee artifacts-clang/configure-debug.log
+          cmake --build build-clang-debug --parallel 2>&1 | tee artifacts-clang/build-debug.log
+          ctest --test-dir build-clang-debug --output-on-failure 2>&1 | tee artifacts-clang/test-debug.log
+
+      - name: Phase 15 — LLVM Clang Header Isolation
+        run: |
+          cmake --build build-clang-debug --target AegisMathLib_HeaderIsolation --parallel 2>&1 | tee artifacts-clang/header-isolation.log
+
+      - name: Phase 16 — LLVM Clang Release Build & Test
+        run: |
+          cmake \
+            -S . \
+            -B build-clang-release \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DAEGISMATH_ENABLE_ASAN=OFF \
+            -DAEGISMATH_ENABLE_UBSAN=OFF \
+            -DAEGISMATH_ENABLE_COVERAGE=OFF \
+            -DAEGISMATH_ENABLE_STATIC_ANALYSIS=OFF \
+            | tee artifacts-clang/configure-release.log
+          cmake --build build-clang-release --parallel 2>&1 | tee artifacts-clang/build-release.log
+          ctest --test-dir build-clang-release --output-on-failure 2>&1 | tee artifacts-clang/test-release.log
+
+      - name: Upload LLVM Clang Qualification Artifacts (Phase 34)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clang-linux-qualification-logs
+          path: artifacts-clang/
+
+  # ============================================================================
+  # 3. MSVC / Windows Qualification
+  # ============================================================================
+  msvc-windows:
+    name: MSVC / Windows (Visual Studio 2022 x64)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup MSVC Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Capture Environment Identity (Phase 5, Phase 17)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts-msvc
+          $envLog = @"
+          === Windows System Info ===
+          $([System.Environment]::OSVersion.ToString())
+          === MSVC Compiler ===
+          $(& cl.exe 2>&1 | Out-String)
+          === CMake ===
+          $(& cmake.exe --version | Out-String)
+          === Git SHA ===
+          $(& git.exe rev-parse HEAD | Out-String)
+          "@
+          $envLog | Out-File -FilePath artifacts-msvc/environment.txt -Encoding utf8
+          Write-Host $envLog
+
+      - name: Phase 18 — Configure MSVC
+        shell: pwsh
+        run: |
+          Write-Host "=== Available Generators ==="
+          & cmake.exe --help
+          Write-Host "=== Installed VS Instances ==="
+          & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -all -products *
+          # Try default or detected generator
+          & cmake.exe `
+            -S . `
+            -B build-msvc `
+            -DAEGISMATH_ENABLE_ASAN=OFF `
+            -DAEGISMATH_ENABLE_UBSAN=OFF `
+            -DAEGISMATH_ENABLE_COVERAGE=OFF `
+            -DAEGISMATH_ENABLE_STATIC_ANALYSIS=OFF `
+            *>&1 | Tee-Object -FilePath artifacts-msvc/configure.log
+
+      - name: Phase 19 — MSVC Debug Build & Test
+        shell: pwsh
+        run: |
+          & cmake.exe --build build-msvc --config Debug --parallel *>&1 | Tee-Object -FilePath artifacts-msvc/build-debug.log
+          & ctest.exe --test-dir build-msvc -C Debug --output-on-failure *>&1 | Tee-Object -FilePath artifacts-msvc/test-debug.log
+
+      - name: Phase 20 — MSVC Header Isolation
+        shell: pwsh
+        run: |
+          & cmake.exe --build build-msvc --config Debug --target AegisMathLib_HeaderIsolation --parallel *>&1 | Tee-Object -FilePath artifacts-msvc/header-isolation.log
+
+      - name: Phase 21 — MSVC Release Build & Test
+        shell: pwsh
+        run: |
+          & cmake.exe --build build-msvc --config Release --parallel *>&1 | Tee-Object -FilePath artifacts-msvc/build-release.log
+          & ctest.exe --test-dir build-msvc -C Release --output-on-failure *>&1 | Tee-Object -FilePath artifacts-msvc/test-release.log
+
+      - name: Upload MSVC Qualification Artifacts (Phase 34)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: msvc-windows-qualification-logs
+          path: artifacts-msvc/
