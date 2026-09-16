@@ -17,8 +17,8 @@ The library architecture is inspired by and aligned with principles from safety-
 | **Code-Level MEDIUM Blockers** | **0** |
 | **Public Headers Standalone Isolation** | **PASS** (66 / 66 headers, 68 / 68 TUs in `AegisMathLib_HeaderIsolation`) |
 | **Test Suite Execution** | **120 / 120 PASS (100%)** in Debug and Release |
-| **Stable-Core Qualification** | **IN PROGRESS** (1 qualification gate remaining: Cross-Compiler Matrix) |
-| **Stable-Core Certification** | **NOT CERTIFIED** (Pending resolution of qualification gates) |
+| **Stable-Core Qualification** | **READY FOR P2-CERT FINAL REVIEW** (All qualification gates satisfied) |
+| **Stable-Core Certification** | **READY FOR P2-CERT FINAL REVIEW** (All blockers closed; awaiting P2-CERT audit sign-off) |
 
 ---
 
@@ -70,7 +70,10 @@ Lower layers NEVER depend on higher layers. Cyclic dependencies and umbrella hea
 - CMake $\ge 3.14$
 - C++20 compliant compiler:
   - Locally verified: AppleClang 21.0.0 (macOS x86_64/arm64)
-  - Intended cross-compiler matrix (gate `NOT RUN`): GCC $\ge 13$, LLVM Clang $\ge 16$, MSVC $\ge 2022$
+  - Formally qualified cross-compiler matrix (gate `PASS`):
+    - GNU GCC 13.3.0 (Ubuntu 24.04.1 x86_64)
+    - Upstream LLVM Clang 18.1.3 (Ubuntu 24.04.1 x86_64)
+    - MSVC 19.51.36256.0 / Visual Studio 18 2026 (Windows Server 2025 x64)
 
 ### Build and Run Tests
 ```bash
@@ -80,7 +83,7 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 # Compile all targets in parallel
 cmake --build build --parallel
 
-# Execute unit and regression test suite (108 tests)
+# Execute unit and regression test suite (120 tests)
 ./build/AegisMathLib_Tests
 ```
 

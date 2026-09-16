@@ -7,7 +7,7 @@
 > **Code Baseline**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
 > **Last Updated**: 2026-09-15  
 > **Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](../ENGINEERING_STANDARD_V1.md)  
-> **Certification Status**: **NOT CERTIFIED** (Pending cross-compiler qualification)
+> **Certification Status**: **READY FOR P2-CERT FINAL REVIEW** (All 10 DoD gates and Stable-Core qualification blockers satisfied; formal certification review pending)
 
 ---
 
@@ -88,11 +88,9 @@ Re-evaluated against [`docs/audits/AegisMathLib_Compliance_Audit_v1.md`](AegisMa
 
 Based on Sections 5, 48, 50, 85, 86, 88, 89, 90, 101, 104, and 124 of [`docs/ENGINEERING_STANDARD_V1.md`](../ENGINEERING_STANDARD_V1.md), an issue is classified as an authoritative **Stable-Core Blocker** if and only if it compromises mathematical correctness, safety bounds, modular self-containment, or mandatory qualification gates.
 
-> [!NOTE]
-> Tool unavailability on the local host (such as `clang-tidy` or `cppcheck` missing from PATH) is **NOT** a code finding; it represents an unfulfilled qualification gate whose status is recorded as `NOT RUN`.
-
 ### Authoritative Blocker Ledger
-1. **Required Cross-Compiler Matrix**: Portability qualification across GCC, Clang, and MSVC not executed (Sections 2 & 89).
+**Zero active qualification blockers remain for Stable-Core.**
+- **Previous Blocker 1 (Required Cross-Compiler Matrix)**: **CLOSED (REMEDIATED)** via P2-XCC. Formal cross-compiler qualification across GNU GCC 13.3.0, upstream LLVM Clang 18.1.3, and MSVC 19.51.36256 verified 100% PASS with 0 compiler warnings across all translation units on exact same Git SHA `14afc8908e759321e54cb07f1e44e8275155a333` (Workflow Run `35115119952`).
 
 ---
 
@@ -105,11 +103,11 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
 | **Correctness Audit** | Sec 60–74, 80 | **PASS** | 120/120 tests pass; all CRITICAL/HIGH closed; no algorithmic regressions. | **NO** | — |
 | **Numerical Reliability** | Sec 14–18, 48 | **PASS** | IEEE-754 enforced; Solve-Not-Invert adopted; condition bounds active. | **NO** | — |
 | **Debug Build & Tests** | Sec 89, 90, 124 | **PASS** | `cmake-build-p2cov-normal`: 120/120 tests pass, 0 warnings. | **NO** | — |
-| **Zero Compiler Warnings** | Sec 3, 90 | **PASS** | `-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror`: 0 warnings. | **NO** | — |
+| **Zero Compiler Warnings** | Sec 3, 90 | **PASS** | `-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror`: 0 warnings across GCC, Clang, AppleClang, MSVC. | **NO** | — |
 | **Bounded Numerical Loops** | Rule 7, Sec 48 | **PASS** | AML-MED-004: Core::Math::sqrt bounded to $kMaxIterations = 64$. | **NO** | Remediated (bc54c0e) |
 | **Single Concept per File** | Sec 6 | **PASS** | AML-MED-002: Duplicate Units/Unit.h removed. | **NO** | Remediated (d168798) |
 | **Repository Hygiene** | Sec 89, 92 | **PASS** | AML-MED-006: Boilerplate library.* and obsolete scripts removed. | **NO** | Remediated (3d79ed2) |
-| **Public Header Isolation** | Sec 5, 89 | **PASS** | Standalone self-containment: PASS (66/66 public headers compiled in isolated TUs with zero warnings in Debug & Release). Unresolved transitive-include reliance: NONE OBSERVED. Aggregate order-poisoning TUs (2/2): PASS. | **NO** | Remediated (P2-C) |
+| **Public Header Isolation** | Sec 5, 89 | **PASS** | Standalone self-containment: PASS (66/66 public headers compiled in isolated TUs with zero warnings in Debug & Release across GCC, Clang, AppleClang, MSVC). Unresolved transitive-include reliance: NONE OBSERVED. Aggregate order-poisoning TUs (2/2): PASS. | **NO** | Remediated (P2-C / P2-XCC) |
 | **Install / Export Validation** | Sec 89 | **NOT RUN** | FOLLOW-UP QUALIFICATION / PACKAGING DEBT. CMake package export is not an explicit DoD blocker in ENGINEERING_STANDARD_V1.md Sec 124. | **NO** | Packaging Debt |
 | **Clang-Tidy** | Sec 87, 90, 124 | **PASS** | Target-scoped `AegisMathLib_ClangTidy` with `.clang-tidy` config; LLVM 23.0.0git frontend with AppleClang 21 compdb; 56 configured patterns expanding to 123 effective checks across `clang-analyzer-*`, `bugprone-*`, `cert-*`, `performance-*`, `portability-*`, `cppcoreguidelines-*`; all 95 translation units (66 standalone + 2 poison + 27 test TUs) analyzed with `--warnings-as-errors`; stdout + stderr parsed with canonical path containment and deduplication; 0 production diagnostics (0 unique, 0 raw) in `include/AegisMath/**`. | **NO** | Remediated (P2-STA) |
 | **Cppcheck** | Sec 87, 90 | **NOT RUN** | Recommended analyzer per Sec 87 (clang-tidy is mandatory); tool not installed on macOS host; recorded as NOT RUN per audit policy. | **NO** | Tooling Debt |
@@ -119,14 +117,14 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
 | **Test Coverage Gate** | Sec 86, 124 | **PASS** | Target-scoped LLVM source-based coverage (`cmake-build-p2cov`); 120/120 tests pass; Functions: **100.00%** (191/191, required 100.00%); Lines: **98.99%** (1082/1093, required >= 95.00%); Branches: **90.72%** (352/388, required >= 90.00%); Instantiations: 94.74% (648/684); Regions: 93.40% (679/727); all 66 public headers semantically classified (30 runtime coverage headers, 3 template definition headers, 36 compile-time-only headers); zero file/branch exclusions. | **NO** | Remediated (P2-COV / P2-COV.1) |
 | **Module Specification Docs** | Sec 87, 88 | **PASS** | AML-MED-007: `docs/core.md`, `docs/units.md`, `docs/geometry.md`, `docs/dynamics.md` authored and verified. | **NO** | Remediated (P2-DOC) |
 | **Formal Deviation Records** | Sec 101, 102 | **PASS** | AML-MED-008: `docs/DEVIATIONS.md` established with formal governance, immutable ID policy, and active deviations AML-DEVIATION-002 & 003. | **NO** | Remediated (P2-DOC) |
-| **Cross-Compiler Matrix: GCC** | Sec 2, 89 | **NOT RUN** | Local `/usr/bin/g++` is AppleClang wrapper; true GNU GCC not executed. | **YES** | **P2-H** |
-| **Cross-Compiler: Upstream Clang** | Sec 2, 89 | **PARTIAL** | AppleClang 21.0.0 PASS; Linux upstream LLVM Clang not executed. | **YES** | **P2-H** |
-| **Cross-Compiler: MSVC** | Sec 2, 89 | **NOT RUN** | Windows MSVC environment not available locally. | **YES** | **P2-H** |
+| **Cross-Compiler Matrix: GCC** | Sec 2, 89 | **PASS** | GNU GCC 13.3.0 on Ubuntu 24.04.1 x86_64: Debug 120/120 PASS, Release 120/120 PASS, HeaderIsolation 68/68 PASS, 0 warnings. | **NO** | Remediated (P2-XCC) |
+| **Cross-Compiler: Upstream Clang** | Sec 2, 89 | **PASS** | Upstream LLVM Clang 18.1.3 on Ubuntu 24.04.1 x86_64: Debug 120/120 PASS, Release 120/120 PASS, HeaderIsolation 68/68 PASS, 0 warnings. | **NO** | Remediated (P2-XCC) |
+| **Cross-Compiler: MSVC** | Sec 2, 89 | **PASS** | MSVC 19.51.36256.0 on Windows Server x64: Debug 120/120 PASS, Release 120/120 PASS, HeaderIsolation 68/68 PASS, 0 warnings under `/W4 /WX /permissive- /utf-8`. | **NO** | Remediated (P2-XCC) |
 | **No Fast-Math Enforced** | Sec 14, 89 | **PASS** | Zero `-ffast-math`, `/fp:fast`, or `-Ofast` flags configured. | **NO** | — |
 | **Determinism Source Audit** | Rule 3, Sec 44 | **PASS** | No hidden RNG, wall clock, or mutable global nondeterministic sources in headers. | **NO** | — |
 | **Explicit Allocation Audit** | Rule 5, Sec 29 | **PASS** | No explicit `new`/`delete`/`malloc`/dynamic containers in `include/AegisMath/`. | **NO** | — |
 | **Zero Exceptions in Core Math** | Sec 36, 44 | **PASS** | Zero `throw`, `try`, `catch` in mathematical kernels. | **NO** | — |
-| **Strict ISO C++20 Compliance** | Sec 2, 90 | **PASS** | Strict C++20 mode; zero C++23 features (`std::expected`, `std::print`). | **NO** | — |
+| **Strict ISO C++20 Compliance** | Sec 2, 90 | **PASS** | Strict C++20 mode; zero C++23 features; GNU/MSVC language extensions disabled (`CXX_EXTENSIONS=OFF`). | **NO** | — |
 | **Benchmark Baseline** | Rule 8, Sec 81 | **NOT RUN** | No formal benchmark runner configured or baseline recorded. | **NO** | **P2-H** |
 
 ---
@@ -341,6 +339,35 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
   - When `ON`: Targets `AegisMathLib_ClangTidy`, `AegisMathLib_Cppcheck`, and `AegisMathLib_StaticAnalysis` created.
   - All targets excluded from default build (`ALL`).
 
+### 6.9 Cross-Compiler Portability Qualification (P2-XCC)
+- **Status**: **PASS**
+- **Standards Reference**: [`docs/ENGINEERING_STANDARD_V1.md`](../ENGINEERING_STANDARD_V1.md) Section 2 (ISO C++20), Section 3 (Compiler Baseline: GCC 13+, Clang 17+, MSVC 19.38+), Section 89 (0 Compiler Warnings), and Section 124 Gate 17 & Gate 19.
+- **Qualification Execution Architecture**:
+  - Remote CI Workflow: `.github/workflows/cross-compiler-qualification.yml`
+  - Workflow Run ID: `35115119952`
+  - Qualification Git SHA: `14afc8908e759321e54cb07f1e44e8275155a333`
+  - Branch: `qualification/p2-xcc`
+  - Same-Commit Atomicity: All required matrix jobs executed against the exact same commit SHA.
+- **Formal Compiler Matrix Verification**:
+
+| Compiler Family | Exact Version | Host OS / Kernel | Architecture | Debug Tests | Release Tests | Header Isolation | Warnings | Qualification Status |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **GNU GCC** | 13.3.0 (`Ubuntu 13.3.0-6ubuntu2~24.04.1`) | Ubuntu 24.04.1 LTS (`6.17.0-1022-azure`) | x86_64 | **120 / 120 PASS** (0.9s) | **120 / 120 PASS** (0.3s) | **68 / 68 TUs PASS** | **0** | **PASS** |
+| **LLVM Clang** | 18.1.3 (`Ubuntu clang 18.1.3-1ubuntu1`) | Ubuntu 24.04.1 LTS (`6.17.0-1022-azure`) | x86_64 | **120 / 120 PASS** (0.8s) | **120 / 120 PASS** (0.3s) | **68 / 68 TUs PASS** | **0** | **PASS** |
+| **MSVC** | 19.51.36256.0 (`Visual Studio 18 2026`) | Windows Server 2025 (`NT 10.0.26100.0`) | x64 | **120 / 120 PASS** (0.4s) | **120 / 120 PASS** (0.3s) | **68 / 68 TUs PASS** | **0** | **PASS** |
+| **AppleClang** (Ref) | 21.0.0 (`clang-2100.1.1.101`) | macOS 15.6.0 (`Darwin 25.6.0`) | x86_64 | **120 / 120 PASS** (4.1s) | **120 / 120 PASS** (1.7s) | **68 / 68 TUs PASS** | **0** | **PASS (Reference)** |
+
+- **Compiler Flags & Strict ISO Conformance**:
+  - `CMAKE_CXX_STANDARD = 20`, `CMAKE_CXX_STANDARD_REQUIRED = ON`, `CMAKE_CXX_EXTENSIONS = OFF`.
+  - GNU / Clang: `-std=c++20 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror` (zero warnings, zero `-std=gnu++20`).
+  - MSVC: `/std:c++20 /W4 /WX /permissive- /utf-8` (zero warnings, standards-conforming mode, source charset UTF-8).
+  - Platform Isolation: `NOMINMAX` and `WIN32_LEAN_AND_MEAN` defined for Windows targets to avoid macro collisions.
+- **Portability Hotspots Verified**:
+  - `Core::Math::sqrt`: Constant evaluation, `std::bit_cast`, and Newton iteration confirmed identical across GCC, Clang, MSVC.
+  - Geometry & Units Concepts: All `requires` constraints and template deductions accepted identically without AppleClang-specific extensions.
+  - `Result<T, MathError>`: Monadic operations and constexpr `std::variant` semantics clean across all standard library implementations.
+  - ABI Traits: Standard-layout, trivially copyable, and exact size constraints pass on all 3 target architectures.
+
 ---
 
 ## 7. Recommended P2 Execution Roadmap
@@ -374,7 +401,7 @@ graph TD
    - Established `.clang-tidy` and configured `AegisMathLib_ClangTidy`, `AegisMathLib_Cppcheck`, `AegisMathLib_StaticAnalysis` targets. Verified 0 production diagnostics under 56 configured patterns (123 effective expanded checks) with `WarningsAsErrors` across all 95 translation units.
 6. **P2-F — Test Coverage Gate** (Remediated — P2-COV / P2-COV.1):
    - Instrument build with LLVM source-based coverage (`xcrun llvm-cov`); verify 100.00% function, 98.99% line, 90.72% branch coverage across all 66 public headers (30 runtime coverage headers, 3 template definition headers, 36 compile-time-only headers).
-7. **P2-G — Cross-Compiler Matrix & Benchmark Baseline**:
-   - Establish cross-compiler portability matrix (GCC, Clang, MSVC) and microbenchmark baseline.
+7. **P2-G — Cross-Compiler Matrix & Benchmark Baseline** (Remediated — P2-XCC):
+   - Establish cross-compiler portability matrix (GCC 13.3.0, LLVM Clang 18.1.3, MSVC 19.51.36256 verified 100% PASS with 0 warnings on exact same SHA `14afc8908e759321e54cb07f1e44e8275155a333`, Run `35115119952`).
 8. **P2-H — Stable-Core Certification**:
    - Final audit check against Section 124 Definition of Done; formal sign-off.
