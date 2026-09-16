@@ -94,12 +94,18 @@ target_include_directories(AegisMathLib INTERFACE
         $<INSTALL_INTERFACE:include>
 )
 
+if(WIN32)
+    target_compile_definitions(AegisMathLib INTERFACE NOMINMAX WIN32_LEAN_AND_MEAN)
+endif()
+
 # ==============================================================================
 # 3. 自动化测试依赖拉取 (GoogleTest)
 # ==============================================================================
 include(FetchContent)
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-set(gtest_disable_pthreads OFF CACHE BOOL "" FORCE)
+if(NOT WIN32)
+    set(gtest_disable_pthreads OFF CACHE BOOL "" FORCE)
+endif()
 
 FetchContent_Declare(
         googletest
@@ -118,7 +124,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang|GNU")
             -Wconversion -Wshadow -Werror
     )
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    set(AEGIS_STRICT_WARNINGS /W4 /WX)
+    set(AEGIS_STRICT_WARNINGS /W4 /WX /permissive- /utf-8)
 endif()
 
 # ==============================================================================
