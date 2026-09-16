@@ -362,11 +362,13 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
   - GNU / Clang: `-std=c++20 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror` (zero warnings, zero `-std=gnu++20`).
   - MSVC: `/std:c++20 /W4 /WX /permissive- /utf-8` (zero warnings, standards-conforming mode, source charset UTF-8).
   - Platform Isolation: `NOMINMAX` and `WIN32_LEAN_AND_MEAN` defined for Windows targets to avoid macro collisions.
-- **Portability Hotspots Verified**:
-  - `Core::Math::sqrt`: Constant evaluation, `std::bit_cast`, and Newton iteration confirmed identical across GCC, Clang, MSVC.
-  - Geometry & Units Concepts: All `requires` constraints and template deductions accepted identically without AppleClang-specific extensions.
-  - `Result<T, MathError>`: Monadic operations and constexpr `std::variant` semantics clean across all standard library implementations.
-  - ABI Traits: Standard-layout, trivially copyable, and exact size constraints pass on all 3 target architectures.
+- **Portability Workload Verification**:
+  - **Matrix Classification**: Required cross-compiler matrix comprises GNU GCC 13.3.0, Upstream LLVM Clang 18.1.3, and MSVC 19.51.36256.0. AppleClang 21.0.0 serves as local/reference qualification evidence.
+  - **Calibrated Semantic Scope**: Observed consistent behavior for the executed qualification workload across GCC, LLVM Clang, and MSVC. (Does not imply exhaustive semantic equivalence over all unexercised inputs or non-x86_64/x64 architectures).
+  - `Core::Math::sqrt`: Constant evaluation, `std::bit_cast`, and Newton iteration executed with consistent behavior across GCC libstdc++, Clang libc++, and MSVC STL for the executed qualification tests.
+  - Geometry & Units Concepts: All `requires` constraints and template deductions accepted cleanly across all toolchains without vendor extensions.
+  - `Result<T, MathError>`: Monadic operations and constexpr `std::variant` semantics verified across standard library implementations for the executed test suite.
+  - ABI Traits: Standard-layout, trivially copyable, and exact size constraints verified on the target x86_64/x64 execution hosts.
 
 ---
 
