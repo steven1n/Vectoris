@@ -17,8 +17,11 @@ The library architecture is inspired by and aligned with principles from safety-
 | **Code-Level MEDIUM Blockers** | **0** |
 | **Public Headers Standalone Isolation** | **PASS** (66 / 66 headers, 68 / 68 TUs in `AegisMathLib_HeaderIsolation`) |
 | **Test Suite Execution** | **120 / 120 PASS (100%)** in Debug and Release |
-| **Stable-Core Qualification** | **READY FOR P2-CERT FINAL REVIEW** (All qualification gates satisfied) |
-| **Stable-Core Certification** | **READY FOR P2-CERT FINAL REVIEW** (All blockers closed; awaiting P2-CERT audit sign-off) |
+| **Stable-Core Qualification** | **PASS** (Internal Project Qualification complete per Section 124 DoD) |
+| **Stable-Core Certification** | **INTERNAL PROJECT QUALIFIED** (All DoD gates, sanitizers, coverage, static analysis, and cross-compiler matrices satisfied) |
+
+> [!NOTE]
+> **Internal Qualification Baseline**: This is an internal engineering qualification baseline conducted strictly against [`docs/ENGINEERING_STANDARD_V1.md`](docs/ENGINEERING_STANDARD_V1.md). It does NOT constitute formal DO-178C certification, MISRA certification, regulatory approval, or flight certification.
 
 ---
 

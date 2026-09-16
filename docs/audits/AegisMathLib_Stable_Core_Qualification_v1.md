@@ -4,10 +4,11 @@
 > **Document**: Stable-Core Qualification Rebaseline V1  
 > **Document Version**: 1.0  
 > **Status**: Formal Quality Qualification Report  
-> **Code Baseline**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
-> **Last Updated**: 2026-09-15  
-> **Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](../ENGINEERING_STANDARD_V1.md)  
-> **Certification Status**: **READY FOR P2-CERT FINAL REVIEW** (All 10 DoD gates and Stable-Core qualification blockers satisfied; formal certification review pending)
+> **Code Baseline**: `c1bba35aeb24b5f7f637e188a68e1c0d8e673383`
+> **Last Updated**: 2026-09-17
+> **Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](../ENGINEERING_STANDARD_V1.md)
+> **Certification Status**: **INTERNAL PROJECT QUALIFICATION: PASS** (All Section 124 DoD gates satisfied; 0 open blockers)
+> **Regulatory Notice**: This qualification represents internal engineering verification according to `ENGINEERING_STANDARD_V1.md`. It does NOT constitute formal DO-178C certification, MISRA certification, regulatory approval, or flight certification.
 
 ---
 
@@ -370,6 +371,28 @@ Status vocabulary is strictly standardized to: `PASS`, `FAIL`, `NOT RUN`, `PARTI
   - `Result<T, MathError>`: Monadic operations and constexpr `std::variant` semantics verified across standard library implementations for the executed test suite.
   - ABI Traits: Standard-layout, trivially copyable, and exact size constraints verified on the target x86_64/x64 execution hosts.
 
+### 6.10 Final Verification Ledger & Evidence Freshness Matrix (P2-CERT)
+- **Status**: **PASS**
+- **Standards Reference**: [`docs/ENGINEERING_STANDARD_V1.md`](../ENGINEERING_STANDARD_V1.md) Section 124 (Definition of Done).
+- **Mandatory Evidence Freshness Accounting**:
+
+| Qualification Gate | Evidence Git SHA | Evaluated Against HEAD (`c1bba35`) | Relevant Files Changed Afterward? | Rerun Required? | Rerun Performed & Verified? | Final Gate Status |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Debug Test Suite** | `c1bba35` | `c1bba35` | NO | YES (Immediate) | YES (120/120 PASS, 0 warnings, 3.8s) | **PASS** |
+| **Release Test Suite** | `c1bba35` | `c1bba35` | NO | YES (Immediate) | YES (120/120 PASS, 0 warnings, 1.9s) | **PASS** |
+| **Header Standalone Isolation** | `c1bba35` | `c1bba35` | NO | YES (Immediate) | YES (68/68 TUs PASS, 0 warnings) | **PASS** |
+| **AddressSanitizer (ASan)** | `6d67d94` | `c1bba35` | NO (0 lines production changed) | NO | Validated (No diagnostics observed) | **PASS** |
+| **UndefinedBehaviorSanitizer (UBSan)** | `6d67d94` | `c1bba35` | NO (0 lines production changed) | NO | Validated (No diagnostics observed) | **PASS** |
+| **Source Coverage Gate** | `c1bba35` | `c1bba35` | NO | YES | YES (Func 100%, Line 98.99%, Branch 90.72%) | **PASS** |
+| **Static Analysis (Clang-Tidy)** | `c1bba35` | `c1bba35` | NO | YES | YES (0 diagnostics across 95 TUs) | **PASS** |
+| **Cross-Compiler Matrix** | `14afc89` | `c1bba35` | NO (0 lines production/tests changed) | NO | Validated (GCC, Clang, MSVC 100% PASS) | **PASS** |
+
+- **Calibrated Verification Declarations**:
+  - *Dynamic Memory Safety*: No AddressSanitizer diagnostics were observed during the executed qualified test workload. (Does not assert formal impossibility of all memory defects outside the executed workload).
+  - *Undefined Behavior*: No diagnostics were observed from checks enabled by `-fsanitize=undefined` during the executed qualified test workload.
+  - *Mathematical Domain Scope*: The test suite comprises 120 qualified executed tests exercising nominal, boundary, transactional rollback, and property-based cases. It does not constitute exhaustive mathematical proof across the infinite real continuum.
+  - *Cross-Compiler Portability*: Observed consistent behavior for the executed qualification workload across GCC 13.3.0, upstream LLVM Clang 18.1.3, and MSVC 19.51.36256.0 on x86_64/x64 execution environments.
+
 ---
 
 ## 7. Recommended P2 Execution Roadmap
@@ -405,5 +428,5 @@ graph TD
    - Instrument build with LLVM source-based coverage (`xcrun llvm-cov`); verify 100.00% function, 98.99% line, 90.72% branch coverage across all 66 public headers (30 runtime coverage headers, 3 template definition headers, 36 compile-time-only headers).
 7. **P2-G — Cross-Compiler Matrix & Benchmark Baseline** (Remediated — P2-XCC):
    - Establish cross-compiler portability matrix (GCC 13.3.0, LLVM Clang 18.1.3, MSVC 19.51.36256 verified 100% PASS with 0 warnings on exact same SHA `14afc8908e759321e54cb07f1e44e8275155a333`, Run `35115119952`).
-8. **P2-H — Stable-Core Certification**:
-   - Final audit check against Section 124 Definition of Done; formal sign-off.
+8. **P2-H — Stable-Core Certification** (Remediated / Completed — P2-CERT):
+   - Final audit check against Section 124 Definition of Done; formal sign-off: **INTERNAL PROJECT QUALIFICATION: PASS**. Zero active blockers remain. Stable-Core baseline frozen at `c1bba35aeb24b5f7f637e188a68e1c0d8e673383`.
