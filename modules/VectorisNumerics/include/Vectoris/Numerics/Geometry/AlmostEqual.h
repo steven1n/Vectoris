@@ -14,7 +14,7 @@ namespace vectoris::numerics::Geometry {
 
     // Centralized Geometry AlmostEqual & Equivalence Interface
     //
-    // All geometry types in AegisMathLib support:
+    // All geometry types in Vectoris support:
     // 1. operator== / operator!= : Exact component-wise stored-value equality under C++ floating-point == semantics.
     // 2. AlmostEqual(...)         : Tolerance-aware numerical closeness with absolute & relative tolerances.
     // 3. RotationEquivalent(...)   : SO(3) rotational equivalence for quaternions (q == q or q == -q).

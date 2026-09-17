@@ -14,7 +14,7 @@ namespace vectoris::numerics::Geometry {
         TargetToSource
     };
 
-    // AegisMathLib 强制冻结的系统级约定
+    // Vectoris 强制冻结的系统级约定
     struct SystemConvention {
         static constexpr RotationConvention FrameMapping = RotationConvention::SourceToTarget;
         

@@ -63,7 +63,7 @@ namespace vectoris::numerics::Core {
                 }
                 return Traits::NumericTraits<T>::quietNaN();
             }
-            // AegisMath Core::sqrt project-specific domain policy:
+            // Vectoris Core::sqrt project-specific domain policy:
             // 非正数（包括 -0.0、负有限数、-Inf）防御性截断返回 +0.0，避免在非实数域传播 NaN
             if (x <= T{}) {
                 if (iterations_out != nullptr) {
@@ -105,7 +105,7 @@ namespace vectoris::numerics::Core {
     /**
      * @brief 平方根计算函数 (限定 float / double)
      *
-     * @domain AegisMath Core::sqrt project-specific domain policy:
+     * @domain Vectoris Core::sqrt project-specific domain policy:
      * - x > 0: 计算并返回平方根
      * - x == 0: 返回 +0.0 (保留既有契约: sqrt(-0.0) -> +0.0)
      * - x < 0: 防御性截断返回 +0.0 (避免非实数域 NaN 扩散)

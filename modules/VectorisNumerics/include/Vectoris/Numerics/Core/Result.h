@@ -87,22 +87,22 @@ namespace vectoris::numerics::Core {
         // 发布构建 (Release / NDEBUG): 断言失效，违规调用视为违反编程契约 (Contract Violation)，引发未定义行为。
         // 若需完全防御性访问，请使用 value_if() 或 value_or()。
         [[nodiscard]] constexpr const T& value() const & noexcept {
-            assert(has_value() && "AegisMath Precondition Violation: Result::value() called on failed Result");
+            assert(has_value() && "Vectoris Precondition Violation: Result::value() called on failed Result");
             return *std::get_if<0>(&storage_);
         }
 
         [[nodiscard]] constexpr T& value() & noexcept {
-            assert(has_value() && "AegisMath Precondition Violation: Result::value() called on failed Result");
+            assert(has_value() && "Vectoris Precondition Violation: Result::value() called on failed Result");
             return *std::get_if<0>(&storage_);
         }
 
         [[nodiscard]] constexpr const T&& value() const && noexcept {
-            assert(has_value() && "AegisMath Precondition Violation: Result::value() called on failed Result");
+            assert(has_value() && "Vectoris Precondition Violation: Result::value() called on failed Result");
             return std::move(*std::get_if<0>(&storage_));
         }
 
         [[nodiscard]] constexpr T&& value() && noexcept {
-            assert(has_value() && "AegisMath Precondition Violation: Result::value() called on failed Result");
+            assert(has_value() && "Vectoris Precondition Violation: Result::value() called on failed Result");
             return std::move(*std::get_if<0>(&storage_));
         }
 
@@ -167,22 +167,22 @@ namespace vectoris::numerics::Core {
         // 发布构建 (Release / NDEBUG): 断言失效，违规调用视为违反编程契约 (Contract Violation)，引发未定义行为。
         // 若需完全防御性访问，请使用 error_if()。
         [[nodiscard]] constexpr const E& error() const & noexcept {
-            assert(!has_value() && "AegisMath Precondition Violation: Result::error() called on successful Result");
+            assert(!has_value() && "Vectoris Precondition Violation: Result::error() called on successful Result");
             return *std::get_if<1>(&storage_);
         }
 
         [[nodiscard]] constexpr E& error() & noexcept {
-            assert(!has_value() && "AegisMath Precondition Violation: Result::error() called on successful Result");
+            assert(!has_value() && "Vectoris Precondition Violation: Result::error() called on successful Result");
             return *std::get_if<1>(&storage_);
         }
 
         [[nodiscard]] constexpr const E&& error() const && noexcept {
-            assert(!has_value() && "AegisMath Precondition Violation: Result::error() called on successful Result");
+            assert(!has_value() && "Vectoris Precondition Violation: Result::error() called on successful Result");
             return std::move(*std::get_if<1>(&storage_));
         }
 
         [[nodiscard]] constexpr E&& error() && noexcept {
-            assert(!has_value() && "AegisMath Precondition Violation: Result::error() called on successful Result");
+            assert(!has_value() && "Vectoris Precondition Violation: Result::error() called on successful Result");
             return std::move(*std::get_if<1>(&storage_));
         }
     };

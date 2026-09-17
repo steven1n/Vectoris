@@ -97,7 +97,7 @@ TEST(CoreSqrtTest, TypeDomainCompileTimeRejection) {
     static_assert(!CanSqrt<std::int64_t>, "int64 must be rejected");
     static_assert(!CanSqrt<bool>, "bool must be rejected");
 
-    // 拒绝 long double (AegisMath 契约限定标量类型仅为 IEEE-754 binary32 与 binary64)
+    // 拒绝 long double (Vectoris 契约限定标量类型仅为 IEEE-754 binary32 与 binary64)
     static_assert(!CanSqrt<long double>, "long double must be rejected by contract");
 }
 
@@ -124,7 +124,7 @@ TEST(CoreSqrtTest, ConstexprEvaluationFloat) {
 }
 
 TEST(CoreSqrtTest, SignedZeroAndNegativeDomainPolicy) {
-    // AegisMath Core::sqrt 专属定义域政策：
+    // Vectoris Core::sqrt 专属定义域政策：
     // 非正数一律防御性截断为 +0.0，避免非实数域 NaN 扩散
     EXPECT_DOUBLE_EQ(Core::sqrt(0.0), 0.0);
     EXPECT_FALSE(std::signbit(Core::sqrt(0.0)));

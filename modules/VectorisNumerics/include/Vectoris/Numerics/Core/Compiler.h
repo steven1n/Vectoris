@@ -7,6 +7,6 @@
     #define VECTORIS_CPLUSPLUS __cplusplus
 #endif
 
-// 强制断言：AegisMathLib 仅支持 C++20 及以上版本
+// 强制断言：Vectoris 仅支持 C++20 及以上版本
 static_assert(VECTORIS_CPLUSPLUS >= 202002L,
     "[VectorisNumerics] FATAL: Compiler does not support C++20 standard.");

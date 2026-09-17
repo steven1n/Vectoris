@@ -40,8 +40,3 @@ add_custom_target(VectorisNumerics_StaticAnalysis
     DEPENDS VectorisNumerics_ClangTidy VectorisNumerics_Cppcheck
     COMMENT "Mandatory static-analysis gate completed; recommended analyzers reported separately."
 )
-
-# Backward-compatible target aliases
-add_custom_target(AegisMathLib_ClangTidy DEPENDS VectorisNumerics_ClangTidy)
-add_custom_target(AegisMathLib_Cppcheck DEPENDS VectorisNumerics_Cppcheck)
-add_custom_target(AegisMathLib_StaticAnalysis DEPENDS VectorisNumerics_StaticAnalysis)

@@ -24,7 +24,7 @@ namespace vectoris::dynamics {
 
     using Scalar = vectoris::numerics::Scalar;
 
-    // 严格对齐 AegisMathLib 既有的标量与数值概念体系
+    // 严格对齐 VectorisNumerics 既有的标量与数值概念体系
     template <typename T>
     concept DynamicsScalar = Geometry::ScalarArithmetic<T> || Concepts::Numeric<T>;
 
