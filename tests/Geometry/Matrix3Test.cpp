@@ -188,4 +188,96 @@ TEST(Matrix3Test, FloatComparisonAndAlmostEqual) {
     EXPECT_FALSE(AlmostEqual(m1, m3, 0.001f, 0.001f));
 }
 
+TEST(Matrix3Test, FloatTryInverseComprehensive) {
+    Matrix3<float> I = Matrix3<float>::Identity();
+    Matrix3<float> inv;
+    ASSERT_TRUE(I.TryInverse(inv));
+    EXPECT_TRUE(MatrixAlmostEqual(inv, I, 1e-6f));
+
+    Matrix3<float> A(
+        1.0f, 2.0f, 3.0f,
+        0.0f, 1.0f, 4.0f,
+        5.0f, 6.0f, 0.0f
+    );
+    ASSERT_TRUE(A.TryInverse(inv));
+    Matrix3<float> A_times_inv = A * inv;
+    EXPECT_TRUE(MatrixAlmostEqual(A_times_inv, I, 1e-5f));
+
+    // Aliasing
+    Matrix3<float> A_aliased = A;
+    ASSERT_TRUE(A_aliased.TryInverse(A_aliased));
+    EXPECT_TRUE(MatrixAlmostEqual(A_aliased, inv, 1e-6f));
+
+    // Negative determinant branch
+    Matrix3<float> A_neg_det(
+        -1.0f, 0.0f, 0.0f,
+         0.0f, 1.0f, 0.0f,
+         0.0f, 0.0f, 1.0f
+    );
+    ASSERT_TRUE(A_neg_det.TryInverse(inv));
+    EXPECT_FLOAT_EQ(inv(0, 0), -1.0f);
+
+    // Zero matrix
+    Matrix3<float> zero = Matrix3<float>::Zero();
+    EXPECT_FALSE(zero.TryInverse(inv));
+
+    // Singular rank 1
+    Matrix3<float> rank1(
+        1.0f, 2.0f, 3.0f,
+        2.0f, 4.0f, 6.0f,
+        3.0f, 6.0f, 9.0f
+    );
+    EXPECT_FALSE(rank1.TryInverse(inv));
+
+    // Scale cutoff
+    Matrix3<float> near_singular(
+        1.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 1e-8f
+    );
+    EXPECT_FALSE(near_singular.TryInverse(inv));
+
+    // Scaled well-conditioned
+    Matrix3<float> scaled(
+        1e-2f, 0.0f, 0.0f,
+        0.0f, 1e-2f, 0.0f,
+        0.0f, 0.0f, 1e-2f
+    );
+    ASSERT_TRUE(scaled.TryInverse(inv));
+    EXPECT_NEAR(inv(0, 0), 1e2f, 1e-3f);
+
+    // Non-finite input
+    Matrix3<float> nan_mat(
+        std::numeric_limits<float>::quiet_NaN(), 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 1.0f
+    );
+    EXPECT_FALSE(nan_mat.TryInverse(inv));
+
+    Matrix3<float> inf_mat(
+        std::numeric_limits<float>::infinity(), 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 1.0f
+    );
+    EXPECT_FALSE(inf_mat.TryInverse(inv));
+
+    // Determinant overflow
+    Matrix3<float> big_pos(
+        1e20f, 0.0f, 0.0f,
+        0.0f, 1e20f, 0.0f,
+        0.0f, 0.0f, 1e20f
+    );
+    EXPECT_FALSE(big_pos.TryInverse(inv));
+
+    Matrix3<float> big_neg(
+        -1e20f, 0.0f, 0.0f,
+        0.0f, 1e20f, 0.0f,
+        0.0f, 0.0f, 1e20f
+    );
+    EXPECT_FALSE(big_neg.TryInverse(inv));
+
+    // Frobenius norm squared for float
+    EXPECT_FLOAT_EQ(I.frobenius_norm_squared(), 3.0f);
+}
+
 

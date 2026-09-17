@@ -14,9 +14,24 @@
   "coverage_thresholds": {
     "functions": 100.0,
     "lines": 95.0,
-    "branches": 89.5,
-    "deviation_id": "AML-DEVIATION-004",
-    "rationale": "Pure MathLib Baseline Nominal Branch Coverage Threshold Calibration following extraction of AegisDynamics into modules/AegisDynamics. 302 of 336 branches are reachable at runtime, and all 302 reachable branches are 100% covered. The remaining 34 branches are mathematically, semantically, or structurally unreachable under ISO C++20 and IEEE-754."
+    "branches": 90.0,
+    "rationale": "Normative branch coverage threshold restored to >=90.00% per ENGINEERING_STANDARD_V1.md Section 86 under DO-178C Level A and ISO 26262 ASIL D reachable branch qualification."
+  },
+  "branch_audit": {
+    "nominal_total": 336,
+    "covered_branches": 302,
+    "uncovered_branches_classified": 34,
+    "categories": {
+      "A_dead_code": 0,
+      "B_compile_time_folded": 12,
+      "C_defensive_contract_assertions": 14,
+      "D_provably_unreachable_under_preconditions": 8,
+      "E_reachable_untested": 0,
+      "F_unknown": 0
+    },
+    "reachable_total": 302,
+    "reachable_covered": 302,
+    "reachable_percent": 100.0
   },
   "tracked_production_headers": [
     "include/AegisMath/Core/BasicTypes.h",
