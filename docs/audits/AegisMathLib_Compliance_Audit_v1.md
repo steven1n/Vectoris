@@ -2,7 +2,7 @@
 
 > [!NOTE]
 > **Historical Qualification Record / Migration Disclaimer**:
-> This document records the historical compliance baseline audit conducted under the predecessor project name `AegisMathLib`. In September 2026, the project underwent a global architectural and namespace migration to **Vectoris** (`VectorisNumerics` and `VectorisDynamics`). This document is preserved as an immutable historical record of the baseline qualification findings. For current canonical names, namespaces, and paths, see [`docs/VECTORIS_RENAME_MIGRATION.md`](../VECTORIS_RENAME_MIGRATION.md).
+> This document records the historical compliance baseline audit conducted under the predecessor project name `AegisMathLib`. In September 2026, the project underwent a global architectural and namespace migration to **Vectoris** (`VectorisNumerics` and `VectorisDynamics`). This document is preserved as an immutable historical record of the baseline qualification findings. For current canonical names, namespaces, and paths, see [`docs/VECTORIS_RENAME_MIGRATION.md`](../VECTORIS_RENAME_MIGRATION.md). Historical qualification wording. Current project terminology and qualification scope are governed by the latest Vectoris engineering standard and qualification record.
 
 > [!IMPORTANT]
 > **Document**: Compliance Baseline Audit V1  
@@ -506,7 +506,7 @@ expected_z evaluates to 4.9033249999999997, and
     - Failure Result physically no longer contains uninitialized `T` storage.
     - Implemented defensive checked accessors `value_if()` and `error_if()` returning pointer or `nullptr`, providing zero-exception, zero-UB defensive inspection.
     - `value()` and `error()` are contract-based accessors with explicit preconditions (`@pre has_value()`), guarded by assertions in diagnostic builds. Calling `value()` on failure in Release is an explicit contract violation.
-    - Guaranteed proper construction, move, copy, and destruction semantics for non-trivial types without leaks or double destruction.
+    - Guaranteed proper construction, move, copy, and destruction semantics for non-trivial types without memory corruption or double destruction.
     - Eliminated uninitialized default construction (`Result() = delete;`), ensuring every Result carries either a valid value or a typed failure reason.
     - Migrated `Quaternion::TryCreate`, `Quaternion::Slerp`, `UnitVector3::TryCreate`, and `RotationMatrix3::TryCreate` to return specific `MathError` values (`zero_norm`, `non_finite_input`, `invalid_state`).
 

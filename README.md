@@ -81,11 +81,26 @@ Vectoris/
 | **Numerics Test Suite Execution** | **PASS** in Debug and Release (102 / 102 tests) |
 | **Dynamics Test Suite Execution** | **PASS** in Debug and Release (30 / 30 tests) |
 | **Total Test Suite Execution** | **PASS** (132 / 132 tests) |
-| **Stable-Core Qualification** | **PASS** (Pure-Math Scope Qualification complete per Section 124 DoD) |
-| **Stable-Core Certification** | **INTERNAL PROJECT QUALIFIED** (All DoD gates satisfied; zero active blockers) |
+| **VectorisNumerics Qualification** | **Internal Project Qualification: PASS** (Pure-Math Scope Qualification complete per Section 124 DoD) |
+| **VectorisDynamics Migration** | **Migration Integrity: PASS** |
 
 > [!NOTE]
-> **Internal Qualification Baseline**: This is an internal engineering qualification baseline conducted strictly against [`docs/ENGINEERING_STANDARD_V1.md`](docs/ENGINEERING_STANDARD_V1.md) and [`docs/PURE_MATH_SCOPE.md`](docs/PURE_MATH_SCOPE.md). It does NOT constitute formal DO-178C certification, MISRA certification, regulatory approval, or flight certification.
+> **Internal Qualification Baseline**: Current project status:
+>
+> ```text
+> Vectoris
+> VectorisNumerics
+> Internal Project Qualification: PASS
+> VectorisDynamics
+> Migration Integrity: PASS
+> ```
+>
+> This is an internal engineering qualification only.
+> It is not DO-178C certification,
+> ISO 26262 certification,
+> MISRA certification,
+> FAA/EASA approval,
+> or flight-software certification.
 
 ---
 
@@ -150,7 +165,7 @@ Lower layers NEVER depend on higher layers. Cyclic dependencies, domain bleed, a
 
 ### Prerequisites
 - CMake $\ge 3.14$
-- C++20 compliant compiler:
+- ISO C++20 conforming compiler:
   - Locally verified: AppleClang 21.0.0 (macOS x86_64/arm64)
   - Formally qualified cross-compiler matrix (gate `PASS`):
     - GNU GCC 13.3.0 (Ubuntu 24.04.1 x86_64)

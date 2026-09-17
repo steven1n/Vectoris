@@ -49,7 +49,7 @@
 > - **Active Legitimate Deviations**: Exactly 1 active deviation is accepted for the stable baseline (`AML-DEVIATION-002`).
 > - **AML-DEVIATION-001 Reclassification**: Detailed in Section 3.1 below. The left-to-right transformation pipeline composition satisfies all normative requirements of Sections 22–24 and is tracked as an API/mathematical convention rather than a standard deviation.
 > - **AML-DEVIATION-003 Resolution**: Detailed in Section 3.3 below. Fully resolved and closed by the Vectoris Global Rename Migration (`namespace vectoris::numerics` and `namespace vectoris::dynamics`).
-> - **AML-DEVIATION-004 Revocation**: Detailed in Section 3.4 below. Revoked and withdrawn. The normative $\ge 90.00\%$ branch coverage threshold is fully restored and satisfied under DO-178C Level A / ISO 26262 ASIL D reachable branch qualification (302/302 = 100.00% $\ge$ 90.00%). No threshold-lowering deviation is active.
+> - **AML-DEVIATION-004 Revocation**: Detailed in Section 3.4 below. Revoked and withdrawn. The normative $\ge 90.00\%$ branch coverage threshold is fully restored and satisfied under internal qualified reachable-branch accounting (302/302 = 100.00% $\ge$ 90.00%). The project uses internal engineering practices informed by DO-178C, MISRA C++, CERT C++, and similar high-reliability software guidance; this does not constitute external certification or compliance. The validity of the reachable-branch qualification methodology is subject to independent red-team review. No threshold-lowering deviation is active.
 > - **`Core::Math::sqrt` Domain Clamping**: Non-negative domain clamping (returning `+0.0` for negative values to prevent Kalman filter NaN corruption) is a documented module numerical policy within [`docs/core.md`](core.md), fully permitted under Section 16, and is tracked as module policy rather than a standard deviation.
 
 ---
@@ -122,7 +122,7 @@
 - **Location**: Historically in `include/AegisMath/**`; resolved across `include/Vectoris/Numerics/**` and `include/Vectoris/Dynamics/**`
 - **Resolution Rationale**:
   - Under the Vectoris Global Rename Migration, the repository completed a global architectural namespace realignment.
-  - The pure mathematics and numerical core migrated from legacy `AegisMath` to the fully compliant lowercase hierarchical namespace `namespace vectoris::numerics`, while the domain physics module migrated to `namespace vectoris::dynamics`.
+  - The pure mathematics and numerical core migrated from legacy `AegisMath` to the fully standard-conforming lowercase hierarchical namespace `namespace vectoris::numerics`, while the domain physics module migrated to `namespace vectoris::dynamics`.
   - All public headers now reside under `<Vectoris/Numerics/...>` and `<Vectoris/Dynamics/...>`.
   - Consequently, the non-conforming PascalCase root namespace has been completely eliminated across the entire codebase.
   - `AML-DEVIATION-003` is formally marked **RESOLVED / CLOSED**.
@@ -146,16 +146,16 @@
 - **Revocation Rationale**:
   - In P3, `AML-DEVIATION-004` was drafted to calibrate the nominal branch coverage threshold from 90.00% to 89.50% following the architectural extraction of `modules/AegisDynamics` (where nominal branches stood at 302 / 336 = 89.88%).
   - Under P3.1 qualification integrity correction, `AML-DEVIATION-004` is formally **withdrawn and revoked**. The normative threshold of $\ge 90.00\%$ is fully restored without deviation.
-  - In conformance with DO-178C Level A and ISO 26262 ASIL D structural coverage verification standards:
+  - Internal structural coverage analysis inspired by safety-critical software verification practices (informed by DO-178C, MISRA C++, CERT C++, and similar high-reliability software guidance; does not constitute external certification or compliance):
     1. All 34 uncovered branches across pure MathLib production headers are exhaustively audited and classified:
        - **Category A (Dead Code)**: 0
        - **Category B (Compile-time / Constexpr Folded Traits)**: 12 branches (`Core/NumericTraits.h`: `is_constant_evaluated()`; `Units/Detail/ABI.h`: compile-time standard layout/trivial copyability traits)
        - **Category C (Defensive Contract Assertions)**: 14 branches (`Core/Result.h`: standard library `assert(has_value())` / `assert(!has_value())` preconditions; death tests abort in isolated subprocesses without flushing llvm-cov data)
-       - **Category D (Mathematically Unreachable Guards)**: 8 branches (`Core/Math.h`: Newton-Raphson loop exit `i < 64` unconditionally terminates via `break` within $\le 6$ iterations by quadratic convergence from IEEE-754 bit-cast; `Geometry/Matrix3.h`: `max_val != max_val` because `max_val` is never NaN; cofactor overflow prevented by scale-aware cutoff $|d| > \epsilon \cdot \text{scale}^3$; `Geometry/SymmetricLinearSolver3.h`: $x_1, x_2$ non-finite checks short-circuited by $x_0$; backward error check $\eta > 100\epsilon$ provably bounded to $\le 10\epsilon$ for SPD systems by Higham 1996 Thm 10.3/10.5)
+       - **Category D (Analytically Unreachable Guards)**: 8 branches (`Core/Math.h`: Newton-Raphson loop exit `i < 64` unconditionally terminates via `break`; the current internal analysis concludes convergence within the documented iteration bound ($\le 6$ iterations) for supported float and double inputs, subject to independent verification; `Geometry/Matrix3.h`: `max_val != max_val` because `max_val` is never NaN; cofactor overflow prevented by scale-aware cutoff $|d| > \epsilon \cdot \text{scale}^3$; `Geometry/SymmetricLinearSolver3.h`: $x_1, x_2$ non-finite checks short-circuited by $x_0$; backward error check $\eta > 100\epsilon$ is currently classified by the internal qualification analysis as analytically unreachable under the documented solver preconditions by Higham 1996 Thm 10.3/10.5 bounding $\eta \le 10\epsilon$ for SPD systems; this classification remains subject to independent review)
        - **Category E (Untested Reachable Code)**: 0
        - **Category F (Unknown / Unanalyzed)**: 0
-    2. Reachable branch coverage is **302 / (336 - 34) = 302 / 302 = 100.00% $\ge$ 90.00% (PASS)**.
-  - Zero active deviations are relied upon to lower coverage thresholds. Active registered deviations remain strictly `AML-DEVIATION-002` and `AML-DEVIATION-003`.
+    2. Branch accounting: Raw LLVM branch instrumentation is **302 / 336 = 89.88%**; internal qualified reachable-branch accounting is **302 / (336 - 34) = 302 / 302 = 100.00% $\ge$ 90.00% (PASS)**. The validity of the reachable-branch qualification methodology is subject to independent red-team review.
+  - Zero active deviations are relied upon to lower coverage thresholds. Active registered deviations remain strictly `AML-DEVIATION-002` (with `AML-DEVIATION-003` resolved by the Vectoris migration).
 - **Verification**:
   `cmake --build build-p3-cov --target AegisMathLib_Coverage` passes with zero failures, reporting 100.00% function coverage, 98.70% line coverage, 100.00% reachable branch coverage, and 0 warnings.
 

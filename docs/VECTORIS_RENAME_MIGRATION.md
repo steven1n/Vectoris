@@ -19,7 +19,7 @@ In September 2026, the **AegisMathLib** project completed its transition from an
    - `VectorisNumerics`: Foundational ISO C++20 pure mathematics, IEEE-754 traits, 8D dimensional analysis, and SE(3) spatial geometry.
    - `VectorisDynamics`: 6-DOF rigid-body mechanics, spatial quantity vectors, inertia tensors, and semi-implicit Euler integration.
    - *Future planned modules*: `VectorisEstimation`, `VectorisControl`, `VectorisSignal`, `VectorisSimulation`.
-2. **Namespace Standard Compliance**: The legacy PascalCase root namespace `AegisMath` (which required a formal deviation `AML-DEVIATION-003`) was replaced with modern ISO C++ compliant lowercase hierarchical namespaces: `vectoris::numerics` and `vectoris::dynamics`.
+2. **Namespace Standard Conformance**: The legacy PascalCase root namespace `AegisMath` (which required a formal deviation `AML-DEVIATION-003`) was replaced with modern ISO C++ conforming lowercase hierarchical namespaces: `vectoris::numerics` and `vectoris::dynamics`.
 3. **Strict Zero-Coupling Architecture**: Header locations and include paths reflect clean physical module boundaries with zero legacy umbrella leakage.
 4. **Zero Numerical Semantic Alteration**: This migration is strictly an architectural, naming, and structural migration. **Zero mathematical formulas, algorithms, numerical tolerances, or floating-point constants were modified.**
 
@@ -143,9 +143,28 @@ To preserve historical audit records without falsifying past engineering logs:
 
 ## 4. Verification Evidence
 
-The migration has been formally qualified under:
+Current qualification baseline:
+```text
+Vectoris
+VectorisNumerics
+Internal Project Qualification: PASS
+VectorisDynamics
+Migration Integrity: PASS
+```
+
+> [!NOTE]
+> **Qualification Boundary Notice**: This is an internal engineering qualification only. It is not DO-178C certification, ISO 26262 certification, MISRA certification, FAA/EASA approval, or flight-software certification.
+
+The baseline has been verified under:
 1. **Source Code Cleanliness**: 0 active legacy include paths or namespace declarations across production headers and tests.
 2. **Header Isolation**: 100% pass across all 55 `VectorisNumerics` standalone translation units and all 11 `VectorisDynamics` translation units.
 3. **Test Suite Integrity**: 100% pass across 132/132 unit, property, and boundary tests with zero numerical drift.
-4. **Structural Coverage**: 100.00% function coverage, 98.70% line coverage, and 100.00% reachable branch coverage (302/302 reachable branches).
-5. **Cross-Compiler Matrix**: GCC 13.3.0, LLVM Clang 18.1.3, MSVC 19.51 (Visual Studio 2022).
+4. **Dynamic Sanitizers**:
+   - ASan: No AddressSanitizer diagnostics observed during the qualified workload.
+   - UBSan: No UndefinedBehaviorSanitizer diagnostics observed during the qualified workload.
+   - ASan + UBSan: No enabled sanitizer diagnostics observed during the qualified workload.
+5. **Structural Coverage**:
+   - Raw LLVM branch instrumentation: 302 / 336 = 89.88%
+   - Internal qualified reachable-branch accounting: 302 / 302 = 100.00% (The validity of the reachable-branch qualification methodology is subject to independent red-team review.)
+   - Function coverage: 100.00% (158/158), Line coverage: 98.70% (833/844).
+6. **Cross-Compiler Matrix**: GCC 13.3.0, LLVM Clang 18.1.3, MSVC 19.51 (Visual Studio 2022).

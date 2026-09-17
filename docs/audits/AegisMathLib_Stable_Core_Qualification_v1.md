@@ -2,7 +2,7 @@
 
 > [!NOTE]
 > **Historical Qualification Record / Migration Disclaimer**:
-> This document records the historical stable-core qualification conducted under the predecessor project name `AegisMathLib`. In September 2026, the project underwent a global architectural and namespace migration to **Vectoris** (`VectorisNumerics` and `VectorisDynamics`). This document is preserved as an immutable historical record of the baseline qualification evidence. For current canonical names, namespaces, and paths, see [`docs/VECTORIS_RENAME_MIGRATION.md`](../VECTORIS_RENAME_MIGRATION.md).
+> This document records the historical stable-core qualification conducted under the predecessor project name `AegisMathLib`. In September 2026, the project underwent a global architectural and namespace migration to **Vectoris** (`VectorisNumerics` and `VectorisDynamics`). This document is preserved as an immutable historical record of the baseline qualification evidence. For current canonical names, namespaces, and paths, see [`docs/VECTORIS_RENAME_MIGRATION.md`](../VECTORIS_RENAME_MIGRATION.md). Historical qualification wording. Current project terminology and qualification scope are governed by the latest Vectoris engineering standard and qualification record.
 
 > [!IMPORTANT]
 > **Document**: Stable-Core Qualification Rebaseline V1  
@@ -11,8 +11,8 @@
 > **Code Baseline (Historical P2 Frozen Baseline)**: `bf31ad5326ca22ee51bf0ac4dd2debf8f2a74b3a`
 > **Last Updated**: 2026-09-17
 > **Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](../ENGINEERING_STANDARD_V1.md)
-> **Certification Status**: **INTERNAL PROJECT QUALIFICATION: PASS** (All Section 124 DoD gates satisfied; 0 open blockers)
-> **Regulatory Notice**: This qualification represents internal engineering verification according to `ENGINEERING_STANDARD_V1.md`. It does NOT constitute formal DO-178C certification, MISRA certification, regulatory approval, or flight certification.
+> **Qualification Status**: **INTERNAL PROJECT QUALIFICATION: PASS** (All Section 124 DoD gates satisfied; 0 open blockers)
+> **Regulatory Notice**: This qualification represents internal engineering verification according to `ENGINEERING_STANDARD_V1.md`. This is an internal engineering qualification only. It is not DO-178C certification, ISO 26262 certification, MISRA certification, FAA/EASA approval, or flight-software certification.
 
 ---
 
@@ -463,16 +463,19 @@ Pursuant to the P3-SCOPE architectural refactor, **AegisMathLib** was formally r
 | **Compiler Warnings** | Sec 3, 90 | 0 warnings | 0 warnings | **PASS** | Zero compiler warnings under strict flags across all targets. |
 | **Cross-Compiler CI Matrix** | Sec 2, 89 | PASS (3 / 3 compilers) | PASS (3 / 3 compilers) | **PASS** | GitHub Actions Workflow Run `35179539794` on SHA `7079d7ca38364e0896fc04bca134d742ddb320ce`: GCC 13.3.0 (Ubuntu 24.04.1 LTS x86\_64) — Debug, Release, HeaderIsolation, Dynamics all PASS; LLVM Clang 18.1.3 (Ubuntu 24.04.1 LTS x86\_64) — Debug, Release, HeaderIsolation, Dynamics all PASS; MSVC 19.51.36256 (Windows Server x64, Visual Studio 2022) — Debug, Release, HeaderIsolation, Dynamics all PASS. Zero compiler warnings across all 3 platforms. |
 
-### 8.3 Exhaustive DO-178C / ISO 26262 Classification of the 34 Uncovered Branches
+### 8.3 Internal Structural Branch Analysis (Historical DO-178C / ISO 26262 Informed Classification)
 
-In conformance with DO-178C Level A and ISO 26262 ASIL D structural coverage verification standards, all 34 uncovered branches across pure MathLib production headers (`include/AegisMath/**`) are exhaustively classified:
+> [!NOTE]
+> **Historical qualification wording**: The analysis below reflects internal engineering practices informed by safety-critical software verification guidance. Current project terminology and qualification scope are governed by the latest Vectoris engineering standard and qualification record. This does not constitute external certification or compliance. The validity of the reachable-branch qualification methodology remains subject to independent red-team review.
+
+In internal structural coverage analysis inspired by safety-critical software verification practices, all 34 uncovered branches across pure MathLib production headers (`include/AegisMath/**`) are classified:
 
 - **Total Denominator Branches**: 336
 - **Covered Branches**: 302
-- **Nominal Branch Coverage**: $302 / 336 = 89.88095\%$
+- **Raw LLVM Branch Instrumentation**: $302 / 336 = 89.88095\%$
 - **Uncovered Branches**: 34
 - **Reachable Branches**: $336 - 34 = 302$
-- **Reachable Branch Coverage**: $302 / 302 = \mathbf{100.00\%} \ge 90.00\%$ (**PASS**)
+- **Internal Qualified Reachable-Branch Accounting**: $302 / 302 = \mathbf{100.00\%} \ge 90.00\%$ (**PASS**)
 
 #### Formal Branch Classification Ledger
 
@@ -482,28 +485,28 @@ In conformance with DO-178C Level A and ISO 26262 ASIL D structural coverage ver
 | `Core/NumericTraits.h` | 45 | `(v==v) && (v<=max) && (v>=-max)` | 6 | **B** | **Compile-time / Constexpr Folded**: Inside `if (std::is_constant_evaluated())`. Evaluates strictly to `false` at runtime. Branches exist only for compile-time constant evaluation (3 for float, 3 for double). |
 | `Units/Detail/ABI.h` | 10–11 | `std::is_trivially_copyable_v<Q>` | 2 | **B** | **Compile-time / Constexpr Folded**: Short-circuited compile-time type traits in folded logical expressions (`&&` between `constexpr bool` values). |
 | `Core/Result.h` | 140–185 | `assert(has_value())` / `assert(!has_value())` | 14 | **C** | **Defensive Contract Assertion**: Standard library `assert` preconditions on accessor methods. In passing test suites, assertions never fail. Death tests run in forked subprocesses that terminate via `abort()` without flushing LLVM coverage profile counters. |
-| `Core/Math.h` | 86 | `for (...; i < kMaxIterations; ++i)` | 1 | **D** | **Provably Unreachable under Preconditions**: Bounded Newton square root loop exit condition (`kMaxIterations = 64`). By quadratic convergence of Newton-Raphson from IEEE-754 bit-cast initial guesses ($e_{k+1} \approx e_k^2 / 2$), convergence occurs in $\le 6$ iterations for all positive floating-point numbers. Non-positive, infinite, and NaN inputs are intercepted prior to the loop. Loop unconditionally exits via `break` at line 94; condition `i < 64` is never evaluated to `false`. |
-| `Geometry/Matrix3.h` | 146 | `max_val != max_val` | 1 | **D** | **Provably Unreachable under Preconditions**: `max_val` is initialized to `0.0` and updated only when `abs_val > max_val`. Since `NaN > max_val` evaluates to `false` under IEEE-754, `max_val` is never `NaN`. Therefore, `max_val != max_val` is mathematically impossible to evaluate to `true`. |
-| `Geometry/Matrix3.h` | 181 | `inv[i] != inv[i] \|\| inv[i] > max \|\| inv[i] < lowest` | 3 | **D** | **Provably Unreachable under Preconditions**: Defensive inverse element overflow checks. Line 160 enforces scale-aware cutoff $|d| > \epsilon \cdot \text{scale}^3$. Since each cofactor $|C_{ij}| \le 2 \cdot \text{scale}^2$, $|inv[i]| \le \frac{2 \cdot \text{scale}^2}{\epsilon \cdot \text{scale}^3} = \frac{2}{\epsilon \cdot \text{scale}}$. Any scale causing $|inv[i]| > \text{max}$ requires $\text{scale} < 5 \times 10^{-293}$ (for double) or $\text{scale} < 4.9 \times 10^{-32}$ (for float), for which $d = \text{det}(A)$ underflows to `0.0`, intercepting execution at line 151 (`d == 0`). Thus elements of `inv` mathematically cannot overflow. |
-| `Geometry/SymmetricLinearSolver3.h` | 151 | `!Traits::IsFinite(x1) \|\| !Traits::IsFinite(x2)` | 2 | **D** | **Provably Unreachable under Preconditions**: Short-circuited by `!Traits::IsFinite(x0)`. In backward substitution, $x_0 = z_0 - l_{21} x_1 - l_{31} x_2$. Under IEEE-754, if $x_1$ or $x_2$ is non-finite ($\pm\infty$ or NaN), $l_{21} x_1$ or $l_{31} x_2$ is non-finite (either $\pm\infty$ or $0.0 \times \infty = \text{NaN}$), forcing $x_0$ non-finite. Therefore, `!Traits::IsFinite(x0)` is unconditionally `true`, and short-circuit evaluation guarantees `!Traits::IsFinite(x1)` and `!Traits::IsFinite(x2)` are never evaluated when non-finite. |
-| `Geometry/SymmetricLinearSolver3.h` | 179 | `eta > kBackwardErrorBound * eps` | 1 | **D** | **Provably Unreachable under Preconditions**: Normwise relative backward error check ($\eta = \frac{\|r\|_\infty}{\|A\|_\infty \|x\|_\infty + \|b\|_\infty} > 100\epsilon$). By Higham (1996, 2002, Thm 10.3/10.5), for any $3 \times 3$ symmetric positive definite matrix $A$ solved via $LDL^T$ without pivoting, backward error satisfies $\eta \le \gamma_3 \approx 3.01\epsilon \le 10\epsilon$. Earlier guards (steps 3, 4, 5) guarantee that $A$ is symmetric, positive definite ($d_k > 10\epsilon \cdot \text{scale}$), and well-conditioned ($\min(d)/\max(d) > 100\epsilon$). Hence, $\eta \le 10\epsilon < 100\epsilon$ holds unconditionally. |
+| `Core/Math.h` | 86 | `for (...; i < kMaxIterations; ++i)` | 1 | **D** | **Analytically Unreachable under Preconditions**: Bounded Newton square root loop exit condition (`kMaxIterations = 64`). The current internal analysis concludes convergence within the documented iteration bound ($\le 6$ iterations) for supported float and double inputs; this claim remains subject to independent verification. Non-positive, infinite, and NaN inputs are intercepted prior to the loop. Loop unconditionally exits via `break` at line 94; condition `i < 64` is never evaluated to `false`. |
+| `Geometry/Matrix3.h` | 146 | `max_val != max_val` | 1 | **D** | **Analytically Unreachable under Preconditions**: `max_val` is initialized to `0.0` and updated only when `abs_val > max_val`. Since `NaN > max_val` evaluates to `false` under IEEE-754, `max_val` is never `NaN`. Therefore, `max_val != max_val` is mathematically impossible to evaluate to `true`. |
+| `Geometry/Matrix3.h` | 181 | `inv[i] != inv[i] \|\| inv[i] > max \|\| inv[i] < lowest` | 3 | **D** | **Analytically Unreachable under Preconditions**: Defensive inverse element overflow checks. Line 160 enforces scale-aware cutoff $|d| > \epsilon \cdot \text{scale}^3$. Since each cofactor $|C_{ij}| \le 2 \cdot \text{scale}^2$, $|inv[i]| \le \frac{2 \cdot \text{scale}^2}{\epsilon \cdot \text{scale}^3} = \frac{2}{\epsilon \cdot \text{scale}}$. Any scale causing $|inv[i]| > \text{max}$ requires $\text{scale} < 5 \times 10^{-293}$ (for double) or $\text{scale} < 4.9 \times 10^{-32}$ (for float), for which $d = \text{det}(A)$ underflows to `0.0`, intercepting execution at line 151 (`d == 0`). Thus elements of `inv` mathematically cannot overflow. |
+| `Geometry/SymmetricLinearSolver3.h` | 151 | `!Traits::IsFinite(x1) \|\| !Traits::IsFinite(x2)` | 2 | **D** | **Analytically Unreachable under Preconditions**: Short-circuited by `!Traits::IsFinite(x0)`. In backward substitution, $x_0 = z_0 - l_{21} x_1 - l_{31} x_2$. Under IEEE-754, if $x_1$ or $x_2$ is non-finite ($\pm\infty$ or NaN), $l_{21} x_1$ or $l_{31} x_2$ is non-finite (either $\pm\infty$ or $0.0 \times \infty = \text{NaN}$), forcing $x_0$ non-finite. Therefore, `!Traits::IsFinite(x0)` is unconditionally `true`, and short-circuit evaluation guarantees `!Traits::IsFinite(x1)` and `!Traits::IsFinite(x2)` are never evaluated when non-finite. |
+| `Geometry/SymmetricLinearSolver3.h` | 179 | `eta > kBackwardErrorBound * eps` | 1 | **D** | **Analytically Unreachable under Preconditions**: Normwise relative backward error check ($\eta = \frac{\|r\|_\infty}{\|A\|_\infty \|x\|_\infty + \|b\|_\infty} > 100\epsilon$). Currently classified by the internal qualification analysis as analytically unreachable under the documented solver preconditions (by Higham 1996, 2002, Thm 10.3/10.5 bounding $\eta \le \gamma_3 \approx 3.01\epsilon \le 10\epsilon$ for SPD systems). This classification remains subject to independent review. |
 
 #### Classification Category Summary
 - **Category A (Dead Code)**: 0 (0.0%)
 - **Category B (Compile-time / Constexpr Folded Traits)**: 12 (35.3%)
 - **Category C (Defensive Contract Assertions)**: 14 (41.2%)
-- **Category D (Provably Unreachable under Preconditions)**: 8 (23.5%)
+- **Category D (Analytically Unreachable under Preconditions)**: 8 (23.5%)
 - **Category E (Untested Reachable Code)**: 0 (0.0%)
 - **Category F (Unknown / Unanalyzed)**: 0 (0.0%)
 - **Total Uncovered Branches**: 34 (100% analytically verified & justified)
 
 #### Special Reviews Summary
 1. **Backward Error Guard (`SymmetricLinearSolver3.h:179`)**:
-   - Classification: **Category D (Mathematically Unreachable under Preconditions)**.
-   - Analytical Proof: Derived from Higham's backward error bounds for $LDL^T$ factorization on symmetric positive definite systems. Retained as defensive post-condition invariant checking.
+   - Classification: **Category D (Analytically Unreachable under Preconditions)**.
+   - Status: Currently classified by the internal qualification analysis as analytically unreachable under the documented solver preconditions, derived from Higham's backward error bounds for $LDL^T$ factorization on symmetric positive definite systems. This classification remains subject to independent review. Retained as defensive post-condition invariant checking.
 2. **Bounded Newton sqrt (`Core::Math::sqrt` / `BoundedNewtonSqrt`)**:
    - `curr > prev` branch: **Reachable and 100% Covered** across both `float` and `double` specializations (tested in `CoreSqrtTest`).
-   - Loop bound `i < 64`: **Category D (Mathematically Unreachable)** due to quadratic convergence in $\le 6$ iterations for all positive IEEE-754 floating-point numbers.
+   - Loop bound `i < 64`: **Category D (Analytically Unreachable)**: The current internal analysis concludes convergence within the documented iteration bound ($\le 6$ iterations) for supported float and double inputs; this claim remains subject to independent verification.
    - `if (std::is_constant_evaluated())`: **Category B (Compile-time Folded)** for runtime execution under C++20.
 
 #### Deviation Ledger Status

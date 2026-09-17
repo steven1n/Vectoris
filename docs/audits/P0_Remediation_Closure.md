@@ -2,7 +2,7 @@
 
 > [!NOTE]
 > **Historical Qualification Record / Migration Disclaimer**:
-> This document records the historical P0 remediation closure conducted under the predecessor project name `AegisMathLib`. In September 2026, the project underwent a global architectural and namespace migration to **Vectoris** (`VectorisNumerics` and `VectorisDynamics`). This document is preserved as an immutable historical record of the remediation. For current canonical names, namespaces, and paths, see [`docs/VECTORIS_RENAME_MIGRATION.md`](../VECTORIS_RENAME_MIGRATION.md).
+> This document records the historical P0 remediation closure conducted under the predecessor project name `AegisMathLib`. In September 2026, the project underwent a global architectural and namespace migration to **Vectoris** (`VectorisNumerics` and `VectorisDynamics`). This document is preserved as an immutable historical record of the remediation. For current canonical names, namespaces, and paths, see [`docs/VECTORIS_RENAME_MIGRATION.md`](../VECTORIS_RENAME_MIGRATION.md). Historical qualification wording. Current project terminology and qualification scope are governed by the latest Vectoris engineering standard and qualification record.
 
 Baseline:
 AegisMathLib Engineering Standard Compliance Audit v1
@@ -61,9 +61,9 @@ The following are NOT claimed solved:
 Therefore:
 
 P0 correctness closure does NOT mean the complete library is Stable.
-P0 closed != Stable Core certified.
+P0 closed != Stable Core qualified.
 
-Closing the P0 critical numerical bugs restores baseline mathematical integrity for the implemented code paths, but full aerospace-grade stability certification requires resolving remaining High/Medium architectural, safety, and testing gaps.
+Closing the P0 critical numerical bugs restores baseline mathematical integrity for the implemented code paths, but full aerospace-grade stability qualification requires resolving remaining High/Medium architectural, safety, and testing gaps.
 
 ---
 
