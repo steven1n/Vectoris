@@ -265,7 +265,7 @@ TEST(ResultTest, RvalueAndRefQualifiedAccessors) {
 
     // const T&& Value() const &&
     const auto r_const = Result<std::string>::success("const_str");
-    EXPECT_EQ(std::move(r_const).Value(), "const_str");
+    EXPECT_EQ(static_cast<const Result<std::string>&&>(r_const).Value(), "const_str");
 
     // T&& Value() &&
     auto r_str = Result<std::string>::success("move_str");
@@ -283,12 +283,12 @@ TEST(ResultTest, RvalueAndRefQualifiedAccessors) {
     EXPECT_EQ(std::move(r_val_or_fail).value_or("default"), "default");
 
     // error() &&
-    auto r_fail = Result<int>::failure(MathError::ill_conditioned);
+    auto r_fail = Result<std::string>::failure(MathError::ill_conditioned);
     EXPECT_EQ(std::move(r_fail).error(), MathError::ill_conditioned);
 
     // const error() const &&
-    const auto r_fail_const = Result<int>::failure(MathError::max_iterations);
-    EXPECT_EQ(std::move(r_fail_const).error(), MathError::max_iterations);
+    const auto r_fail_const = Result<std::string>::failure(MathError::max_iterations);
+    EXPECT_EQ(static_cast<const Result<std::string>&&>(r_fail_const).error(), MathError::max_iterations);
 
     // Quaternion Result instantiation coverage
     struct ResultFrameA {};
@@ -296,7 +296,7 @@ TEST(ResultTest, RvalueAndRefQualifiedAccessors) {
     using QuatT = vectoris::numerics::Geometry::Quaternion<double, ResultFrameA, ResultFrameB>;
     auto q_res = Result<QuatT>::failure(MathError::invalid_state);
     EXPECT_EQ(q_res.error(), MathError::invalid_state);
-    EXPECT_EQ(std::move(q_res).error(), MathError::invalid_state);
+    EXPECT_EQ(static_cast<Result<QuatT>&&>(q_res).error(), MathError::invalid_state);
 
     auto q_val = QuatT::TryCreate(1.0, 0.0, 0.0, 0.0).Value();
     auto q_ok = Result<QuatT>::success(q_val);
@@ -306,7 +306,7 @@ TEST(ResultTest, RvalueAndRefQualifiedAccessors) {
     const auto& q_ok_const = q_ok;
     EXPECT_DOUBLE_EQ(q_ok_const.value().w, 1.0);
     EXPECT_DOUBLE_EQ(q_ok_const.Value().w, 1.0);
-    EXPECT_DOUBLE_EQ(std::move(q_ok).Value().w, 1.0);
+    EXPECT_DOUBLE_EQ(static_cast<Result<QuatT>&&>(q_ok).Value().w, 1.0);
 }
 
 #if !defined(NDEBUG)
