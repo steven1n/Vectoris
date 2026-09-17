@@ -1,11 +1,11 @@
 #pragma once
 
-#include "AegisMath/Dynamics/Concepts.h"
-#include "AegisMath/Dynamics/QuantityVector3.h"
-#include "AegisMath/Dynamics/Twist6.h"
+#include "AegisDynamics/Concepts.h"
+#include "AegisDynamics/QuantityVector3.h"
+#include "AegisDynamics/Twist6.h"
 #include "AegisMath/Units/DerivedUnits/Power.h"
 
-namespace AegisMath::Dynamics {
+namespace AegisDynamics {
 
     // 空间力/力矩（Wrench6）：包含力和力矩 (强类型物理量)
     template <DynamicsScalar T, Geometry::FrameTag Frame>
@@ -32,4 +32,4 @@ namespace AegisMath::Dynamics {
         }
     };
 
-} // namespace AegisMath::Dynamics
+} // namespace AegisDynamics

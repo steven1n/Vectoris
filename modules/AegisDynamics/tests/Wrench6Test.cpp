@@ -1,12 +1,12 @@
 #include <gtest/gtest.h>
-#include "AegisMath/Dynamics/Wrench6.h"
-#include "AegisMath/Dynamics/Twist6.h"
-#include "AegisMath/Dynamics/QuantityVector3.h"
+#include "AegisDynamics/Wrench6.h"
+#include "AegisDynamics/Twist6.h"
+#include "AegisDynamics/QuantityVector3.h"
 
 struct BodyFrame {};
 
 TEST(Wrench6Test, PowerConsistency) {
-    using namespace AegisMath::Dynamics;
+    using namespace AegisDynamics;
     using namespace AegisMath::Units;
 
     Force3<BodyFrame> force(Force(100.0), Force::Zero(), Force::Zero());

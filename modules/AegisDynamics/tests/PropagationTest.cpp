@@ -1,15 +1,15 @@
 #include <gtest/gtest.h>
 #include <cmath>
-#include "AegisMath/Dynamics/EulerIntegrator.h"
-#include "AegisMath/Dynamics/RigidBodyParameters.h"
-#include "AegisMath/Dynamics/Wrench6.h"
-#include "AegisMath/Dynamics/QuantityVector3.h"
+#include "AegisDynamics/EulerIntegrator.h"
+#include "AegisDynamics/RigidBodyParameters.h"
+#include "AegisDynamics/Wrench6.h"
+#include "AegisDynamics/QuantityVector3.h"
 
 struct WorldFrame {};
 struct BodyFrame {};
 
 TEST(PropagationTest, EulerStepVerification) {
-    using namespace AegisMath::Dynamics;
+    using namespace AegisDynamics;
     using namespace AegisMath::Units;
 
     Kilogram m{1000.0};
@@ -39,7 +39,7 @@ TEST(PropagationTest, EulerStepVerification) {
 }
 
 TEST(PropagationTest, FrameTransformationPropagation) {
-    using namespace AegisMath::Dynamics;
+    using namespace AegisDynamics;
     using namespace AegisMath::Units;
 
     Kilogram m{1000.0};
@@ -78,7 +78,7 @@ TEST(PropagationTest, FrameTransformationPropagation) {
 }
 
 TEST(PropagationTest, AttitudeKinematicsPropagation) {
-    using namespace AegisMath::Dynamics;
+    using namespace AegisDynamics;
     using namespace AegisMath::Units;
 
     Kilogram m{1000.0};

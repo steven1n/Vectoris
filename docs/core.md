@@ -12,7 +12,7 @@
 
 ## 1. Purpose
 
-The `Core` module provides the foundational type system, scalar definitions, compiler abstraction, floating-point numerical traits, monadic error handling, and mathematical primitive functions for AegisMathLib. It establishes the lowest-level layer upon which all higher mathematical subsystems (`Units`, `Geometry`, `Dynamics`) depend.
+The `Core` module provides the foundational type system, scalar definitions, compiler abstraction, floating-point numerical traits, monadic error handling, and mathematical primitive functions for AegisMathLib. It establishes the lowest-level layer upon which all higher mathematical subsystems (`Units`, `Geometry`) and downstream modules (`AegisDynamics`) depend.
 
 ---
 
@@ -30,10 +30,10 @@ The `Core` module encompasses:
 ## 3. Dependency Rules
 
 - **Layer Position**: Layer 0 (Base Layer).
-- **Inbound Dependencies**: Consumed by `Units`, `Geometry`, `Dynamics`, and test suites.
+- **Inbound Dependencies**: Consumed by `Units`, `Geometry`, downstream modules (`AegisDynamics`), and test suites.
 - **Outbound Dependencies**: **Zero internal dependencies**. The `Core` module depends strictly and exclusively on the ISO C++20 standard library headers:
   - `<concepts>`, `<type_traits>`, `<limits>`, `<cmath>`, `<variant>`, `<cstdint>`, `<utility>`
-- **Architecture Constraint**: `Core` MUST NEVER include any header from `Units`, `Geometry`, or `Dynamics`.
+- **Architecture Constraint**: `Core` MUST NEVER include any header from `Units`, `Geometry`, or downstream domain modules (`AegisDynamics`).
 
 ---
 

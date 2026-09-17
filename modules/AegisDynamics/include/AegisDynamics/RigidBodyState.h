@@ -2,13 +2,13 @@
 
 #include "AegisMath/Core/Result.h"
 #include "AegisMath/Core/MathError.h"
-#include "AegisMath/Dynamics/Detail/StateTypes.h"
-#include "AegisMath/Dynamics/RigidBodyParameters.h"
-#include "AegisMath/Dynamics/Wrench6.h"
-#include "AegisMath/Dynamics/Twist6.h"
-#include "AegisMath/Dynamics/QuantityVector3.h"
+#include "AegisDynamics/Detail/StateTypes.h"
+#include "AegisDynamics/RigidBodyParameters.h"
+#include "AegisDynamics/Wrench6.h"
+#include "AegisDynamics/Twist6.h"
+#include "AegisDynamics/QuantityVector3.h"
 
-namespace AegisMath::Dynamics {
+namespace AegisDynamics {
 
     // 刚体导数结构体 (支持纯函数式与零堆分配)
     template <DynamicsScalar T, Geometry::FrameTag BodyFrame>
@@ -74,4 +74,4 @@ namespace AegisMath::Dynamics {
         }
     };
 
-} // namespace AegisMath::Dynamics
+} // namespace AegisDynamics

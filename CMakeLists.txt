@@ -72,19 +72,6 @@ set(AEGISMATH_PUBLIC_HEADERS
         include/AegisMath/Geometry/Transform3.h
         include/AegisMath/Geometry/UnitVector3.h
         include/AegisMath/Geometry/Vector3.h
-
-        # Dynamics (11)
-        include/AegisMath/Dynamics/Concepts.h
-        include/AegisMath/Dynamics/Detail/DynamicsABI.h
-        include/AegisMath/Dynamics/Detail/StateTypes.h
-        include/AegisMath/Dynamics/DynamicsConvention.h
-        include/AegisMath/Dynamics/EulerIntegrator.h
-        include/AegisMath/Dynamics/InertiaTensor3.h
-        include/AegisMath/Dynamics/QuantityVector3.h
-        include/AegisMath/Dynamics/RigidBodyParameters.h
-        include/AegisMath/Dynamics/RigidBodyState.h
-        include/AegisMath/Dynamics/Twist6.h
-        include/AegisMath/Dynamics/Wrench6.h
 )
 
 add_library(AegisMathLib INTERFACE ${AEGISMATH_PUBLIC_HEADERS})
@@ -143,17 +130,6 @@ add_executable(AegisMathLib_Tests
         tests/Geometry/SymmetricLinearSolver3Test.cpp
         tests/Geometry/PublicTemplateInstantiationTest.cpp
         tests/Geometry/GeometryComparisonTest.cpp
-        tests/Dynamics/DynamicsConceptTest.cpp
-        tests/Dynamics/StateTypesTest.cpp
-        tests/Dynamics/Twist6Test.cpp
-        tests/Dynamics/Wrench6Test.cpp
-        tests/Dynamics/InertiaTensorTest.cpp
-        tests/Dynamics/RigidBodyStateTest.cpp
-        tests/Dynamics/PropagationTest.cpp
-        tests/Dynamics/EulerDynamicsTest.cpp
-        tests/Dynamics/DynamicsABITest.cpp
-        tests/Dynamics/DynamicsUnitsTest.cpp
-        tests/Dynamics/Regression/FreeFallTest.cpp
         tests/Architecture/DependencyLayerTest.cpp
 )
 
@@ -186,3 +162,11 @@ include(cmake/PublicHeaderIsolation.cmake)
 # 7. 静态代码分析资格验证 (Static Analysis Qualification: Clang-Tidy & Cppcheck)
 # ==============================================================================
 include(cmake/StaticAnalysis.cmake)
+
+# ==============================================================================
+# 8. 独立领域物理模块加载 (AegisDynamics)
+# ==============================================================================
+option(AEGISMATH_BUILD_DYNAMICS "Build independent AegisDynamics domain physics module" ON)
+if(AEGISMATH_BUILD_DYNAMICS AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/modules/AegisDynamics/CMakeLists.txt")
+    add_subdirectory(modules/AegisDynamics)
+endif()

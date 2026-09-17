@@ -6,13 +6,13 @@
 #include "AegisMath/Core/NumericTraits.h"
 #include "AegisMath/Geometry/Matrix3.h"
 #include "AegisMath/Geometry/SymmetricLinearSolver3.h"
-#include "AegisMath/Dynamics/Concepts.h"
-#include "AegisMath/Dynamics/QuantityVector3.h"
+#include "AegisDynamics/Concepts.h"
+#include "AegisDynamics/QuantityVector3.h"
 #include "AegisMath/Units/DerivedUnits/MomentOfInertia.h"
 #include "AegisMath/Units/DerivedUnits/AngularMomentum.h"
 #include "AegisMath/Units/DerivedUnits/AngularAcceleration.h"
 
-namespace AegisMath::Dynamics {
+namespace AegisDynamics {
 
     using AngularMomentumUnit = Units::AngularMomentumUnit;
 
@@ -172,4 +172,4 @@ namespace AegisMath::Dynamics {
         return I.Solve(tau);
     }
 
-} // namespace AegisMath::Dynamics
+} // namespace AegisDynamics

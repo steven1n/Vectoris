@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
-#include "AegisMath/Dynamics/Twist6.h"
-#include "AegisMath/Dynamics/QuantityVector3.h"
+#include "AegisDynamics/Twist6.h"
+#include "AegisDynamics/QuantityVector3.h"
 
 struct BodyFrame {};
 
 TEST(Twist6Test, ComponentAccess) {
-    using namespace AegisMath::Dynamics;
+    using namespace AegisDynamics;
     using namespace AegisMath::Units;
 
     Velocity3<BodyFrame> lin(Velocity(10.0), Velocity(2.0), Velocity(-1.0));

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "AegisMath/Dynamics/Concepts.h"
-#include "AegisMath/Dynamics/QuantityVector3.h"
-#include "AegisMath/Dynamics/InertiaTensor3.h"
+#include "AegisDynamics/Concepts.h"
+#include "AegisDynamics/QuantityVector3.h"
+#include "AegisDynamics/InertiaTensor3.h"
 #include "AegisMath/Units/BaseUnits/Mass.h"
 
-namespace AegisMath::Dynamics {
+namespace AegisDynamics {
 
     // 刚体固定物理参数（设计与配置阶段生命周期，强类型物理量）
     template <DynamicsScalar T, Geometry::FrameTag BodyFrame>
@@ -21,4 +21,4 @@ namespace AegisMath::Dynamics {
         ) noexcept : mass(m), centerOfMass(com), inertia(inh) {}
     };
 
-} // namespace AegisMath::Dynamics
+} // namespace AegisDynamics

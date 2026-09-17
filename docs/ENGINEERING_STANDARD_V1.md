@@ -225,6 +225,8 @@ TargetTrack
 
 这些属于上层 Simulator。
 
+刚体动力学与领域物理状态（RigidBodyState、InertiaTensor3、Wrench6、Twist6 等）属于下游独立领域模块（如 `AegisDynamics`），严禁进入纯数学库 `AegisMathLib` 核心，具体边界判定与分类准则遵从权威规范：[`docs/PURE_MATH_SCOPE.md`](PURE_MATH_SCOPE.md)。
+
 ---
 
 # 6. 文件布局

@@ -1,14 +1,14 @@
 #include <gtest/gtest.h>
 #include "AegisMath/Geometry/FrameTags.h"
 #include "AegisMath/Geometry/Quaternion.h"
-#include "AegisMath/Dynamics/Detail/StateTypes.h"
-#include "AegisMath/Dynamics/QuantityVector3.h"
+#include "AegisDynamics/Detail/StateTypes.h"
+#include "AegisDynamics/QuantityVector3.h"
 
 struct WorldFrame {};
 struct BodyFrame {};
 
 TEST(StateTypesTest, ConstructionAndBinding) {
-    using namespace AegisMath::Dynamics;
+    using namespace AegisDynamics;
     using namespace AegisMath::Units;
 
     Position3<WorldFrame> pos(Meter::Zero(), Meter::Zero(), Meter(1000.0));

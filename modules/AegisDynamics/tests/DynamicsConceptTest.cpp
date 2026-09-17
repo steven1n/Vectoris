@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 #include <string>
-#include "AegisMath/Dynamics/Concepts.h"
+#include "AegisDynamics/Concepts.h"
 
-using namespace AegisMath::Dynamics;
+using namespace AegisDynamics;
 
 TEST(DynamicsConceptTest, ScalarConstraints) {
     static_assert(DynamicsScalar<float>, "Float must satisfy DynamicsScalar.");

@@ -1,16 +1,16 @@
 #include <gtest/gtest.h>
 #include <type_traits>
-#include "AegisMath/Dynamics/QuantityVector3.h"
-#include "AegisMath/Dynamics/RigidBodyParameters.h"
-#include "AegisMath/Dynamics/Detail/StateTypes.h"
-#include "AegisMath/Dynamics/Twist6.h"
-#include "AegisMath/Dynamics/Wrench6.h"
-#include "AegisMath/Dynamics/EulerIntegrator.h"
+#include "AegisDynamics/QuantityVector3.h"
+#include "AegisDynamics/RigidBodyParameters.h"
+#include "AegisDynamics/Detail/StateTypes.h"
+#include "AegisDynamics/Twist6.h"
+#include "AegisDynamics/Wrench6.h"
+#include "AegisDynamics/EulerIntegrator.h"
 
 struct TestRefFrame {};
 struct TestBodyFrame {};
 
-using namespace AegisMath::Dynamics;
+using namespace AegisDynamics;
 using namespace AegisMath::Units;
 
 // ==============================================================================

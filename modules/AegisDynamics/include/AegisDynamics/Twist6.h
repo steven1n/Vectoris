@@ -1,9 +1,9 @@
 #pragma once
 
-#include "AegisMath/Dynamics/Concepts.h"
-#include "AegisMath/Dynamics/QuantityVector3.h"
+#include "AegisDynamics/Concepts.h"
+#include "AegisDynamics/QuantityVector3.h"
 
-namespace AegisMath::Dynamics {
+namespace AegisDynamics {
 
     // 空间速度（Body Twist）：包含线速度与角速度 (强类型物理量)
     template <DynamicsScalar T, Geometry::FrameTag Frame>
@@ -17,4 +17,4 @@ namespace AegisMath::Dynamics {
         ) noexcept : linear(lin), angular(ang) {}
     };
 
-} // namespace AegisMath::Dynamics
+} // namespace AegisDynamics

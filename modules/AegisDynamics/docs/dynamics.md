@@ -27,21 +27,21 @@ The `Dynamics` module implements rigid-body dynamics, rotational mechanics, spat
 
 ## 3. Public Headers
 
-The `Dynamics` module exposes **11 public headers** under `include/AegisMath/Dynamics/`:
+The `AegisDynamics` module exposes **11 public headers** under `include/AegisDynamics/`:
 
 | Header | Description |
 | :--- | :--- |
-| [`Concepts.h`](../include/AegisMath/Dynamics/Concepts.h) | Dynamics concepts (`DynamicsScalar`, `DynamicsFrameTag`). |
-| [`Detail/DynamicsABI.h`](../include/AegisMath/Dynamics/Detail/DynamicsABI.h) | ABI standard layout, trivial copyability, and memory padding validation. |
-| [`Detail/StateTypes.h`](../include/AegisMath/Dynamics/Detail/StateTypes.h) | Kinematic state definition and spatial vector type bindings. |
-| [`DynamicsConvention.h`](../include/AegisMath/Dynamics/DynamicsConvention.h) | Body frame, inertial frame, and gravitational acceleration conventions. |
-| [`EulerIntegrator.h`](../include/AegisMath/Dynamics/EulerIntegrator.h) | Transactionally safe 1st-order semi-implicit Euler state integrator. |
-| [`InertiaTensor3.h`](../include/AegisMath/Dynamics/InertiaTensor3.h) | Symmetric positive definite $3 \times 3$ rigid-body inertia tensor. |
-| [`QuantityVector3.h`](../include/AegisMath/Dynamics/QuantityVector3.h) | 3D spatial vector whose components are strongly typed `Quantity` instances. |
-| [`RigidBodyParameters.h`](../include/AegisMath/Dynamics/RigidBodyParameters.h) | Mass, center of mass offset, and inertia tensor parameters. |
-| [`RigidBodyState.h`](../include/AegisMath/Dynamics/RigidBodyState.h) | Full 6-DOF rigid-body dynamics derivative kernel and coupling equations. |
-| [`Twist6.h`](../include/AegisMath/Dynamics/Twist6.h) | 6-DOF spatial velocity (linear velocity + angular velocity). |
-| [`Wrench6.h`](../include/AegisMath/Dynamics/Wrench6.h) | 6-DOF spatial force and torque (linear force + rotational moment). |
+| [`Concepts.h`](../include/AegisDynamics/Concepts.h) | Dynamics concepts (`DynamicsScalar`, `DynamicsFrameTag`). |
+| [`Detail/DynamicsABI.h`](../include/AegisDynamics/Detail/DynamicsABI.h) | ABI standard layout, trivial copyability, and memory padding validation. |
+| [`Detail/StateTypes.h`](../include/AegisDynamics/Detail/StateTypes.h) | Kinematic state definition and spatial vector type bindings. |
+| [`DynamicsConvention.h`](../include/AegisDynamics/DynamicsConvention.h) | Body frame, inertial frame, and gravitational acceleration conventions. |
+| [`EulerIntegrator.h`](../include/AegisDynamics/EulerIntegrator.h) | Transactionally safe 1st-order semi-implicit Euler state integrator. |
+| [`InertiaTensor3.h`](../include/AegisDynamics/InertiaTensor3.h) | Symmetric positive definite $3 \times 3$ rigid-body inertia tensor. |
+| [`QuantityVector3.h`](../include/AegisDynamics/QuantityVector3.h) | 3D spatial vector whose components are strongly typed `Quantity` instances. |
+| [`RigidBodyParameters.h`](../include/AegisDynamics/RigidBodyParameters.h) | Mass, center of mass offset, and inertia tensor parameters. |
+| [`RigidBodyState.h`](../include/AegisDynamics/RigidBodyState.h) | Full 6-DOF rigid-body dynamics derivative kernel and coupling equations. |
+| [`Twist6.h`](../include/AegisDynamics/Twist6.h) | 6-DOF spatial velocity (linear velocity + angular velocity). |
+| [`Wrench6.h`](../include/AegisDynamics/Wrench6.h) | 6-DOF spatial force and torque (linear force + rotational moment). |
 
 ---
 
@@ -92,7 +92,7 @@ Under AegisMathLib's 8D Model B, $[\boldsymbol{\omega} \times \mathbf{L}]$ evalu
 
 ## 7. Full Rigid-Body Dynamics Kernel
 
-[`RigidBodyDynamicsKernel::ComputeDerivative`](../include/AegisMath/Dynamics/RigidBodyState.h) evaluates the full Newton-Euler equations without diagonal-only simplifications:
+[`RigidBodyDynamicsKernel::ComputeDerivative`](../include/AegisDynamics/RigidBodyState.h) evaluates the full Newton-Euler equations without diagonal-only simplifications:
 1. Translational acceleration (resolved in `BodyFrame`, accounting for rotation transport / Coriolis coupling):
    $$\mathbf{a}_{\text{body}} = \frac{\mathbf{F}_{\text{body}}}{m} - \boldsymbol{\omega}_{\text{body}} \times \mathbf{v}_{\text{body}}$$
    where `linearVelocity` is stored and resolved in `BodyFrame` (`Velocity3<BodyFrame, T>`).
@@ -111,7 +111,7 @@ If the inertia tensor is singular, indefinite, or ill-conditioned, `ComputeDeriv
 
 ## 8. `EulerIntegrator` Contract
 
-[`EulerIntegrator::Step`](../include/AegisMath/Dynamics/EulerIntegrator.h) implements a deterministic, 1st-order semi-implicit integration step:
+[`EulerIntegrator::Step`](../include/AegisDynamics/EulerIntegrator.h) implements a deterministic, 1st-order semi-implicit integration step:
 
 ```cpp
 template <DynamicsScalar T, Geometry::FrameTag RefFrame, Geometry::FrameTag BodyFrame>

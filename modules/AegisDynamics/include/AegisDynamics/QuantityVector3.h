@@ -4,7 +4,7 @@
 #include <concepts>
 #include <cstddef>
 #include "AegisMath/Core/Precision.h"
-#include "AegisMath/Core/Concepts.h"
+#include "AegisDynamics/Concepts.h"
 #include "AegisMath/Geometry/FrameTags.h"
 #include "AegisMath/Geometry/Quaternion.h"
 #include "AegisMath/Units/Core.h"
@@ -23,7 +23,7 @@
 #include "AegisMath/Units/DerivedUnits/AngularMomentum.h"
 #include "AegisMath/Units/BaseUnits/Angle.h"
 
-namespace AegisMath::Dynamics {
+namespace AegisDynamics {
 
     // 强类型物理量空间向量 (3D Dimensional Vector with Coordinate Frame Binding)
     template <typename QuantityType, Geometry::FrameTag Frame>
@@ -269,4 +269,4 @@ namespace AegisMath::Dynamics {
         static constexpr bool value = true;
     };
 
-} // namespace AegisMath::Dynamics
+} // namespace AegisDynamics

@@ -1,13 +1,13 @@
 #include <gtest/gtest.h>
 #include <cmath>
-#include "AegisMath/Dynamics/EulerIntegrator.h"
-#include "AegisMath/Dynamics/RigidBodyParameters.h"
-#include "AegisMath/Dynamics/Wrench6.h"
+#include "AegisDynamics/EulerIntegrator.h"
+#include "AegisDynamics/RigidBodyParameters.h"
+#include "AegisDynamics/Wrench6.h"
 
 struct WorldFrame {};
 struct BodyFrame {};
 
-using namespace AegisMath::Dynamics;
+using namespace AegisDynamics;
 using namespace AegisMath::Units;
 
 TEST(EulerDynamicsTest, TorqueFreeConservationAndConvergence) {

@@ -3,11 +3,11 @@
 #include <type_traits>
 #include <cstddef>
 
-namespace AegisMath::Dynamics::Detail {
+namespace AegisDynamics::Detail {
     template<typename T>
     struct DynamicsABIValidator {
         static constexpr bool value =
                 std::is_standard_layout_v<T> &&
                 std::is_trivially_copyable_v<T>;
     };
-} // namespace AegisMath::Dynamics::Detail
+} // namespace AegisDynamics::Detail

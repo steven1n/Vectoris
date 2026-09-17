@@ -1,14 +1,14 @@
 #include <gtest/gtest.h>
-#include "AegisMath/Dynamics/RigidBodyParameters.h"
-#include "AegisMath/Dynamics/Wrench6.h"
-#include "AegisMath/Dynamics/RigidBodyState.h"
-#include "AegisMath/Dynamics/QuantityVector3.h"
+#include "AegisDynamics/RigidBodyParameters.h"
+#include "AegisDynamics/Wrench6.h"
+#include "AegisDynamics/RigidBodyState.h"
+#include "AegisDynamics/QuantityVector3.h"
 
 struct WorldFrame {};
 struct BodyFrame {};
 struct OtherFrame {};
 
-using namespace AegisMath::Dynamics;
+using namespace AegisDynamics;
 using namespace AegisMath::Units;
 
 // 编译期静态拒绝：坐标系安全约束

@@ -1,17 +1,17 @@
 #include <gtest/gtest.h>
 #include <cmath>
-#include "AegisMath/Dynamics/EulerIntegrator.h"
-#include "AegisMath/Dynamics/RigidBodyParameters.h"
-#include "AegisMath/Dynamics/Wrench6.h"
-#include "AegisMath/Dynamics/InertiaTensor3.h"
-#include "AegisMath/Dynamics/Detail/StateTypes.h"
-#include "AegisMath/Dynamics/QuantityVector3.h"
+#include "AegisDynamics/EulerIntegrator.h"
+#include "AegisDynamics/RigidBodyParameters.h"
+#include "AegisDynamics/Wrench6.h"
+#include "AegisDynamics/InertiaTensor3.h"
+#include "AegisDynamics/Detail/StateTypes.h"
+#include "AegisDynamics/QuantityVector3.h"
 
 struct WorldFrame {};
 struct BodyFrame {};
 
 TEST(RegressionFreeFall, VerticalDrop) {
-    using namespace AegisMath::Dynamics;
+    using namespace AegisDynamics;
     using namespace AegisMath::Units;
 
     Kilogram m{10.0};
@@ -61,7 +61,7 @@ TEST(RegressionFreeFall, VerticalDrop) {
 }
 
 TEST(RegressionFreeFall, FirstOrderConvergence) {
-    using namespace AegisMath::Dynamics;
+    using namespace AegisDynamics;
     using namespace AegisMath::Units;
 
     Kilogram m{10.0};

@@ -2,11 +2,11 @@
 
 #include "AegisMath/Geometry/FrameTags.h"
 #include "AegisMath/Geometry/Quaternion.h"
-#include "AegisMath/Dynamics/Concepts.h"
-#include "AegisMath/Dynamics/Detail/DynamicsABI.h"
-#include "AegisMath/Dynamics/QuantityVector3.h"
+#include "AegisDynamics/Concepts.h"
+#include "AegisDynamics/Detail/DynamicsABI.h"
+#include "AegisDynamics/QuantityVector3.h"
 
-namespace AegisMath::Dynamics {
+namespace AegisDynamics {
     struct StateValidatedTag final {
     };
 
@@ -48,4 +48,4 @@ namespace AegisMath::Dynamics {
             return KinematicState(pos, att, vel, angVel, StateValidatedTag{});
         }
     };
-} // namespace AegisMath::Dynamics
+} // namespace AegisDynamics

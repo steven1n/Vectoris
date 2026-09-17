@@ -1,6 +1,6 @@
 #pragma once
 
-namespace AegisMath::Dynamics::Convention {
+namespace AegisDynamics::Convention {
 
     // 坐标系规约：右手坐标系 (Right-Handed Coordinate System)
     // 航空航天体系 (Body Frame):
@@ -18,4 +18,4 @@ namespace AegisMath::Dynamics::Convention {
     // - v: 侧向速度 (Side)
     // - w: 法向垂向速度 (Vertical)
 
-} // namespace AegisMath::Dynamics::Convention
+} // namespace AegisDynamics::Convention

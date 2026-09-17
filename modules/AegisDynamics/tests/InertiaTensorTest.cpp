@@ -1,12 +1,12 @@
 #include <gtest/gtest.h>
 #include <limits>
-#include "AegisMath/Dynamics/InertiaTensor3.h"
+#include "AegisDynamics/InertiaTensor3.h"
 #include "AegisMath/Units/DerivedUnits/MomentOfInertia.h"
 
 struct BodyFrame {};
 struct OtherFrame {};
 
-using namespace AegisMath::Dynamics;
+using namespace AegisDynamics;
 using namespace AegisMath::Units;
 
 // 编译期静态拒绝：禁止跨坐标系力矩求解角加速度

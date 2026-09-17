@@ -3,14 +3,14 @@
 #include "AegisMath/Core/Result.h"
 #include "AegisMath/Core/MathError.h"
 #include "AegisMath/Core/NumericTraits.h"
-#include "AegisMath/Dynamics/Detail/StateTypes.h"
-#include "AegisMath/Dynamics/RigidBodyParameters.h"
-#include "AegisMath/Dynamics/Wrench6.h"
-#include "AegisMath/Dynamics/RigidBodyState.h"
-#include "AegisMath/Dynamics/QuantityVector3.h"
+#include "AegisDynamics/Detail/StateTypes.h"
+#include "AegisDynamics/RigidBodyParameters.h"
+#include "AegisDynamics/Wrench6.h"
+#include "AegisDynamics/RigidBodyState.h"
+#include "AegisDynamics/QuantityVector3.h"
 #include "AegisMath/Units/BaseUnits/Time.h"
 
-namespace AegisMath::Dynamics {
+namespace AegisDynamics {
 
     // 确定性一阶欧拉积分器（支持硬实时无堆分配，强类型物理量推进，强事务状态一致性保证）
     class EulerIntegrator final {
@@ -96,4 +96,4 @@ namespace AegisMath::Dynamics {
         }
     };
 
-} // namespace AegisMath::Dynamics
+} // namespace AegisDynamics
