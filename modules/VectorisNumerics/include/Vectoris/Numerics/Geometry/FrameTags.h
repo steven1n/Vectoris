@@ -20,3 +20,7 @@ namespace vectoris::numerics::Geometry {
     static_assert(FrameTag<FrameBody>);
 
 } // namespace vectoris::numerics::Geometry
+
+namespace vectoris::numerics {
+    namespace geometry = Geometry;
+}

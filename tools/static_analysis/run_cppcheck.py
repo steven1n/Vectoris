@@ -14,7 +14,7 @@ def find_cppcheck(explicit_path=None):
     if explicit_path and os.path.isfile(explicit_path):
         return explicit_path
         
-    candidate = os.environ.get("AEGISMATH_CPPCHECK")
+    candidate = os.environ.get("VECTORIS_CPPCHECK") or os.environ.get("AEGISMATH_CPPCHECK")
     if candidate and os.path.isfile(candidate):
         return candidate
         
@@ -28,7 +28,7 @@ def find_cppcheck(explicit_path=None):
     return None
 
 def main():
-    parser = argparse.ArgumentParser(description="AegisMathLib Cppcheck Qualification Runner")
+    parser = argparse.ArgumentParser(description="VectorisNumerics Cppcheck Qualification Runner")
     parser.add_argument("--cppcheck", default=None, help="Path to cppcheck binary")
     parser.add_argument("--xml-output", default=None, help="Path to write XML report")
     args = parser.parse_args()
@@ -37,7 +37,7 @@ def main():
     cppcheck_bin = find_cppcheck(args.cppcheck)
 
     print("=" * 80)
-    print("AegisMathLib Cppcheck Qualification Runner")
+    print("VectorisNumerics Cppcheck Qualification Runner")
     print("=" * 80)
 
     if not cppcheck_bin:
@@ -57,9 +57,10 @@ def main():
     except Exception as e:
         ver_out = f"Unknown ({e})"
 
+    scope_path = os.path.join("modules", "VectorisNumerics", "include", "Vectoris", "Numerics")
     print(f"Binary:  {cppcheck_bin}")
     print(f"Version: {ver_out}")
-    print(f"Scope:   include/AegisMath")
+    print(f"Scope:   {scope_path}")
     print("=" * 80)
 
     cmd = [
@@ -69,12 +70,12 @@ def main():
         "--inconclusive",
         "--force",
         "--error-exitcode=1",
-        "-I", os.path.join(repo_root, "include"),
+        "-I", os.path.join(repo_root, "modules", "VectorisNumerics", "include"),
     ]
     if args.xml_output:
         cmd.extend(["--xml", "--xml-version=2"])
 
-    cmd.append(os.path.join(repo_root, "include", "AegisMath"))
+    cmd.append(os.path.join(repo_root, scope_path))
 
     res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if args.xml_output:

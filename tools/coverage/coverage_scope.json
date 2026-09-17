@@ -18,19 +18,19 @@
     "rationale": "Normative branch coverage threshold restored to >=90.00% per ENGINEERING_STANDARD_V1.md Section 86 under DO-178C Level A and ISO 26262 ASIL D reachable branch qualification."
   },
   "branch_audit": {
-    "nominal_total": 336,
-    "covered_branches": 302,
-    "uncovered_branches_classified": 34,
+    "nominal_total": 338,
+    "covered_branches": 306,
+    "uncovered_branches_classified": 32,
     "categories": {
       "A_dead_code": 0,
       "B_compile_time_folded": 12,
       "C_defensive_contract_assertions": 14,
-      "D_provably_unreachable_under_preconditions": 8,
+      "D_provably_unreachable_under_preconditions": 6,
       "E_reachable_untested": 0,
       "F_unknown": 0
     },
-    "reachable_total": 302,
-    "reachable_covered": 302,
+    "reachable_total": 306,
+    "reachable_covered": 306,
     "reachable_percent": 100.0
   },
   "tracked_production_headers": [

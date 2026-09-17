@@ -236,7 +236,16 @@ TEST(GeometryComparisonTest, UnitVector3EqualityAndAlmostEqual) {
 
     bool create_ok = UnitVector3<double, FrameA>::TryCreate(Vector3<double, FrameA>(0.0, 2.0, 0.0), uv_out);
     EXPECT_TRUE(create_ok);
-    EXPECT_DOUBLE_EQ(uv_out.y, 1.0);
+    EXPECT_DOUBLE_EQ(uv_out.y(), 1.0);
+    EXPECT_DOUBLE_EQ(uv_out.getY(), 1.0);
+    EXPECT_DOUBLE_EQ(uv_out.x(), 0.0);
+    EXPECT_DOUBLE_EQ(uv_out.z(), 0.0);
+    EXPECT_TRUE(uv_out.IsValid());
+
+    // Invariant encapsulation and standard-layout ABI properties
+    static_assert(std::is_standard_layout_v<UnitVector3<double, FrameA>>);
+    static_assert(std::is_trivially_copyable_v<UnitVector3<double, FrameA>>);
+    static_assert(sizeof(UnitVector3<double, FrameA>) == 3 * sizeof(double));
 
     auto u3 = UnitVector3<double, FrameA>::TryCreate(Vector3<double, FrameA>(0.0, 1.0, 0.0)).Value();
     auto u4 = UnitVector3<double, FrameA>::TryCreate(Vector3<double, FrameA>(0.0, 0.0, 1.0)).Value();
@@ -702,3 +711,64 @@ TEST(GeometryComparisonTest, QuaternionNearZeroWDeterminism) {
     // SO(3) RotationEquivalent succeeds because both represent 180-deg flip about X axis
     EXPECT_TRUE(RotationEquivalent(q_pos, q_noisy));
 }
+
+// ----------------------------------------------------------------------------
+// 14. IEEE-754 Infinity Propagation in Geometry Comparisons
+// ----------------------------------------------------------------------------
+TEST(GeometryComparisonTest, IEEE754InfinityPropagationInGeometryComparisons) {
+    const double posInf = std::numeric_limits<double>::infinity();
+    const double negInf = -std::numeric_limits<double>::infinity();
+
+    // Vector3
+    Vector3<double, FrameA> v_finite(1.0, 2.0, 3.0);
+    Vector3<double, FrameA> v_inf_x(posInf, 2.0, 3.0);
+    Vector3<double, FrameA> v_inf_y(1.0, posInf, 3.0);
+    Vector3<double, FrameA> v_inf_z(1.0, 2.0, posInf);
+    Vector3<double, FrameA> v_neg_inf(negInf, 2.0, 3.0);
+
+    EXPECT_FALSE(AlmostEqual(v_finite, v_inf_x));
+    EXPECT_FALSE(AlmostEqual(v_inf_x, v_finite));
+    EXPECT_FALSE(AlmostEqual(v_finite, v_inf_y));
+    EXPECT_FALSE(AlmostEqual(v_finite, v_inf_z));
+    EXPECT_FALSE(AlmostEqual(v_finite, v_neg_inf));
+    EXPECT_FALSE(AlmostEqual(v_neg_inf, v_finite));
+    EXPECT_FALSE(AlmostEqual(v_inf_x, v_neg_inf));
+
+    // Identical infinite vectors
+    EXPECT_TRUE(AlmostEqual(v_inf_x, v_inf_x));
+    EXPECT_TRUE(AlmostEqual(v_neg_inf, v_neg_inf));
+
+    // Point3
+    Point3<double, FrameA> p_finite(1.0, 2.0, 3.0);
+    Point3<double, FrameA> p_inf(posInf, 2.0, 3.0);
+    Point3<double, FrameA> p_neg_inf(negInf, 2.0, 3.0);
+
+    EXPECT_FALSE(AlmostEqual(p_finite, p_inf));
+    EXPECT_FALSE(AlmostEqual(p_inf, p_finite));
+    EXPECT_FALSE(AlmostEqual(p_finite, p_neg_inf));
+    EXPECT_FALSE(AlmostEqual(p_neg_inf, p_finite));
+    EXPECT_FALSE(AlmostEqual(p_inf, p_neg_inf));
+    EXPECT_TRUE(AlmostEqual(p_inf, p_inf));
+
+    // Matrix3
+    Matrix3<double> m_finite(
+        1.0, 2.0, 3.0,
+        4.0, 5.0, 6.0,
+        7.0, 8.0, 9.0
+    );
+    for (size_t i = 0; i < 9; ++i) {
+        Matrix3<double> m_inf = m_finite;
+        m_inf.m[i] = posInf;
+        EXPECT_FALSE(AlmostEqual(m_finite, m_inf));
+        EXPECT_FALSE(AlmostEqual(m_inf, m_finite));
+        EXPECT_TRUE(AlmostEqual(m_inf, m_inf));
+
+        Matrix3<double> m_neg_inf = m_finite;
+        m_neg_inf.m[i] = negInf;
+        EXPECT_FALSE(AlmostEqual(m_finite, m_neg_inf));
+        EXPECT_FALSE(AlmostEqual(m_neg_inf, m_finite));
+        EXPECT_FALSE(AlmostEqual(m_inf, m_neg_inf));
+        EXPECT_TRUE(AlmostEqual(m_neg_inf, m_neg_inf));
+    }
+}
+

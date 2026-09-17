@@ -58,6 +58,7 @@ Checks: >
   cppcoreguidelines-special-member-functions,
   cppcoreguidelines-virtual-class-destructor
 
-HeaderFilterRegex: '.*/include/AegisMath/.*'
+HeaderFilterRegex: '.*/include/Vectoris/.*'
 FormatStyle: none
 ...
+

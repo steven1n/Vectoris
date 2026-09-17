@@ -147,43 +147,52 @@ namespace vectoris::numerics::Geometry {
                 return false;
             }
 
-            T d = det();
-            if (d == T{0} || d != d || d > std::numeric_limits<T>::max() || d < std::numeric_limits<T>::lowest()) {
+            // 2. 尺度归一化元素 (Scale-Normalized Elements in [-1, 1])
+            // 避免 scale^3 直接计算溢出 IEEE-754 指数范围 (如 double > 1e102 或 float > 1e12)
+            T sm[9];
+            for (size_t i = 0; i < 9; ++i) {
+                sm[i] = m[i] / max_val;
+            }
+
+            // 3. 归一化行列式计算 (|det_tilde| <= 6，绝对不会发生指数上溢)
+            T d_tilde = sm[0] * (sm[4]*sm[8] - sm[5]*sm[7])
+                      - sm[1] * (sm[3]*sm[8] - sm[5]*sm[6])
+                      + sm[2] * (sm[3]*sm[7] - sm[4]*sm[6]);
+
+            if (d_tilde != d_tilde || d_tilde == T{0}) {
                 return false;
             }
 
-            // 2. 尺度敏感奇异性阈值 (Scale-aware singularity cutoff)
-            // 行列式量纲为 scale^3。若 |det| <= eps * scale^3，判定为数值奇异，防御近奇异除零溢出。
-            T abs_d = (d >= T{0}) ? d : -d;
-            T scale3 = max_val * max_val * max_val;
+            // 4. 无量纲尺度奇异性阈值 (Scale-invariant singularity cutoff)
+            T abs_d_tilde = (d_tilde >= T{0}) ? d_tilde : -d_tilde;
             T eps = std::numeric_limits<T>::epsilon();
-            if (abs_d <= eps * scale3) {
+            if (abs_d_tilde <= eps) {
                 return false;
             }
 
-            // 3. 伴随矩阵元素计算写入临时栈缓冲，杜绝原地自赋值踩踏 (Anti-Aliasing)
-            // 修正第 7 元素代数余子式 C_12 下标: -(m[0]*m[7] - m[1]*m[6])
+            // 5. 伴随矩阵元素计算写入临时栈缓冲，杜绝原地自赋值踩踏 (Anti-Aliasing)
+            // 逐项除以 (d_tilde * max_val) 保证全尺度数值稳定
             T inv[9];
-            inv[0] =  (m[4]*m[8] - m[5]*m[7]) / d;
-            inv[1] = -(m[1]*m[8] - m[2]*m[7]) / d;
-            inv[2] =  (m[1]*m[5] - m[2]*m[4]) / d;
+            inv[0] =  ((sm[4]*sm[8] - sm[5]*sm[7]) / d_tilde) / max_val;
+            inv[1] = -((sm[1]*sm[8] - sm[2]*sm[7]) / d_tilde) / max_val;
+            inv[2] =  ((sm[1]*sm[5] - sm[2]*sm[4]) / d_tilde) / max_val;
 
-            inv[3] = -(m[3]*m[8] - m[5]*m[6]) / d;
-            inv[4] =  (m[0]*m[8] - m[2]*m[6]) / d;
-            inv[5] = -(m[0]*m[5] - m[2]*m[3]) / d;
+            inv[3] = -((sm[3]*sm[8] - sm[5]*sm[6]) / d_tilde) / max_val;
+            inv[4] =  ((sm[0]*sm[8] - sm[2]*sm[6]) / d_tilde) / max_val;
+            inv[5] = -((sm[0]*sm[5] - sm[2]*sm[3]) / d_tilde) / max_val;
 
-            inv[6] =  (m[3]*m[7] - m[4]*m[6]) / d;
-            inv[7] = -(m[0]*m[7] - m[1]*m[6]) / d; // 修复: 原实现误为 m[2]*m[6]
-            inv[8] =  (m[0]*m[4] - m[1]*m[3]) / d;
+            inv[6] =  ((sm[3]*sm[7] - sm[4]*sm[6]) / d_tilde) / max_val;
+            inv[7] = -((sm[0]*sm[7] - sm[1]*sm[6]) / d_tilde) / max_val;
+            inv[8] =  ((sm[0]*sm[4] - sm[1]*sm[3]) / d_tilde) / max_val;
 
-            // 4. 检查逆矩阵元素有限性
+            // 6. 检查逆矩阵元素有限性
             for (size_t i = 0; i < 9; ++i) {
                 if (inv[i] != inv[i] || inv[i] > std::numeric_limits<T>::max() || inv[i] < std::numeric_limits<T>::lowest()) {
                     return false;
                 }
             }
 
-            // 5. 写入输出对象 (安全拷贝，支持 &out == this)
+            // 7. 写入输出对象 (安全拷贝，支持 &out == this)
             for (size_t i = 0; i < 9; ++i) {
                 out.m[i] = inv[i];
             }

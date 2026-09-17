@@ -40,7 +40,7 @@ def main():
         sys.exit(1)
 
     profiles_dir = os.path.join(build_dir, "profiles")
-    profdata_file = os.path.join(build_dir, "aegismath.profdata")
+    profdata_file = os.path.join(build_dir, "vectoris_numerics.profdata")
     summary_json = os.path.join(build_dir, "coverage-summary.json")
 
     # Inspect and display qualified toolchain pairing
@@ -50,7 +50,7 @@ def main():
     cov_ver = cov_ver_res.stdout.strip().splitlines()[0] if cov_ver_res.stdout else "unknown"
 
     print("=" * 80)
-    print("AegisMathLib LLVM Coverage Toolchain Qualification")
+    print("VectorisNumerics LLVM Coverage Toolchain Qualification")
     print("=" * 80)
     print(f"llvm-profdata: {profdata_tool}")
     print(f"  Version:     {profdata_ver}")
@@ -60,7 +60,7 @@ def main():
     print("Toolchain pairing: Qualified Apple developer / LLVM companion tools")
     print("=" * 80)
 
-    # Phase 13: Clean raw profile directory
+    # Clean raw profile directory and stale profiles
     print(f"[Coverage] Cleaning profile directory: {profiles_dir}")
     if os.path.exists(profiles_dir):
         shutil.rmtree(profiles_dir)
@@ -68,11 +68,14 @@ def main():
 
     if os.path.exists(profdata_file):
         os.remove(profdata_file)
+    legacy_profdata = os.path.join(build_dir, "aegismath.profdata")
+    if os.path.exists(legacy_profdata):
+        os.remove(legacy_profdata)
     if os.path.exists(summary_json):
         os.remove(summary_json)
 
-    # Phase 14: Execute test binary
-    profraw_pattern = os.path.join(profiles_dir, "aegis-%p.profraw")
+    # Execute test binary with isolated profile destination
+    profraw_pattern = os.path.join(profiles_dir, "vectoris-%p.profraw")
     env = os.environ.copy()
     env["LLVM_PROFILE_FILE"] = profraw_pattern
 

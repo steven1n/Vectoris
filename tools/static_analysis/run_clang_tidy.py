@@ -20,6 +20,7 @@ def find_clang_tidy(explicit_path=None):
         return explicit_path
     
     candidates = [
+        os.environ.get("VECTORIS_CLANG_TIDY"),
         os.environ.get("AEGISMATH_CLANG_TIDY"),
         "/Applications/CLion.app/Contents/bin/clang/mac/x64/bin/clang-tidy",
         "/usr/local/opt/llvm/bin/clang-tidy",
@@ -125,7 +126,7 @@ def main():
         sys.exit(1)
 
     print("=" * 80)
-    print("AegisMathLib Clang-Tidy Qualification Runner")
+    print("VectorisNumerics Clang-Tidy Qualification Runner")
     print("=" * 80)
     print(f"Binary:     {clang_tidy_bin}")
     print(f"Version:    {first_ver_line}")

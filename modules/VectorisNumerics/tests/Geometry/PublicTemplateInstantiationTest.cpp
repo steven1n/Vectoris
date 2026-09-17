@@ -24,17 +24,17 @@ TEST(GeometryPublicTemplateTest, UnitVector3TryCreate) {
     auto uv_res = vectoris::numerics::Geometry::UnitVector3<double, TestFrameA>::TryCreate(v);
     ASSERT_TRUE(uv_res.IsSuccess());
     auto uv = uv_res.Value();
-    EXPECT_NEAR(uv.x, 0.6, 1e-12);
-    EXPECT_NEAR(uv.y, 0.8, 1e-12);
-    EXPECT_NEAR(uv.z, 0.0, 1e-12);
+    EXPECT_NEAR(uv.x(), 0.6, 1e-12);
+    EXPECT_NEAR(uv.y(), 0.8, 1e-12);
+    EXPECT_NEAR(uv.z(), 0.0, 1e-12);
     EXPECT_TRUE(uv.IsValid());
 
     // 2. Output-parameter factory
     vectoris::numerics::Geometry::UnitVector3<double, TestFrameA> uv_out = uv;
     bool ok = vectoris::numerics::Geometry::UnitVector3<double, TestFrameA>::TryCreate(v, uv_out);
     EXPECT_TRUE(ok);
-    EXPECT_NEAR(uv_out.x, 0.6, 1e-12);
-    EXPECT_NEAR(uv_out.y, 0.8, 1e-12);
+    EXPECT_NEAR(uv_out.x(), 0.6, 1e-12);
+    EXPECT_NEAR(uv_out.y(), 0.8, 1e-12);
 
     // 3. Zero vector rejection
     vectoris::numerics::Geometry::Vector3<double, TestFrameA> zero_v(0.0, 0.0, 0.0);

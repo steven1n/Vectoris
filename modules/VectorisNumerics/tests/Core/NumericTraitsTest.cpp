@@ -76,3 +76,95 @@ TEST(NumericTraitsTest, FloatStrictAlmostEqual) {
     EXPECT_FALSE(AlmostEqual(1.0f, NumericTraits<float>::quietNaN(), 1e-4f, 1e-4f));
     EXPECT_FALSE(AlmostEqual(NumericTraits<float>::quietNaN(), NumericTraits<float>::quietNaN(), 1e-4f, 1e-4f));
 }
+
+TEST(NumericTraitsTest, IEEE754InfinityAndSignedZeroSemanticsDouble) {
+    const Real posInf = NumericTraits<Real>::infinity();
+    const Real negInf = -NumericTraits<Real>::infinity();
+    const Real nanVal = NumericTraits<Real>::quietNaN();
+    const Real finiteVal = 1000.0;
+    const Real zero = 0.0;
+    const Real negZero = -0.0;
+    const Real absTol = 1e-6;
+    const Real relTol = 1e-5;
+
+    // +Inf vs +Inf -> true
+    EXPECT_TRUE(AlmostEqual(posInf, posInf, absTol, relTol));
+    // -Inf vs -Inf -> true
+    EXPECT_TRUE(AlmostEqual(negInf, negInf, absTol, relTol));
+
+    // +Inf vs -Inf -> false
+    EXPECT_FALSE(AlmostEqual(posInf, negInf, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(negInf, posInf, absTol, relTol));
+
+    // +Inf vs finite -> false
+    EXPECT_FALSE(AlmostEqual(posInf, finiteVal, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(finiteVal, posInf, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(posInf, zero, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(zero, posInf, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(posInf, 1e300, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(1e300, posInf, absTol, relTol));
+
+    // -Inf vs finite -> false
+    EXPECT_FALSE(AlmostEqual(negInf, finiteVal, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(finiteVal, negInf, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(negInf, zero, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(zero, negInf, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(negInf, -1e300, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(-1e300, negInf, absTol, relTol));
+
+    // Infinity vs NaN -> false
+    EXPECT_FALSE(AlmostEqual(posInf, nanVal, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(nanVal, posInf, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(negInf, nanVal, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(nanVal, negInf, absTol, relTol));
+
+    // Signed zeros: +0.0 == -0.0 under IEEE-754 -> true
+    EXPECT_TRUE(AlmostEqual(zero, negZero, absTol, relTol));
+    EXPECT_TRUE(AlmostEqual(negZero, zero, absTol, relTol));
+}
+
+TEST(NumericTraitsTest, IEEE754InfinityAndSignedZeroSemanticsFloat) {
+    const float posInf = NumericTraits<float>::infinity();
+    const float negInf = -NumericTraits<float>::infinity();
+    const float nanVal = NumericTraits<float>::quietNaN();
+    const float finiteVal = 1000.0f;
+    const float zero = 0.0f;
+    const float negZero = -0.0f;
+    const float absTol = 1e-4f;
+    const float relTol = 1e-4f;
+
+    // +Inf vs +Inf -> true
+    EXPECT_TRUE(AlmostEqual(posInf, posInf, absTol, relTol));
+    // -Inf vs -Inf -> true
+    EXPECT_TRUE(AlmostEqual(negInf, negInf, absTol, relTol));
+
+    // +Inf vs -Inf -> false
+    EXPECT_FALSE(AlmostEqual(posInf, negInf, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(negInf, posInf, absTol, relTol));
+
+    // +Inf vs finite -> false
+    EXPECT_FALSE(AlmostEqual(posInf, finiteVal, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(finiteVal, posInf, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(posInf, zero, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(zero, posInf, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(posInf, 1e38f, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(1e38f, posInf, absTol, relTol));
+
+    // -Inf vs finite -> false
+    EXPECT_FALSE(AlmostEqual(negInf, finiteVal, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(finiteVal, negInf, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(negInf, zero, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(zero, negInf, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(negInf, -1e38f, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(-1e38f, negInf, absTol, relTol));
+
+    // Infinity vs NaN -> false
+    EXPECT_FALSE(AlmostEqual(posInf, nanVal, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(nanVal, posInf, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(negInf, nanVal, absTol, relTol));
+    EXPECT_FALSE(AlmostEqual(nanVal, negInf, absTol, relTol));
+
+    // Signed zeros: +0.0 == -0.0 under IEEE-754 -> true
+    EXPECT_TRUE(AlmostEqual(zero, negZero, absTol, relTol));
+    EXPECT_TRUE(AlmostEqual(negZero, zero, absTol, relTol));
+}

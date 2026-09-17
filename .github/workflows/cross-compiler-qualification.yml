@@ -5,6 +5,8 @@ on:
     branches:
       - main
       - 'qualification/**'
+      - 'remediation/**'
+      - 'refactor/**'
   pull_request:
     branches:
       - main
@@ -223,3 +225,123 @@ jobs:
         with:
           name: msvc-windows-qualification-logs
           path: artifacts-msvc/
+
+  # ============================================================================
+  # 4. Dynamic Sanitizers / Linux (ASan, UBSan, ASan+UBSan)
+  # ============================================================================
+  sanitizers-linux:
+    name: Sanitizers / Linux (ASan, UBSan, ASan+UBSan)
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+      CXX: clang++
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: ASan Build & Test
+        run: |
+          cmake \
+            -S . \
+            -B build-asan \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DVECTORIS_ENABLE_ASAN=ON \
+            -DVECTORIS_ENABLE_UBSAN=OFF \
+            -DVECTORIS_ENABLE_COVERAGE=OFF \
+            -DVECTORIS_ENABLE_STATIC_ANALYSIS=OFF
+          cmake --build build-asan --parallel
+          ctest --test-dir build-asan --output-on-failure
+
+      - name: UBSan Build & Test
+        run: |
+          cmake \
+            -S . \
+            -B build-ubsan \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DVECTORIS_ENABLE_ASAN=OFF \
+            -DVECTORIS_ENABLE_UBSAN=ON \
+            -DVECTORIS_ENABLE_COVERAGE=OFF \
+            -DVECTORIS_ENABLE_STATIC_ANALYSIS=OFF
+          cmake --build build-ubsan --parallel
+          ctest --test-dir build-ubsan --output-on-failure
+
+      - name: ASan+UBSan Build & Test
+        run: |
+          cmake \
+            -S . \
+            -B build-asan-ubsan \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DVECTORIS_ENABLE_ASAN=ON \
+            -DVECTORIS_ENABLE_UBSAN=ON \
+            -DVECTORIS_ENABLE_COVERAGE=OFF \
+            -DVECTORIS_ENABLE_STATIC_ANALYSIS=OFF
+          cmake --build build-asan-ubsan --parallel
+          ctest --test-dir build-asan-ubsan --output-on-failure
+
+  # ============================================================================
+  # 5. LLVM Source Coverage Gate / Linux (>=90.00% Raw Branch)
+  # ============================================================================
+  coverage-linux:
+    name: Coverage Gate / Linux (LLVM Source Coverage >=90%)
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+      CXX: clang++
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install LLVM Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y llvm
+
+      - name: Configure Coverage Build
+        run: |
+          cmake \
+            -S . \
+            -B build-coverage \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DVECTORIS_ENABLE_ASAN=OFF \
+            -DVECTORIS_ENABLE_UBSAN=OFF \
+            -DVECTORIS_ENABLE_COVERAGE=ON \
+            -DVECTORIS_ENABLE_STATIC_ANALYSIS=OFF
+
+      - name: Build & Run VectorisNumerics_Coverage Target
+        run: |
+          cmake --build build-coverage --target VectorisNumerics_Coverage
+
+  # ============================================================================
+  # 6. Clang-Tidy Static Analysis / Linux (0 Production Diagnostics)
+  # ============================================================================
+  static-analysis-linux:
+    name: Clang-Tidy Static Analysis / Linux
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+      CXX: clang++
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Clang-Tidy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-tidy
+
+      - name: Configure Static Analysis Build
+        run: |
+          cmake \
+            -S . \
+            -B build-sta \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DVECTORIS_ENABLE_ASAN=OFF \
+            -DVECTORIS_ENABLE_UBSAN=OFF \
+            -DVECTORIS_ENABLE_COVERAGE=OFF \
+            -DVECTORIS_ENABLE_STATIC_ANALYSIS=ON
+
+      - name: Execute Clang-Tidy Target
+        run: |
+          cmake --build build-sta --target VectorisNumerics_ClangTidy
+

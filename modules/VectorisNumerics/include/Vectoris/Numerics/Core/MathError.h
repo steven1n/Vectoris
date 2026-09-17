@@ -34,3 +34,7 @@ namespace vectoris::numerics::Core {
     }
 
 } // namespace vectoris::numerics::Core
+
+namespace vectoris::numerics {
+    namespace core = Core;
+}

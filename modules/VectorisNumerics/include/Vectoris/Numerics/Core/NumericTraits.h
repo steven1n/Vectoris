@@ -62,7 +62,15 @@ namespace vectoris::numerics::Traits {
             return false;
         }
 
-        // 快速路径：处理完全相等的情况 (也同时正确处理了同号 Infinity == Infinity)
+        // [IEEE-754 无穷语义控制]
+        // 若任意参数为无穷大，必须精确同号同值才相等；无穷大不参与有限容差松弛比较
+        const Bool a_inf = IsInfinity(a);
+        const Bool b_inf = IsInfinity(b);
+        if (a_inf || b_inf) {
+            return a == b;
+        }
+
+        // 快速路径：处理完全相等的情况 (包括 +0.0 == -0.0 及相同有限值)
         if (a == b) {
             return true;
         }

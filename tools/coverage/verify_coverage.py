@@ -243,15 +243,15 @@ def main():
 
     func_pass = (func_covered == func_count) and (func_count > 0)
     line_pass = (line_pct >= req_line) and (line_count > 0)
-    branch_pass = (reachable_branch_pct >= req_branch) and (reachable_branch_count > 0)
+    raw_branch_pass = (branch_pct >= req_branch) and (branch_count > 0)
+    reachable_branch_pass = (reachable_branch_pct >= req_branch) and (reachable_branch_count > 0)
+    branch_pass = raw_branch_pass and reachable_branch_pass
 
     print(f"{'Functions':<18} | {func_covered:<10} | {func_count:<10} | {func_pct:>7.2f}%   | {req_function:>7.2f}%    | {'PASS' if func_pass else 'FAIL'}")
     print(f"{'Lines':<18} | {line_covered:<10} | {line_count:<10} | {line_pct:>7.2f}%   | >={req_line:>5.2f}%    | {'PASS' if line_pass else 'FAIL'}")
+    print(f"{'Raw Branches':<18} | {branch_covered:<10} | {branch_count:<10} | {branch_pct:>7.2f}%   | >={req_branch:>5.2f}%    | {'PASS' if raw_branch_pass else 'FAIL'}")
     if audit_applied:
-        print(f"{'Nominal Branches':<18} | {branch_covered:<10} | {branch_count:<10} | {branch_pct:>7.2f}%   | (audited)    | PASS")
-        print(f"{'Reachable Branches':<18} | {branch_covered:<10} | {reachable_branch_count:<10} | {reachable_branch_pct:>7.2f}%   | >={req_branch:>5.2f}%    | {'PASS' if branch_pass else 'FAIL'}")
-    else:
-        print(f"{'Branches':<18} | {branch_covered:<10} | {branch_count:<10} | {branch_pct:>7.2f}%   | >={req_branch:>5.2f}%    | {'PASS' if branch_pass else 'FAIL'}")
+        print(f"{'Reachable Branches':<18} | {branch_covered:<10} | {reachable_branch_count:<10} | {reachable_branch_pct:>7.2f}%   | >={req_branch:>5.2f}%    | {'PASS' if reachable_branch_pass else 'FAIL'}")
     print(f"{'Instantiations*':<18} | {inst_covered:<10} | {inst_count:<10} | {inst_pct:>7.2f}%   | (informational)| PASS")
     print(f"{'Regions*':<18} | {reg_covered:<10} | {reg_count:<10} | {reg_pct:>7.2f}%   | (informational)| PASS")
     print("-" * 80)

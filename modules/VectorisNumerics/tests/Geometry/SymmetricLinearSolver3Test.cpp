@@ -539,5 +539,25 @@ TEST(SymmetricLinearSolver3Test, FloatNonFiniteAndOverflow) {
     EXPECT_EQ(res_huge.error(), MathError::ill_conditioned);
 }
 
+// R1-002: Deterministic regression test demonstrating that backward error guard
+// (eta > kBackwardErrorBound * eps) is reachable in floating-point arithmetic.
+TEST(SymmetricLinearSolver3Test, BackwardErrorExceededRejectedAsIllConditioned) {
+    // Matrix constructed via LDLT factors with slight perturbation:
+    // Passes finite checks, symmetry check (|A_ij - A_ji| <= 100*eps*scale),
+    // positive pivot checks (d_k > 10*eps*scale), and pivot-spread check (min(d)/max(d) > 100*eps).
+    // Computes finite solution x, but numerical backward error eta = 2.3449e-14 (105.6*eps > 100*eps).
+    // The solver rejects it as MathError::ill_conditioned.
+    Matrix3<double> A(
+         53.2,                 -2.0216000000010865,  22.982399999999021,
+        -2.0215999999999998,    1.0598208,          -2.163027199999433,
+         22.9824,              -2.1630272,           11.620477952989999
+    );
+    Vector3<double, TestFrame> b(-9.05, -1.41, -3.72);
+
+    auto res = SolveSymmetricPositiveDefinite3x3(A, b);
+    EXPECT_FALSE(res.has_value());
+    EXPECT_EQ(res.error(), MathError::ill_conditioned);
+}
+
 
 

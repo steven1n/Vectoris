@@ -151,21 +151,35 @@ TEST(Matrix3Test, NonFiniteInputTryInverseRejection) {
     EXPECT_FALSE(inf_mat.TryInverse(inv));
 }
 
-TEST(Matrix3Test, DeterminantOverflowTryInverseRejection) {
+TEST(Matrix3Test, LargeWellConditionedMatrixScaleRobustnessDouble) {
+    // Large well-conditioned matrix where det() would overflow unnormalized scale^3 (1e150^3 = 1e450)
+    // Scale-normalized implementation correctly inverts with inv = 1e-150
     Matrix3<double> big_pos(
-        1e200, 0.0, 0.0,
-        0.0, 1e200, 0.0,
-        0.0, 0.0, 1e200
+        1e150, 0.0, 0.0,
+        0.0, 1e150, 0.0,
+        0.0, 0.0, 1e150
     );
     Matrix3<double> inv;
-    EXPECT_FALSE(big_pos.TryInverse(inv));
+    ASSERT_TRUE(big_pos.TryInverse(inv));
+    EXPECT_NEAR(inv(0, 0), 1e-150, 1e-160);
+    EXPECT_NEAR(inv(1, 1), 1e-150, 1e-160);
+    EXPECT_NEAR(inv(2, 2), 1e-150, 1e-160);
 
     Matrix3<double> big_neg(
-        -1e200, 0.0, 0.0,
-        0.0, 1e200, 0.0,
-        0.0, 0.0, 1e200
+        -1e150, 0.0, 0.0,
+        0.0, 1e150, 0.0,
+        0.0, 0.0, 1e150
     );
-    EXPECT_FALSE(big_neg.TryInverse(inv));
+    ASSERT_TRUE(big_neg.TryInverse(inv));
+    EXPECT_NEAR(inv(0, 0), -1e-150, 1e-160);
+
+    // True mathematical inverse overflow (1 / 1e-310 = 1e310 > double::max ~ 1.8e308)
+    Matrix3<double> tiny_overflow(
+        1e-310, 0.0, 0.0,
+        0.0, 1e-310, 0.0,
+        0.0, 0.0, 1e-310
+    );
+    EXPECT_FALSE(tiny_overflow.TryInverse(inv));
 }
 
 TEST(Matrix3Test, FloatComparisonAndAlmostEqual) {
@@ -261,20 +275,33 @@ TEST(Matrix3Test, FloatTryInverseComprehensive) {
     );
     EXPECT_FALSE(inf_mat.TryInverse(inv));
 
-    // Determinant overflow
+    // Scale robustness for large well-conditioned matrix in float (1e20f^3 = 1e60f overflows float)
+    // Scale-normalized implementation correctly inverts with inv = 1e-20f
     Matrix3<float> big_pos(
         1e20f, 0.0f, 0.0f,
         0.0f, 1e20f, 0.0f,
         0.0f, 0.0f, 1e20f
     );
-    EXPECT_FALSE(big_pos.TryInverse(inv));
+    ASSERT_TRUE(big_pos.TryInverse(inv));
+    EXPECT_NEAR(inv(0, 0), 1e-20f, 1e-25f);
+    EXPECT_NEAR(inv(1, 1), 1e-20f, 1e-25f);
+    EXPECT_NEAR(inv(2, 2), 1e-20f, 1e-25f);
 
     Matrix3<float> big_neg(
         -1e20f, 0.0f, 0.0f,
         0.0f, 1e20f, 0.0f,
         0.0f, 0.0f, 1e20f
     );
-    EXPECT_FALSE(big_neg.TryInverse(inv));
+    ASSERT_TRUE(big_neg.TryInverse(inv));
+    EXPECT_NEAR(inv(0, 0), -1e-20f, 1e-25f);
+
+    // True mathematical inverse overflow (1 / 1e-40f = 1e40f > float::max ~ 3.4e38)
+    Matrix3<float> tiny_overflow(
+        1e-40f, 0.0f, 0.0f,
+        0.0f, 1e-40f, 0.0f,
+        0.0f, 0.0f, 1e-40f
+    );
+    EXPECT_FALSE(tiny_overflow.TryInverse(inv));
 
     // Frobenius norm squared for float
     EXPECT_FLOAT_EQ(I.frobenius_norm_squared(), 3.0f);
