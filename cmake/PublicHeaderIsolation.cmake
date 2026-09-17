@@ -30,7 +30,7 @@ int main() {
 endforeach()
 
 # ==============================================================================
-# Phase 17: Include-Order Poisoning Verification
+# Include-Order Poisoning Verification
 # ==============================================================================
 
 # Forward order
@@ -70,4 +70,6 @@ set_target_properties(AegisMathLib_HeaderIsolation PROPERTIES
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
-aegismath_apply_sanitizers(AegisMathLib_HeaderIsolation)
+if(COMMAND aegismath_apply_sanitizers)
+    aegismath_apply_sanitizers(AegisMathLib_HeaderIsolation)
+endif()

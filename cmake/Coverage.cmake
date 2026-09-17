@@ -85,24 +85,24 @@ function(aegismath_register_coverage_target TEST_TARGET)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
     add_custom_target(AegisMathLib_Coverage
-        COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tools/coverage/run_coverage.py"
+        COMMAND ${Python3_EXECUTABLE} "${PROJECT_SOURCE_DIR}/tools/coverage/run_coverage.py"
             --test-binary "$<TARGET_FILE:${TEST_TARGET}>"
             --llvm-profdata "${LLVM_PROFDATA_BIN}"
             --llvm-cov "${LLVM_COV_BIN}"
             --build-dir "${CMAKE_BINARY_DIR}"
-            --repo-root "${CMAKE_SOURCE_DIR}"
+            --repo-root "${PROJECT_SOURCE_DIR}"
         DEPENDS ${TEST_TARGET}
         WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
         COMMENT "Running instrumented tests and evaluating coverage gate..."
     )
 
     add_custom_target(AegisMathLib_Coverage_HTML
-        COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tools/coverage/run_coverage.py"
+        COMMAND ${Python3_EXECUTABLE} "${PROJECT_SOURCE_DIR}/tools/coverage/run_coverage.py"
             --test-binary "$<TARGET_FILE:${TEST_TARGET}>"
             --llvm-profdata "${LLVM_PROFDATA_BIN}"
             --llvm-cov "${LLVM_COV_BIN}"
             --build-dir "${CMAKE_BINARY_DIR}"
-            --repo-root "${CMAKE_SOURCE_DIR}"
+            --repo-root "${PROJECT_SOURCE_DIR}"
             --html-dir "${CMAKE_BINARY_DIR}/coverage-html"
         DEPENDS ${TEST_TARGET}
         WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
