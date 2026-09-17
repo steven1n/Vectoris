@@ -9,6 +9,61 @@ The library prioritizes compile-time dimensional safety, coordinate frame safety
 
 ---
 
+## Repository Structure
+
+```text
+AegisMathLib/
+├── CMakeLists.txt          # Project-level orchestrator (C++20 baseline, deps, module dispatch)
+├── CMakePresets.json        # Standardized build presets (all output under .build/)
+├── README.md
+├── VERSION
+│
+├── modules/
+│   ├── AegisMathLib/       # Pure mathematics & numerical computation library
+│   │   ├── CMakeLists.txt  # Module-level targets, tests, isolation, coverage, static analysis
+│   │   ├── include/
+│   │   │   └── AegisMath/
+│   │   │       ├── Core/       # IEEE-754 traits, bounded functions, error model
+│   │   │       ├── Units/      # Model B 8D dimensional analysis system
+│   │   │       └── Geometry/   # Frame-safe SO(3)/SE(3) spatial geometry & linear algebra
+│   │   └── tests/
+│   │       ├── Architecture/   # Dependency layer violation detection
+│   │       ├── Core/
+│   │       ├── Units/
+│   │       └── Geometry/
+│   │
+│   └── AegisDynamics/      # Downstream domain physics module (rigid-body mechanics)
+│       ├── CMakeLists.txt
+│       ├── include/AegisDynamics/
+│       └── tests/
+│
+├── cmake/                   # Reusable CMake infrastructure
+│   ├── Coverage.cmake
+│   ├── Sanitizers.cmake
+│   ├── StaticAnalysis.cmake
+│   └── PublicHeaderIsolation.cmake
+│
+├── tools/                   # Qualification and analysis tooling
+│   ├── coverage/
+│   └── static_analysis/
+│
+├── docs/                    # Specifications, audits, and conventions
+│   ├── ENGINEERING_STANDARD_V1.md    # Normative SSOT
+│   ├── audits/
+│   └── ...
+│
+├── .github/workflows/       # Cross-compiler CI (GCC, Clang, MSVC)
+└── .build/                  # Generated build output (gitignored)
+```
+
+**Key layout principles:**
+- `modules/AegisMathLib/` = pure mathematics library (55 headers, 12 test files)
+- `modules/AegisDynamics/` = downstream rigid-body / physics module (depends on AegisMathLib)
+- `.build/` = all local generated build output (never tracked by Git)
+- `cmake/` = reusable CMake infrastructure (sanitizers, coverage, isolation, static analysis)
+
+---
+
 ## Current Status
 
 | Metric | Status |
@@ -19,8 +74,8 @@ The library prioritizes compile-time dimensional safety, coordinate frame safety
 | **Open HIGH Findings** | **0** |
 | **Code-Level MEDIUM Blockers** | **0** |
 | **Public Headers Standalone Isolation** | **PASS** (55 / 55 headers, 57 / 57 TUs in `AegisMathLib_HeaderIsolation`) |
-| **MathLib Test Suite Execution** | **90 / 90 PASS (100%)** in Debug and Release |
-| **Downstream AegisDynamics Execution**| **30 / 30 PASS (100%)** in Debug and Release (13 / 13 HeaderIsolation TUs) |
+| **MathLib Test Suite Execution** | **PASS** in Debug and Release |
+| **Downstream AegisDynamics Execution**| **PASS** in Debug and Release (13 / 13 HeaderIsolation TUs) |
 | **Stable-Core Qualification** | **PASS** (Pure-Math Scope Qualification complete per Section 124 DoD) |
 | **Stable-Core Certification** | **INTERNAL PROJECT QUALIFIED** (All DoD gates satisfied; zero active blockers) |
 
@@ -93,22 +148,34 @@ Lower layers NEVER depend on higher layers. Cyclic dependencies, domain bleed, a
     - Upstream LLVM Clang 18.1.3 (Ubuntu 24.04.1 x86_64)
     - MSVC 19.51.36256.0 / Visual Studio 18 2026 (Windows Server 2025 x64)
 
-### Build and Run Tests
+### Build and Run Tests (Using Presets)
 ```bash
-# Configure Debug build
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+# Configure and build Debug
+cmake --preset debug
+cmake --build --preset debug
 
-# Compile all targets in parallel
-cmake --build build --parallel
-
-# Execute pure MathLib test suite (90 tests)
-./build/AegisMathLib_Tests
+# Run all tests
+ctest --preset debug
 ```
+
+### Available Presets
+| Preset | Build Type | Description |
+|:---|:---|:---|
+| `debug` | Debug | Standard debug build with all modules |
+| `release` | Release | Optimized release build |
+| `asan` | Debug | AddressSanitizer enabled |
+| `ubsan` | Debug | UndefinedBehaviorSanitizer enabled |
+| `asan-ubsan` | Debug | Combined ASan + UBSan |
+| `coverage` | Debug | LLVM source-based coverage instrumentation |
+| `static-analysis` | Debug | Clang-Tidy static analysis targets |
+| `pure-math` | Debug | AegisMathLib only (no AegisDynamics) |
+
+All build output is placed under `.build/<preset>/`.
 
 ### Run Public Header Standalone Isolation Gate
 ```bash
 # Compile all 55 standalone header TUs and 2 include-order poisoning TUs
-cmake --build build --target AegisMathLib_HeaderIsolation --parallel
+cmake --build .build/debug --target AegisMathLib_HeaderIsolation --parallel
 ```
 
 ---
