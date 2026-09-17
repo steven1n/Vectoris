@@ -1,6 +1,11 @@
-# CMake / CLion build outputs
+# Unified build output root
+.build/
+
+# Legacy / IDE build outputs
 build/
 build-*/
 cmake-build-*/
+
+# LLVM coverage intermediates
 *.profraw
 *.profdata
