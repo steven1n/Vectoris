@@ -19,7 +19,7 @@ find_package(Python3 COMPONENTS Interpreter REQUIRED)
 add_custom_target(AegisMathLib_ClangTidy
     COMMAND ${Python3_EXECUTABLE}
             ${PROJECT_SOURCE_DIR}/tools/static_analysis/run_clang_tidy.py
-            --build-dir ${CMAKE_CURRENT_BINARY_DIR}
+            --build-dir ${CMAKE_BINARY_DIR}
             $<$<BOOL:${AEGISMATH_CLANG_TIDY}>:--clang-tidy=${AEGISMATH_CLANG_TIDY}>
             --warnings-as-errors
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}

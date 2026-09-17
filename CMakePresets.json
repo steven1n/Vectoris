@@ -80,7 +80,8 @@
       "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "AEGISMATH_ENABLE_STATIC_ANALYSIS": "ON"
+        "AEGISMATH_ENABLE_STATIC_ANALYSIS": "ON",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     },
     {
