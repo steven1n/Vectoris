@@ -17,12 +17,20 @@
 
 namespace fs = std::filesystem;
 
+// Project root is injected by CMake via -DAEGISMATH_PROJECT_ROOT="..."
+#ifndef AEGISMATH_PROJECT_ROOT
+#error "AEGISMATH_PROJECT_ROOT must be defined by CMake"
+#endif
+
+static fs::path mathlib_include_root() {
+    return fs::path(AEGISMATH_PROJECT_ROOT) / "modules" / "AegisMathLib" / "include" / "AegisMath";
+}
+
 TEST(ArchitectureLayeringTest, LowerLayersMustNotIncludeDynamics) {
-    // 根目录或构建上下文中的 include 目录
     const std::vector<fs::path> search_paths = {
-        fs::path(__FILE__).parent_path().parent_path().parent_path() / "include" / "AegisMath" / "Core",
-        fs::path(__FILE__).parent_path().parent_path().parent_path() / "include" / "AegisMath" / "Units",
-        fs::path(__FILE__).parent_path().parent_path().parent_path() / "include" / "AegisMath" / "Geometry"
+        mathlib_include_root() / "Core",
+        mathlib_include_root() / "Units",
+        mathlib_include_root() / "Geometry"
     };
 
     const std::regex illegal_include_pattern(R"(#\s*include\s*["<].*Dynamics.*[">])");
@@ -58,7 +66,7 @@ TEST(ArchitectureLayeringTest, LowerLayersMustNotIncludeDynamics) {
 }
 
 TEST(ArchitectureLayeringTest, NoLegacyDuplicateUnitsSystem) {
-    const fs::path include_root = fs::path(__FILE__).parent_path().parent_path().parent_path() / "include" / "AegisMath";
+    const fs::path include_root = mathlib_include_root();
     const fs::path legacy_unit_h = include_root / "Units" / "Unit.h";
 
     // 1. Ensure the legacy Unit.h file is completely removed
@@ -87,7 +95,7 @@ TEST(ArchitectureLayeringTest, NoLegacyDuplicateUnitsSystem) {
 }
 
 TEST(ArchitectureLayeringTest, PureMathLibMustNotContainOrIncludeDynamics) {
-    const fs::path aegismath_root = fs::path(__FILE__).parent_path().parent_path().parent_path() / "include" / "AegisMath";
+    const fs::path aegismath_root = mathlib_include_root();
     const fs::path legacy_dynamics_dir = aegismath_root / "Dynamics";
 
     // 1. Ensure the legacy Dynamics folder is completely absent from include/AegisMath/
@@ -123,4 +131,3 @@ TEST(ArchitectureLayeringTest, PureMathLibMustNotContainOrIncludeDynamics) {
                                          return msg;
                                      }();
 }
-

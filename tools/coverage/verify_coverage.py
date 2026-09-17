@@ -26,9 +26,14 @@ def parse_args():
     return parser.parse_args()
 
 def classify_module(relpath):
-    parts = relpath.split(os.sep)
-    if len(parts) > 2 and parts[0] == "include" and parts[1] == "AegisMath":
-        return parts[2]
+    parts = relpath.replace("\\", "/").split("/")
+    # Find AegisMath in the path and use the next component as the module
+    try:
+        idx = parts.index("AegisMath")
+        if idx + 1 < len(parts):
+            return parts[idx + 1]
+    except ValueError:
+        pass
     return "Other"
 
 def main():
@@ -59,7 +64,7 @@ def main():
 
     # Repository canonical path validation
     repo_root = os.path.realpath(args.repo_root)
-    production_root = os.path.realpath(os.path.join(repo_root, "include", "AegisMath"))
+    production_root = os.path.realpath(os.path.join(repo_root, "modules", "AegisMathLib", "include", "AegisMath"))
 
     invalid_files = []
     found_relpaths = set()
@@ -140,7 +145,7 @@ def main():
     for entry in export_files:
         fn = entry.get("filename", "")
         # Extract relative path from include/AegisMath/
-        idx = fn.find("include/AegisMath/")
+        idx = fn.find("modules/AegisMathLib/include/AegisMath/")
         relpath = fn[idx:] if idx != -1 else fn
         mod = classify_module(relpath)
         if mod not in module_data:
@@ -223,7 +228,7 @@ def main():
     print("=" * 80)
     print("AegisMathLib Stable-Core Test Coverage Report (P2-COV)")
     print("=" * 80)
-    print(f"Production Scope: include/AegisMath/** (Files reporting: {len(export_files)})")
+    print(f"Production Scope: modules/AegisMathLib/include/AegisMath/** (Files reporting: {len(export_files)})")
     print("-" * 80)
     print(f"{'Metric':<18} | {'Covered':<10} | {'Total':<10} | {'Percent':<10} | {'Threshold':<12} | {'Status'}")
     print("-" * 80)
