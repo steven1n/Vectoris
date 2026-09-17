@@ -14,11 +14,11 @@
         "CMAKE_CXX_STANDARD": "20",
         "CMAKE_CXX_STANDARD_REQUIRED": "ON",
         "CMAKE_CXX_EXTENSIONS": "OFF",
-        "AEGISMATH_ENABLE_ASAN": "OFF",
-        "AEGISMATH_ENABLE_UBSAN": "OFF",
-        "AEGISMATH_ENABLE_COVERAGE": "OFF",
-        "AEGISMATH_ENABLE_STATIC_ANALYSIS": "OFF",
-        "AEGISMATH_BUILD_DYNAMICS": "ON"
+        "VECTORIS_ENABLE_ASAN": "OFF",
+        "VECTORIS_ENABLE_UBSAN": "OFF",
+        "VECTORIS_ENABLE_COVERAGE": "OFF",
+        "VECTORIS_ENABLE_STATIC_ANALYSIS": "OFF",
+        "VECTORIS_BUILD_DYNAMICS": "ON"
       }
     },
     {
@@ -43,7 +43,7 @@
       "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "AEGISMATH_ENABLE_ASAN": "ON"
+        "VECTORIS_ENABLE_ASAN": "ON"
       }
     },
     {
@@ -52,7 +52,7 @@
       "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "AEGISMATH_ENABLE_UBSAN": "ON"
+        "VECTORIS_ENABLE_UBSAN": "ON"
       }
     },
     {
@@ -61,8 +61,8 @@
       "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "AEGISMATH_ENABLE_ASAN": "ON",
-        "AEGISMATH_ENABLE_UBSAN": "ON"
+        "VECTORIS_ENABLE_ASAN": "ON",
+        "VECTORIS_ENABLE_UBSAN": "ON"
       }
     },
     {
@@ -71,7 +71,7 @@
       "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "AEGISMATH_ENABLE_COVERAGE": "ON"
+        "VECTORIS_ENABLE_COVERAGE": "ON"
       }
     },
     {
@@ -80,18 +80,23 @@
       "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "AEGISMATH_ENABLE_STATIC_ANALYSIS": "ON",
+        "VECTORIS_ENABLE_STATIC_ANALYSIS": "ON",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     },
     {
-      "name": "pure-math",
-      "displayName": "Pure Math (No Dynamics)",
+      "name": "pure-numerics",
+      "displayName": "Pure Numerics (No Dynamics)",
       "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "AEGISMATH_BUILD_DYNAMICS": "OFF"
+        "VECTORIS_BUILD_DYNAMICS": "OFF"
       }
+    },
+    {
+      "name": "pure-math",
+      "displayName": "Pure Math (Legacy Alias)",
+      "inherits": "pure-numerics"
     }
   ],
   "buildPresets": [
@@ -124,6 +129,10 @@
       "configurePreset": "static-analysis"
     },
     {
+      "name": "pure-numerics",
+      "configurePreset": "pure-numerics"
+    },
+    {
       "name": "pure-math",
       "configurePreset": "pure-math"
     }
@@ -152,6 +161,11 @@
     {
       "name": "asan-ubsan",
       "configurePreset": "asan-ubsan",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "pure-numerics",
+      "configurePreset": "pure-numerics",
       "output": { "outputOnFailure": true }
     },
     {

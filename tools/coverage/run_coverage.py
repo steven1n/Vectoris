@@ -103,7 +103,7 @@ def main():
 
     # Phase 17 & 18: Export JSON summary
     print(f"[Coverage] Exporting production coverage summary to {summary_json}")
-    ignore_regex = r"(^|/)(tests|cmake-build-|\.build|_deps|googletest|googlemock|AegisDynamics)(/|$)"
+    ignore_regex = r"(^|/)(tests|cmake-build-|\.build|_deps|googletest|googlemock|VectorisDynamics|AegisDynamics)(/|$)"
     export_cmd = [
         cov_tool, "export",
         test_binary,

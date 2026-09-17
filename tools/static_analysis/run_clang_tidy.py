@@ -186,8 +186,8 @@ def main():
     diag_pattern = re.compile(r"^([^:\n]+):(\d+):(\d+):\s+(warning|error):\s+(.*?)\s+\[([^\]]+)\]", re.MULTILINE)
     
     real_repo_root = os.path.realpath(repo_root)
-    real_prod_root = os.path.realpath(os.path.join(real_repo_root, "modules", "AegisMathLib", "include", "AegisMath"))
-    real_test_root = os.path.realpath(os.path.join(real_repo_root, "modules", "AegisMathLib", "tests"))
+    real_prod_root = os.path.realpath(os.path.join(real_repo_root, "modules", "VectorisNumerics", "include", "Vectoris", "Numerics"))
+    real_test_root = os.path.realpath(os.path.join(real_repo_root, "modules", "VectorisNumerics", "tests"))
 
     def is_contained_in(path, parent):
         try:
@@ -237,8 +237,8 @@ def main():
     print("=" * 80)
     print(f"Total Raw Diagnostic Occurrences:              {raw_diag_count}")
     print(f"Total Unique Diagnostics:                      {len(unique_production_diags) + len(unique_test_diags) + len(unique_system_diags)}")
-    print(f"Production Diagnostics (modules/AegisMathLib/**):  {len(unique_production_diags)} unique ({len(raw_production_diags)} raw)")
-    print(f"Test Diagnostics (modules/AegisMathLib/tests/**):  {len(unique_test_diags)} unique ({len(raw_test_diags)} raw)")
+    print(f"Production Diagnostics (modules/VectorisNumerics/**):  {len(unique_production_diags)} unique ({len(raw_production_diags)} raw)")
+    print(f"Test Diagnostics (modules/VectorisNumerics/tests/**):  {len(unique_test_diags)} unique ({len(raw_test_diags)} raw)")
     print(f"System / External Diagnostics:                 {len(unique_system_diags)} unique ({len(raw_system_diags)} raw)")
     print(f"Failed Translation Units (crashed/errored):    {len(failed_tus)}")
     print("=" * 80)

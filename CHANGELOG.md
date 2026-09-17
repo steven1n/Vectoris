@@ -1,8 +1,33 @@
+# Changelog
+
+## [1.0.0-RC1] - 2026-09-17 - Vectoris Global Rename Migration
+
+### Changed
+- **Global Rebranding**: Entire software suite rebranded from `AegisMathLib` to **`Vectoris`**.
+- **Module Architecture**:
+  - `modules/AegisMathLib` renamed to `modules/VectorisNumerics` (`VectorisNumerics`, alias `Vectoris::Numerics`).
+  - `modules/AegisDynamics` renamed to `modules/VectorisDynamics` (`VectorisDynamics`, alias `Vectoris::Dynamics`).
+- **Namespace Realignment**:
+  - Pure numerics migrated to standard lowercase hierarchy: `namespace vectoris::numerics` (`vectoris::numerics::core`, `units`, `geometry`).
+  - Domain physics migrated to `namespace vectoris::dynamics`.
+  - Fully resolves and closes formal deviation `AML-DEVIATION-003`.
+- **Public Headers Relocated**:
+  - Numerics headers moved to `<Vectoris/Numerics/...>`.
+  - Dynamics headers moved to `<Vectoris/Dynamics/...>`.
+- **Build Infrastructure**:
+  - Root project `project(Vectoris LANGUAGES CXX)`.
+  - Options converted to `VECTORIS_STRICT_WARNINGS`, `VECTORIS_BUILD_DYNAMICS`, `VECTORIS_ENABLE_*`.
+  - CMake presets updated with `pure-numerics` (preserving `pure-math` legacy alias).
+
+---
+
+# Historical Development Notes (Pre-Vectoris Migration)
+
 # AegisMathLib Geometry Foundation v1.0
 
 > [!NOTE]
 > **Status**: HISTORICAL / ARCHIVE (Non-Authoritative)  
-> This file contains pre-governance historical development notes. For authoritative release and qualification status, consult [`README.md`](README.md) and [`docs/audits/AegisMathLib_Stable_Core_Qualification_v1.md`](docs/audits/AegisMathLib_Stable_Core_Qualification_v1.md).
+> This file contains pre-governance historical development notes. For authoritative release and qualification status, consult [`README.md`](README.md) and [`docs/VECTORIS_RENAME_MIGRATION.md`](docs/VECTORIS_RENAME_MIGRATION.md).
 
 ### Added
 

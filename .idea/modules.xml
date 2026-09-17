@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/AegisMathLib.iml" filepath="$PROJECT_DIR$/.idea/AegisMathLib.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/Vectoris.iml" filepath="$PROJECT_DIR$/.idea/Vectoris.iml" />
     </modules>
   </component>
 </project>

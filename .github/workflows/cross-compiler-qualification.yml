@@ -50,17 +50,17 @@ jobs:
             -S . \
             -B build-gcc-debug \
             -DCMAKE_BUILD_TYPE=Debug \
-            -DAEGISMATH_ENABLE_ASAN=OFF \
-            -DAEGISMATH_ENABLE_UBSAN=OFF \
-            -DAEGISMATH_ENABLE_COVERAGE=OFF \
-            -DAEGISMATH_ENABLE_STATIC_ANALYSIS=OFF \
+            -DVECTORIS_ENABLE_ASAN=OFF \
+            -DVECTORIS_ENABLE_UBSAN=OFF \
+            -DVECTORIS_ENABLE_COVERAGE=OFF \
+            -DVECTORIS_ENABLE_STATIC_ANALYSIS=OFF \
             | tee artifacts-gcc/configure-debug.log
           cmake --build build-gcc-debug --parallel 2>&1 | tee artifacts-gcc/build-debug.log
           ctest --test-dir build-gcc-debug --output-on-failure 2>&1 | tee artifacts-gcc/test-debug.log
 
       - name: Phase 11 — GCC Header Isolation
         run: |
-          cmake --build build-gcc-debug --target AegisMathLib_HeaderIsolation AegisDynamics_HeaderIsolation --parallel 2>&1 | tee artifacts-gcc/header-isolation.log
+          cmake --build build-gcc-debug --target VectorisNumerics_HeaderIsolation VectorisDynamics_HeaderIsolation --parallel 2>&1 | tee artifacts-gcc/header-isolation.log
 
       - name: Phase 12 — GCC Release Build & Test
         run: |
@@ -68,10 +68,10 @@ jobs:
             -S . \
             -B build-gcc-release \
             -DCMAKE_BUILD_TYPE=Release \
-            -DAEGISMATH_ENABLE_ASAN=OFF \
-            -DAEGISMATH_ENABLE_UBSAN=OFF \
-            -DAEGISMATH_ENABLE_COVERAGE=OFF \
-            -DAEGISMATH_ENABLE_STATIC_ANALYSIS=OFF \
+            -DVECTORIS_ENABLE_ASAN=OFF \
+            -DVECTORIS_ENABLE_UBSAN=OFF \
+            -DVECTORIS_ENABLE_COVERAGE=OFF \
+            -DVECTORIS_ENABLE_STATIC_ANALYSIS=OFF \
             | tee artifacts-gcc/configure-release.log
           cmake --build build-gcc-release --parallel 2>&1 | tee artifacts-gcc/build-release.log
           ctest --test-dir build-gcc-release --output-on-failure 2>&1 | tee artifacts-gcc/test-release.log
@@ -118,17 +118,17 @@ jobs:
             -S . \
             -B build-clang-debug \
             -DCMAKE_BUILD_TYPE=Debug \
-            -DAEGISMATH_ENABLE_ASAN=OFF \
-            -DAEGISMATH_ENABLE_UBSAN=OFF \
-            -DAEGISMATH_ENABLE_COVERAGE=OFF \
-            -DAEGISMATH_ENABLE_STATIC_ANALYSIS=OFF \
+            -DVECTORIS_ENABLE_ASAN=OFF \
+            -DVECTORIS_ENABLE_UBSAN=OFF \
+            -DVECTORIS_ENABLE_COVERAGE=OFF \
+            -DVECTORIS_ENABLE_STATIC_ANALYSIS=OFF \
             | tee artifacts-clang/configure-debug.log
           cmake --build build-clang-debug --parallel 2>&1 | tee artifacts-clang/build-debug.log
           ctest --test-dir build-clang-debug --output-on-failure 2>&1 | tee artifacts-clang/test-debug.log
 
       - name: Phase 15 — LLVM Clang Header Isolation
         run: |
-          cmake --build build-clang-debug --target AegisMathLib_HeaderIsolation AegisDynamics_HeaderIsolation --parallel 2>&1 | tee artifacts-clang/header-isolation.log
+          cmake --build build-clang-debug --target VectorisNumerics_HeaderIsolation VectorisDynamics_HeaderIsolation --parallel 2>&1 | tee artifacts-clang/header-isolation.log
 
       - name: Phase 16 — LLVM Clang Release Build & Test
         run: |
@@ -136,10 +136,10 @@ jobs:
             -S . \
             -B build-clang-release \
             -DCMAKE_BUILD_TYPE=Release \
-            -DAEGISMATH_ENABLE_ASAN=OFF \
-            -DAEGISMATH_ENABLE_UBSAN=OFF \
-            -DAEGISMATH_ENABLE_COVERAGE=OFF \
-            -DAEGISMATH_ENABLE_STATIC_ANALYSIS=OFF \
+            -DVECTORIS_ENABLE_ASAN=OFF \
+            -DVECTORIS_ENABLE_UBSAN=OFF \
+            -DVECTORIS_ENABLE_COVERAGE=OFF \
+            -DVECTORIS_ENABLE_STATIC_ANALYSIS=OFF \
             | tee artifacts-clang/configure-release.log
           cmake --build build-clang-release --parallel 2>&1 | tee artifacts-clang/build-release.log
           ctest --test-dir build-clang-release --output-on-failure 2>&1 | tee artifacts-clang/test-release.log
@@ -194,10 +194,10 @@ jobs:
           & cmake.exe `
             -S . `
             -B build-msvc `
-            -DAEGISMATH_ENABLE_ASAN=OFF `
-            -DAEGISMATH_ENABLE_UBSAN=OFF `
-            -DAEGISMATH_ENABLE_COVERAGE=OFF `
-            -DAEGISMATH_ENABLE_STATIC_ANALYSIS=OFF `
+            -DVECTORIS_ENABLE_ASAN=OFF `
+            -DVECTORIS_ENABLE_UBSAN=OFF `
+            -DVECTORIS_ENABLE_COVERAGE=OFF `
+            -DVECTORIS_ENABLE_STATIC_ANALYSIS=OFF `
             *>&1 | Tee-Object -FilePath artifacts-msvc/configure.log
 
       - name: Phase 19 — MSVC Debug Build & Test
@@ -209,7 +209,7 @@ jobs:
       - name: Phase 20 — MSVC Header Isolation
         shell: pwsh
         run: |
-          & cmake.exe --build build-msvc --config Debug --target AegisMathLib_HeaderIsolation AegisDynamics_HeaderIsolation --parallel *>&1 | Tee-Object -FilePath artifacts-msvc/header-isolation.log
+          & cmake.exe --build build-msvc --config Debug --target VectorisNumerics_HeaderIsolation VectorisDynamics_HeaderIsolation --parallel *>&1 | Tee-Object -FilePath artifacts-msvc/header-isolation.log
 
       - name: Phase 21 — MSVC Release Build & Test
         shell: pwsh

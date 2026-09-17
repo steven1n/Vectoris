@@ -1,11 +1,11 @@
-# AegisMathLib Formal Approved Deviation Ledger
+# Vectoris Formal Approved Deviation Ledger
 
 > [!IMPORTANT]
 > **Document**: Formal Approved Deviation Ledger  
-> **Document Version**: 1.0  
+> **Document Version**: 1.1  
 > **Status**: Authoritative Governance Document  
-> **Code Baseline**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
-> **Last Updated**: 2026-09-15  
+> **Code Baseline**: `f9ebd7783621d7150a2761e52f6bbeab46bc4a45`  
+> **Last Updated**: 2026-09-17  
 > **Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](ENGINEERING_STANDARD_V1.md) Sections 101 & 102
 
 ---
@@ -18,7 +18,7 @@
 - **Precedence**:
   - Within an explicitly registered deviation scope, the applicable registered deviation modifies or overrides **only** the cited normative rule for the stated component, scope, and version lifetime.
   - Outside that explicitly registered scope, the Engineering Standard remains fully and strictly authoritative.
-  - Project conventions ([`docs/MATHEMATICAL_CONVENTIONS.md`](MATHEMATICAL_CONVENTIONS.md)), module specifications ([`docs/core.md`](core.md), [`docs/units.md`](units.md), [`docs/geometry.md`](geometry.md), [`docs/dynamics.md`](dynamics.md)), and repository overviews ([`README.md`](../README.md)) must strictly conform to the **Engineering Standard plus applicable registered deviations**.
+  - Project conventions ([`docs/MATHEMATICAL_CONVENTIONS.md`](MATHEMATICAL_CONVENTIONS.md)), module specifications ([`docs/core.md`](core.md), [`docs/units.md`](units.md), [`docs/geometry.md`](geometry.md), [`modules/VectorisDynamics/docs/dynamics.md`](../modules/VectorisDynamics/docs/dynamics.md)), and repository overviews ([`README.md`](../README.md)) must strictly conform to the **Engineering Standard plus applicable registered deviations**.
   - Audit documents ([`docs/audits/`](audits/)) serve as historical evidence and qualification ledgers only; they carry zero normative authority to define or alter rules.
 
 ### 1.2 ID Stability & Registration Requirements
@@ -39,15 +39,16 @@
 ## 2. Deviation Index
 
 | Deviation ID | Title | Module | Standard Rule | Status | Finding Cross-Reference |
-| :--- | :--- | :--- | :--- | :---: | :---: |
+| :--- | :--- | :--- | :--- | :--- | :---: |
 | **AML-DEVIATION-001** | Left-to-Right Frame Transformation Pipeline Composition | `Geometry` | Sec 22, 24 | **WITHDRAWN / RECLASSIFIED (NOT A DEVIATION)** | `AML-MED-005` (Remediated) |
 | **AML-DEVIATION-002** | Public Mutable Coordinate Data Members | `Geometry` | Sec 9 | **REGISTERED / MAINTAINER-ACCEPTED FOR V1** | `AML-LOW-002` |
-| **AML-DEVIATION-003** | PascalCase Root Namespace `AegisMath` | Global | Sec 8 | **REGISTERED / MAINTAINER-ACCEPTED FOR V1** | `AML-LOW-001` |
+| **AML-DEVIATION-003** | PascalCase Root Namespace `AegisMath` | Global | Sec 8 | **RESOLVED / CLOSED BY VECTORIS MIGRATION** | `AML-LOW-001` |
 | **AML-DEVIATION-004** | Pure MathLib Nominal Branch Coverage Threshold Calibration | Global | Sec 86 | **WITHDRAWN / REVOKED (REPLACED BY >=90.00% REACHABLE BRANCH QUALIFICATION)** | `P3-SCOPE` / `P3.1` |
 
 > [!NOTE]
-> - **Active Legitimate Deviations**: Exactly 2 active deviations are accepted for the pure-math baseline (`AML-DEVIATION-002` and `AML-DEVIATION-003`).
+> - **Active Legitimate Deviations**: Exactly 1 active deviation is accepted for the stable baseline (`AML-DEVIATION-002`).
 > - **AML-DEVIATION-001 Reclassification**: Detailed in Section 3.1 below. The left-to-right transformation pipeline composition satisfies all normative requirements of Sections 22–24 and is tracked as an API/mathematical convention rather than a standard deviation.
+> - **AML-DEVIATION-003 Resolution**: Detailed in Section 3.3 below. Fully resolved and closed by the Vectoris Global Rename Migration (`namespace vectoris::numerics` and `namespace vectoris::dynamics`).
 > - **AML-DEVIATION-004 Revocation**: Detailed in Section 3.4 below. Revoked and withdrawn. The normative $\ge 90.00\%$ branch coverage threshold is fully restored and satisfied under DO-178C Level A / ISO 26262 ASIL D reachable branch qualification (302/302 = 100.00% $\ge$ 90.00%). No threshold-lowering deviation is active.
 > - **`Core::Math::sqrt` Domain Clamping**: Non-negative domain clamping (returning `+0.0` for negative values to prevent Kalman filter NaN corruption) is a documented module numerical policy within [`docs/core.md`](core.md), fully permitted under Section 16, and is tracked as module policy rather than a standard deviation.
 
@@ -111,31 +112,22 @@
 
 - **Deviation ID**: `AML-DEVIATION-003`
 - **Title**: PascalCase Root Namespace `AegisMath`
-- **Status**: **REGISTERED / MAINTAINER-ACCEPTED FOR V1**
+- **Status**: **RESOLVED / CLOSED BY VECTORIS MIGRATION**
 - **Reviewer**: Repository Maintainer
 - **Recorded Date**: 2026-09-15
-- **Applicable Version**: 1.0+
+- **Resolved Date**: 2026-09-17 (Vectoris Global Rename Migration)
+- **Applicable Version**: None (Closed; Section 8 lowercase hierarchy is in full effect)
 - **Module**: Global (`Core`, `Units`, `Geometry`)
-- **Affected Rule**: Section 8 (Namespaces shall be lowercase snake_case, root namespace `aegis::math`)
-- **Location**: All public headers in `include/AegisMath/**`
-- **Description**:
-  AegisMathLib uses PascalCase `AegisMath` as its root namespace rather than `aegis::math`.
-- **Reason**:
-  Downstream aerospace simulation frameworks and customer integration codebases already bind directly against `namespace AegisMath`. Renaming breaks external caller compilation.
-- **Risk**:
-  Non-conformance with Section 8 naming convention.
-- **Mitigation**:
-  Internal namespaces follow strict hierarchy (`AegisMath::Core`, `AegisMath::Units`, `AegisMath::Geometry`). The extracted domain module uses `AegisDynamics`.
+- **Affected Rule Citation**: Section 8 (Namespaces shall be lowercase snake_case, root namespace `vectoris::numerics`)
+- **Location**: Historically in `include/AegisMath/**`; resolved across `include/Vectoris/Numerics/**` and `include/Vectoris/Dynamics/**`
+- **Resolution Rationale**:
+  - Under the Vectoris Global Rename Migration, the repository completed a global architectural namespace realignment.
+  - The pure mathematics and numerical core migrated from legacy `AegisMath` to the fully compliant lowercase hierarchical namespace `namespace vectoris::numerics`, while the domain physics module migrated to `namespace vectoris::dynamics`.
+  - All public headers now reside under `<Vectoris/Numerics/...>` and `<Vectoris/Dynamics/...>`.
+  - Consequently, the non-conforming PascalCase root namespace has been completely eliminated across the entire codebase.
+  - `AML-DEVIATION-003` is formally marked **RESOLVED / CLOSED**.
 - **Verification**:
-  All header isolation compilation tests and unit test suites compile cleanly with 0 warnings.
-- **Review Trigger**: Major version release (v2.0).
-- **Removal / Migration Plan**: Introduce standard namespace alias in non-breaking update:
-  ```cpp
-  namespace aegis {
-      namespace math = ::AegisMath;
-  }
-  ```
-  and complete full migration in v2.0.
+  All header isolation compilation tests (`VectorisNumerics_HeaderIsolation`, `VectorisDynamics_HeaderIsolation`) and all 132 test suites compile cleanly with 0 compiler warnings. All active source files show zero remaining active instances of legacy namespaces.
 
 ---
 

@@ -1,4 +1,4 @@
-# AegisMathLib Core Module Specification
+# Vectoris Core Module Specification
 
 > [!IMPORTANT]
 > **Document**: Core Module Specification  
@@ -12,7 +12,7 @@
 
 ## 1. Purpose
 
-The `Core` module provides the foundational type system, scalar definitions, compiler abstraction, floating-point numerical traits, monadic error handling, and mathematical primitive functions for AegisMathLib. It establishes the lowest-level layer upon which all higher mathematical subsystems (`Units`, `Geometry`) and downstream modules (`AegisDynamics`) depend.
+The `Core` module provides the foundational type system, scalar definitions, compiler abstraction, floating-point numerical traits, monadic error handling, and mathematical primitive functions for Vectoris. It establishes the lowest-level layer upon which all higher mathematical subsystems (`Units`, `Geometry`) and downstream modules (`VectorisDynamics`) depend.
 
 ---
 
@@ -22,7 +22,7 @@ The `Core` module encompasses:
 - Standard scalar definitions and compile-time floating-point concepts.
 - Strict IEEE-754 numerical traits, tolerances, and comparison utilities.
 - Standard-library-backed monadic error representation (`Result<T, MathError>`).
-- Compiler feature detection (`AEGIS_CPLUSPLUS`) and portability macros.
+- Compiler feature detection (`VECTORIS_CPLUSPLUS`) and portability macros.
 - Bounded constexpr elementary mathematical functions (`Core::Math::sqrt`, `acos`, `asin`, `clamp`).
 
 ---
@@ -30,29 +30,29 @@ The `Core` module encompasses:
 ## 3. Dependency Rules
 
 - **Layer Position**: Layer 0 (Base Layer).
-- **Inbound Dependencies**: Consumed by `Units`, `Geometry`, downstream modules (`AegisDynamics`), and test suites.
+- **Inbound Dependencies**: Consumed by `Units`, `Geometry`, downstream modules (`VectorisDynamics`), and test suites.
 - **Outbound Dependencies**: **Zero internal dependencies**. The `Core` module depends strictly and exclusively on the ISO C++20 standard library headers:
   - `<concepts>`, `<type_traits>`, `<limits>`, `<cmath>`, `<variant>`, `<cstdint>`, `<utility>`
-- **Architecture Constraint**: `Core` MUST NEVER include any header from `Units`, `Geometry`, or downstream domain modules (`AegisDynamics`).
+- **Architecture Constraint**: `Core` MUST NEVER include any header from `Units`, `Geometry`, or downstream domain modules (`VectorisDynamics`).
 
 ---
 
 ## 4. Public Headers
 
-The `Core` module exposes exactly **10 public headers** under `include/AegisMath/Core/`:
+The `Core` module exposes exactly **10 public headers** under `include/Vectoris/Numerics/Core/`:
 
 | Header | Description |
 | :--- | :--- |
-| [`BasicTypes.h`](../include/AegisMath/Core/BasicTypes.h) | Fundamental type aliases (`Real`, `Float32`, `Float64`, `Int32`, `UInt32`, `Bool`, etc.). |
-| [`Compiler.h`](../include/AegisMath/Core/Compiler.h) | Standard compliance detection and compiler-specific attribute abstractions (`AEGIS_CPLUSPLUS`). |
-| [`Concepts.h`](../include/AegisMath/Core/Concepts.h) | C++20 concepts (`Concepts::FloatingPoint`, `Concepts::NumericInteger`, `Concepts::SupportedSqrtScalar`). |
-| [`Constants.h`](../include/AegisMath/Core/Constants.h) | Mathematical constants ($\pi$, $e$, $\sqrt{2}$, $\ln 2$, machine epsilons) with full 64-bit precision. |
-| [`Math.h`](../include/AegisMath/Core/Math.h) | Root namespace umbrella including `MathFunctions.h`, `NumericTraits.h`, and `Constants.h`. |
-| [`MathError.h`](../include/AegisMath/Core/MathError.h) | Strongly typed error enum `MathError` and string converter `to_string(MathError)`. |
-| [`MathFunctions.h`](../include/AegisMath/Core/MathFunctions.h) | Bounded numerical functions: `Core::Math::sqrt`, `clamp`, `acos`, `asin`, `deg2rad`, `rad2deg`. |
-| [`NumericTraits.h`](../include/AegisMath/Core/NumericTraits.h) | Compile-time IEEE-754 traits: `AlmostEqual`, `IsZero`, `IsFinite`, `IsNaN`. |
-| [`Precision.h`](../include/AegisMath/Core/Precision.h) | Default floating-point scalar alias `Scalar = double;`. |
-| [`Result.h`](../include/AegisMath/Core/Result.h) | `std::variant`-backed error container `Result<T, MathError>`. |
+| [`BasicTypes.h`](../include/Vectoris/Numerics/Core/BasicTypes.h) | Fundamental type aliases (`Real`, `Float32`, `Float64`, `Int32`, `UInt32`, `Bool`, etc.). |
+| [`Compiler.h`](../include/Vectoris/Numerics/Core/Compiler.h) | Standard compliance detection and compiler-specific attribute abstractions (`VECTORIS_CPLUSPLUS`). |
+| [`Concepts.h`](../include/Vectoris/Numerics/Core/Concepts.h) | C++20 concepts (`Concepts::FloatingPoint`, `Concepts::NumericInteger`, `Concepts::SupportedSqrtScalar`). |
+| [`Constants.h`](../include/Vectoris/Numerics/Core/Constants.h) | Mathematical constants ($\pi$, $e$, $\sqrt{2}$, $\ln 2$, machine epsilons) with full 64-bit precision. |
+| [`Math.h`](../include/Vectoris/Numerics/Core/Math.h) | Root namespace umbrella including `MathFunctions.h`, `NumericTraits.h`, and `Constants.h`. |
+| [`MathError.h`](../include/Vectoris/Numerics/Core/MathError.h) | Strongly typed error enum `MathError` and string converter `to_string(MathError)`. |
+| [`MathFunctions.h`](../include/Vectoris/Numerics/Core/MathFunctions.h) | Bounded numerical functions: `Core::Math::sqrt`, `clamp`, `acos`, `asin`, `deg2rad`, `rad2deg`. |
+| [`NumericTraits.h`](../include/Vectoris/Numerics/Core/NumericTraits.h) | Compile-time IEEE-754 traits: `AlmostEqual`, `IsZero`, `IsFinite`, `IsNaN`. |
+| [`Precision.h`](../include/Vectoris/Numerics/Core/Precision.h) | Default floating-point scalar alias `Scalar = double;`. |
+| [`Result.h`](../include/Vectoris/Numerics/Core/Result.h) | `std::variant`-backed error container `Result<T, MathError>`. |
 
 ---
 
@@ -69,10 +69,10 @@ The `Core` module exposes exactly **10 public headers** under `include/AegisMath
 
 ## 6. Error Model
 
-AegisMathLib enforces a strict **zero-exception** policy across all mathematical kernels (Rule 6 and Section 36 of Engineering Standard V1). Errors are represented as strongly typed enumerators in `Core::MathError`:
+Vectoris enforces a strict **zero-exception** policy across all mathematical kernels (Rule 6 and Section 36 of Engineering Standard V1). Errors are represented as strongly typed enumerators in `Core::MathError`:
 
 ```cpp
-namespace AegisMath::Core {
+namespace vectoris::numerics::core {
     enum class MathError : std::uint8_t {
         invalid_argument = 1,
         domain_error,
@@ -110,7 +110,7 @@ All fallible mathematical operations return `Core::Result<T, MathError>` (or `Co
 
 ## 8. `NumericTraits`
 
-`AegisMath::Core::NumericTraits<T>` provides type-safe numerical queries:
+`vectoris::numerics::core::NumericTraits<T>` provides type-safe numerical queries:
 - `epsilon()`: Machine epsilon ($2.22 \times 10^{-16}$ for `double`, $1.19 \times 10^{-7}$ for `float`).
 - `almost_equal(a, b, abs_tol, rel_tol)`: Dual-tolerance comparison:
   $$|a - b| \le \max(\text{abs\_tol}, \text{rel\_tol} \times \max(|a|, |b|))$$
@@ -130,7 +130,7 @@ Mathematical helpers in `Core::Math` enforce robust domain contracts:
 
 ## 10. `Core::Math::sqrt` Exact Contract
 
-`Core::Math::sqrt(T x)` implements the **AegisMath project-specific domain policy**. It is NOT described as `std::sqrt`-compatible domain semantics or full IEEE-754 sqrt semantics, because of its intentional safety clamping on negative finite values.
+`Core::Math::sqrt(T x)` implements the **Vectoris project-specific domain policy**. It is NOT described as `std::sqrt`-compatible domain semantics or full IEEE-754 sqrt semantics, because of its intentional safety clamping on negative finite values.
 
 ### 10.1 Domain Policy
 
@@ -145,7 +145,7 @@ Mathematical helpers in `Core::Math` enforce robust domain contracts:
 | $\text{NaN}$ | $\text{NaN}$ | Quiet NaN propagation. |
 
 > [!NOTE]
-> Returning $+0.0$ for negative finite inputs, signed zero (`-0.0`), and $-\infty$ is the intentional, project-specific numerical domain policy of `AegisMath::Core`, designed to safeguard recursive state estimation and long-term simulation loops against sudden NaN corruption.
+> Returning $+0.0$ for negative finite inputs, signed zero (`-0.0`), and $-\infty$ is the intentional, project-specific numerical domain policy of `vectoris::numerics::core`, designed to safeguard recursive state estimation and long-term simulation loops against sudden NaN corruption.
 
 ### 10.2 Compile-Time Execution (`constexpr`)
 - Employs bounded Newton-Raphson iteration (`Detail::BoundedNewtonSqrt`).
@@ -203,13 +203,13 @@ Mathematical helpers in `Core::Math` enforce robust domain contracts:
 ## 15. Verification Evidence
 
 The `Core` module contracts are verified by dedicated test suites:
-- [`tests/Core/NumericTraitsTest.cpp`](../tests/Core/NumericTraitsTest.cpp): Machine epsilon, dual-tolerance comparison.
-- [`tests/Core/MathFunctionsTest.cpp`](../tests/Core/MathFunctionsTest.cpp): `CoreSqrtTest` (signed zero, negative domain clamping, constexpr verification, convergence bounds), `acos`/`asin` boundary clamping.
-- [`tests/Core/ResultTest.cpp`](../tests/Core/ResultTest.cpp): Monadic chaining, constexpr execution, ABI triviality.
-- [`tests/Core/PublicTemplateInstantiationTest.cpp`](../tests/Core/PublicTemplateInstantiationTest.cpp): Explicit template instantiation for `float` and `double`.
+- [`tests/Core/NumericTraitsTest.cpp`](../modules/VectorisNumerics/tests/Core/NumericTraitsTest.cpp): Machine epsilon, dual-tolerance comparison.
+- [`tests/Core/MathFunctionsTest.cpp`](../modules/VectorisNumerics/tests/Core/MathFunctionsTest.cpp): `CoreSqrtTest` (signed zero, negative domain clamping, constexpr verification, convergence bounds), `acos`/`asin` boundary clamping.
+- [`tests/Core/ResultTest.cpp`](../modules/VectorisNumerics/tests/Core/ResultTest.cpp): Monadic chaining, constexpr execution, ABI triviality.
+- [`tests/Core/PublicTemplateInstantiationTest.cpp`](../modules/VectorisNumerics/tests/Core/PublicTemplateInstantiationTest.cpp): Explicit template instantiation for `float` and `double`.
 
 ---
 
 ## 16. Known Deviations
 
-1. **AML-DEVIATION-003**: Top-level namespace `AegisMath::Core` instead of standard-mandated `aegis::math::core` (registered in [`docs/DEVIATIONS.md`](DEVIATIONS.md)).
+1. **AML-DEVIATION-003**: Top-level namespace `vectoris::numerics::core` instead of standard-mandated `aegis::math::core` (registered in [`docs/DEVIATIONS.md`](DEVIATIONS.md)).

@@ -1,5 +1,9 @@
 # AegisMathLib P0 Remediation Closure
 
+> [!NOTE]
+> **Historical Qualification Record / Migration Disclaimer**:
+> This document records the historical P0 remediation closure conducted under the predecessor project name `AegisMathLib`. In September 2026, the project underwent a global architectural and namespace migration to **Vectoris** (`VectorisNumerics` and `VectorisDynamics`). This document is preserved as an immutable historical record of the remediation. For current canonical names, namespaces, and paths, see [`docs/VECTORIS_RENAME_MIGRATION.md`](../VECTORIS_RENAME_MIGRATION.md).
+
 Baseline:
 AegisMathLib Engineering Standard Compliance Audit v1
 

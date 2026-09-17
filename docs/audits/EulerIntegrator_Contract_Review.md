@@ -1,5 +1,9 @@
 # EulerIntegrator Mathematical Contract Review & Remediation Analysis
 
+> [!NOTE]
+> **Historical Qualification Record / Migration Disclaimer**:
+> This document records the historical contract review of the Euler numerical integrator conducted under the predecessor project name `AegisMathLib`. In September 2026, the project underwent a global architectural and namespace migration to **Vectoris** (`VectorisNumerics` and `VectorisDynamics`). This document is preserved as an immutable historical record of the contract review. For current canonical names, namespaces, and paths, see [`docs/VECTORIS_RENAME_MIGRATION.md`](../VECTORIS_RENAME_MIGRATION.md).
+
 > **Document Type**: Technical Review & Mathematical Contract Analysis
 > **Target Subsystem**: `include/AegisMath/Dynamics/EulerIntegrator.h`
 > **Governing Baseline**: `docs/ENGINEERING_STANDARD_V1.md` (Sections 10-13, 22-24, 60, 63)

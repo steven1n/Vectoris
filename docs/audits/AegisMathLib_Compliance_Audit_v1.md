@@ -1,5 +1,9 @@
 # AegisMathLib Engineering Standard Compliance Audit v1
 
+> [!NOTE]
+> **Historical Qualification Record / Migration Disclaimer**:
+> This document records the historical compliance baseline audit conducted under the predecessor project name `AegisMathLib`. In September 2026, the project underwent a global architectural and namespace migration to **Vectoris** (`VectorisNumerics` and `VectorisDynamics`). This document is preserved as an immutable historical record of the baseline qualification findings. For current canonical names, namespaces, and paths, see [`docs/VECTORIS_RENAME_MIGRATION.md`](../VECTORIS_RENAME_MIGRATION.md).
+
 > [!IMPORTANT]
 > **Document**: Compliance Baseline Audit V1  
 > **Document Version**: 1.0  

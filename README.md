@@ -1,40 +1,43 @@
-# AegisMathLib
+# Vectoris
 
-AegisMathLib is a standalone, deterministic, header-only ISO C++20 mathematics and numerical computation library for high-reliability computing, scientific simulation, and spatial geometry.
+Vectoris is a modular, deterministic, header-only ISO C++20 numerical computing and engineering simulation framework for high-reliability applications, scientific computation, and spatial dynamics.
 
-The library prioritizes compile-time dimensional safety, coordinate frame safety, zero-overhead abstraction, standard-layout ABI stability, and verifiable numerical contracts without runtime exceptions or dynamic heap allocations.
+The framework prioritizes compile-time dimensional safety, coordinate frame safety, zero-overhead abstraction, standard-layout ABI stability, and verifiable numerical contracts without runtime exceptions or dynamic heap allocations.
 
 > [!NOTE]
-> **Pure Mathematics Scope**: AegisMathLib is strictly a pure mathematics and numerical computation foundation. Domain-specific physical mechanics and rigid-body state propagation are decoupled into the downstream [`AegisDynamics`](modules/AegisDynamics/) module. See [`docs/PURE_MATH_SCOPE.md`](docs/PURE_MATH_SCOPE.md).
+> **Modular Architecture**: Vectoris enforces a strict separation between pure mathematics ([`VectorisNumerics`](modules/VectorisNumerics/)) and domain-specific physical mechanics ([`VectorisDynamics`](modules/VectorisDynamics/)). See [`docs/PURE_MATH_SCOPE.md`](docs/PURE_MATH_SCOPE.md) and [`docs/VECTORIS_RENAME_MIGRATION.md`](docs/VECTORIS_RENAME_MIGRATION.md).
 
 ---
 
 ## Repository Structure
 
 ```text
-AegisMathLib/
+Vectoris/
 ├── CMakeLists.txt          # Project-level orchestrator (C++20 baseline, deps, module dispatch)
 ├── CMakePresets.json        # Standardized build presets (all output under .build/)
 ├── README.md
 ├── VERSION
 │
 ├── modules/
-│   ├── AegisMathLib/       # Pure mathematics & numerical computation library
-│   │   ├── CMakeLists.txt  # Module-level targets, tests, isolation, coverage, static analysis
+│   ├── VectorisNumerics/   # Pure mathematics & numerical computation library
+│   │   ├── CMakeLists.txt  # Module targets, tests, isolation, coverage, static analysis
 │   │   ├── include/
-│   │   │   └── AegisMath/
-│   │   │       ├── Core/       # IEEE-754 traits, bounded functions, error model
-│   │   │       ├── Units/      # Model B 8D dimensional analysis system
-│   │   │       └── Geometry/   # Frame-safe SO(3)/SE(3) spatial geometry & linear algebra
+│   │   │   └── Vectoris/
+│   │   │       └── Numerics/
+│   │   │           ├── Core/       # IEEE-754 traits, bounded functions, error model
+│   │   │           ├── Units/      # Model B 8D dimensional analysis system
+│   │   │           └── Geometry/   # Frame-safe SO(3)/SE(3) spatial geometry & linear algebra
 │   │   └── tests/
 │   │       ├── Architecture/   # Dependency layer violation detection
 │   │       ├── Core/
 │   │       ├── Units/
 │   │       └── Geometry/
 │   │
-│   └── AegisDynamics/      # Downstream domain physics module (rigid-body mechanics)
+│   └── VectorisDynamics/   # Downstream domain physics module (rigid-body mechanics)
 │       ├── CMakeLists.txt
-│       ├── include/AegisDynamics/
+│       ├── include/
+│       │   └── Vectoris/
+│       │       └── Dynamics/       # Rigid-body state, inertia tensors, Euler integrator
 │       └── tests/
 │
 ├── cmake/                   # Reusable CMake infrastructure
@@ -49,6 +52,7 @@ AegisMathLib/
 │
 ├── docs/                    # Specifications, audits, and conventions
 │   ├── ENGINEERING_STANDARD_V1.md    # Normative SSOT
+│   ├── VECTORIS_RENAME_MIGRATION.md  # Architectural migration guide
 │   ├── audits/
 │   └── ...
 │
@@ -57,8 +61,8 @@ AegisMathLib/
 ```
 
 **Key layout principles:**
-- `modules/AegisMathLib/` = pure mathematics library (55 headers, 12 test files)
-- `modules/AegisDynamics/` = downstream rigid-body / physics module (depends on AegisMathLib)
+- `modules/VectorisNumerics/` = pure mathematics library (55 headers, 12 test files)
+- `modules/VectorisDynamics/` = downstream rigid-body / physics module (11 headers, 11 test files, depends on `VectorisNumerics`)
 - `.build/` = all local generated build output (never tracked by Git)
 - `cmake/` = reusable CMake infrastructure (sanitizers, coverage, isolation, static analysis)
 
@@ -73,9 +77,10 @@ AegisMathLib/
 | **Open CRITICAL Findings** | **0** |
 | **Open HIGH Findings** | **0** |
 | **Code-Level MEDIUM Blockers** | **0** |
-| **Public Headers Standalone Isolation** | **PASS** (55 / 55 headers, 57 / 57 TUs in `AegisMathLib_HeaderIsolation`) |
-| **MathLib Test Suite Execution** | **PASS** in Debug and Release |
-| **Downstream AegisDynamics Execution**| **PASS** in Debug and Release (13 / 13 HeaderIsolation TUs) |
+| **Public Headers Standalone Isolation** | **PASS** (55 / 55 headers in `VectorisNumerics_HeaderIsolation`, 11 / 11 in `VectorisDynamics_HeaderIsolation`) |
+| **Numerics Test Suite Execution** | **PASS** in Debug and Release (102 / 102 tests) |
+| **Dynamics Test Suite Execution** | **PASS** in Debug and Release (30 / 30 tests) |
+| **Total Test Suite Execution** | **PASS** (132 / 132 tests) |
 | **Stable-Core Qualification** | **PASS** (Pure-Math Scope Qualification complete per Section 124 DoD) |
 | **Stable-Core Certification** | **INTERNAL PROJECT QUALIFIED** (All DoD gates satisfied; zero active blockers) |
 
@@ -86,17 +91,17 @@ AegisMathLib/
 
 ## Architecture & Subsystems
 
-AegisMathLib enforces a strict **one-way downward dependency hierarchy** across its pure mathematical layers:
+Vectoris enforces a strict **one-way downward dependency hierarchy** across its layers:
 
 ```text
 ┌────────────────────────────────────────┐
 │  Downstream Domain Simulation Modules  │
-│  (AegisDynamics, AegisEstimation, etc) │
+│  (VectorisDynamics, Estimation, etc.)  │
 └───────────────────┬────────────────────┘
                     │ (Depends upon)
                     ▼
 ┌────────────────────────────────────────┐
-│              AegisMathLib              │
+│            VectorisNumerics            │
 │  ┌──────────────┐     ┌─────────────┐  │
 │  │    Units     │     │  Geometry   │  │
 │  │ (Model B 8D) │     │ (SO3 / SE3) │  │
@@ -111,12 +116,14 @@ AegisMathLib enforces a strict **one-way downward dependency hierarchy** across 
 Lower layers NEVER depend on higher layers. Cyclic dependencies, domain bleed, and umbrella header leakages are strictly prevented by automated architecture guards and standalone translation unit compilation.
 
 ### 1. [`Core`](docs/core.md) (Layer 0)
+- Canonical namespace: `vectoris::numerics::core`
 - Default scalar: IEEE-754 `double` (`float` supported, integer/long double restricted).
 - Monadic error handling: `Result<T, MathError>` backed by standard `std::variant`. Zero exceptions in mathematical kernels.
-- Bounded elementary functions: `Core::Math::sqrt` with bounded Newton-Raphson iteration (hard cap 64 iterations) and scale-aware convergence.
+- Bounded elementary functions: `core::Math::sqrt` with bounded Newton-Raphson iteration (hard cap 64 iterations) and scale-aware convergence.
 - IEEE-754 traits: `AlmostEqual` with dual absolute and relative tolerances.
 
 ### 2. [`Units`](docs/units.md) (Layer 1)
+- Canonical namespace: `vectoris::numerics::units`
 - **Model B 8-Dimensional Physical System**: Treats Plane Angle ($A$) as an independent base dimension alongside Length, Mass, Time, Current, Temperature, Amount, and Luminosity.
 - Strongly typed `Quantity<T, Unit>` introducing no per-object storage overhead beyond the underlying scalar (`sizeof(Quantity) == sizeof(Scalar)`).
 - 8 Base Units (`Meter`, `Second`, `Kilogram`, `Radian`, `Kelvin`, `Ampere`, `Mole`, `Candela`).
@@ -124,16 +131,18 @@ Lower layers NEVER depend on higher layers. Cyclic dependencies, domain bleed, a
 - Compensating inverse-angle exponents ensuring strict dimensional separation between Torque ($[M L^2 T^{-2} A^{-1}]$) and Energy ($[M L^2 T^{-2} A^0]$).
 
 ### 3. [`Geometry`](docs/geometry.md) (Layer 2)
+- Canonical namespace: `vectoris::numerics::geometry`
 - Compile-time coordinate frame safety: `Vector3<T, Frame>`, `Point3<T, Frame>`, `UnitVector3<T, Frame>`.
 - Frame-agnostic generic linear algebra: `Matrix3<T>` intentionally carries no frame tags, serving general solvers, Jacobians, and covariance matrices.
 - Frame-tagged spatial transformations: `Quaternion<T, From, To>`, `RotationMatrix3<T, From, To>`, `Transform3<T, From, To>`.
-- Left-to-right frame pipeline composition: $R_{AB} * R_{BC} \to R_{AC}$ (underlying Direction Cosine Matrix: $M_{AC} = M_{BC} M_{AB}$).
+- Left-to-right frame pipeline composition: $R_{AB} * R_{BC} 	o R_{AC}$ (underlying Direction Cosine Matrix: $M_{AC} = M_{BC} M_{AB}$).
 - Three-tier comparison model: exact component-wise `operator==`, tolerance-aware `AlmostEqual`, and sign-invariant $SO(3)$ double-cover `RotationEquivalent`.
-- Fixed $3 \times 3$ analytic $LDL^T$ SPD linear solver (`SymmetricLinearSolver3`) enforcing the **Solve-Not-Invert** policy.
+- Fixed $3 	imes 3$ analytic $LDL^T$ SPD linear solver (`SymmetricLinearSolver3`) enforcing the **Solve-Not-Invert** policy.
 
-### 4. Downstream Module: [`AegisDynamics`](modules/AegisDynamics/) (Domain Physics)
-- Rigid-body mechanics, spatial physical quantity vectors (`QuantityVector3`), 6-DOF wrench and twist vectors (`Wrench6`, `Twist6`), rigid-body mass parameters, $3 \times 3$ inertia tensor (`InertiaTensor3`), and 1st-order semi-implicit Euler state propagation (`EulerIntegrator`).
-- Resides in `modules/AegisDynamics/` and depends strictly downward upon `AegisMathLib`. Zero domain physics resides in `AegisMathLib`.
+### 4. Downstream Module: [`VectorisDynamics`](modules/VectorisDynamics/) (Domain Physics)
+- Canonical namespace: `vectoris::dynamics`
+- Rigid-body mechanics, spatial physical quantity vectors (`QuantityVector3`), 6-DOF wrench and twist vectors (`Wrench6`, `Twist6`), rigid-body mass parameters, $3 	imes 3$ inertia tensor (`InertiaTensor3`), and 1st-order semi-implicit Euler state propagation (`EulerIntegrator`).
+- Resides in `modules/VectorisDynamics/` and depends strictly downward upon `VectorisNumerics`. Zero domain physics resides in `VectorisNumerics`.
 
 ---
 
@@ -161,21 +170,22 @@ ctest --preset debug
 ### Available Presets
 | Preset | Build Type | Description |
 |:---|:---|:---|
-| `debug` | Debug | Standard debug build with all modules |
+| `debug` | Debug | Standard debug build with all modules (`VectorisNumerics` + `VectorisDynamics`) |
 | `release` | Release | Optimized release build |
+| `pure-numerics` | Debug | Standalone `VectorisNumerics` only (`VECTORIS_BUILD_DYNAMICS=OFF`) |
+| `pure-math` | Debug | Legacy alias for `pure-numerics` |
 | `asan` | Debug | AddressSanitizer enabled |
 | `ubsan` | Debug | UndefinedBehaviorSanitizer enabled |
 | `asan-ubsan` | Debug | Combined ASan + UBSan |
 | `coverage` | Debug | LLVM source-based coverage instrumentation |
 | `static-analysis` | Debug | Clang-Tidy static analysis targets |
-| `pure-math` | Debug | AegisMathLib only (no AegisDynamics) |
 
 All build output is placed under `.build/<preset>/`.
 
-### Run Public Header Standalone Isolation Gate
+### Run Public Header Standalone Isolation Gates
 ```bash
-# Compile all 55 standalone header TUs and 2 include-order poisoning TUs
-cmake --build .build/debug --target AegisMathLib_HeaderIsolation --parallel
+# Compile standalone header translation units
+cmake --build .build/debug --target VectorisNumerics_HeaderIsolation VectorisDynamics_HeaderIsolation --parallel
 ```
 
 ---
@@ -185,7 +195,7 @@ cmake --build .build/debug --target AegisMathLib_HeaderIsolation --parallel
 ### Authority Model & Scoped Precedence
 1. **Normative Baseline (SSOT)**: [`docs/ENGINEERING_STANDARD_V1.md`](docs/ENGINEERING_STANDARD_V1.md) is the single source of truth for all normative mathematical, architectural, and engineering rules.
 2. **Authorized Scoped Exceptions**: [`docs/DEVIATIONS.md`](docs/DEVIATIONS.md) is the Engineering Standard's formally authorized exception mechanism per Sections 101 & 102. Within an explicitly registered deviation scope, the registered deviation modifies only the cited rule for the declared component and lifetime; outside that scope, the Standard remains fully authoritative.
-3. **Current Specifications & Overviews**: Subordinate specifications ([`docs/PURE_MATH_SCOPE.md`](docs/PURE_MATH_SCOPE.md), [`docs/MATHEMATICAL_CONVENTIONS.md`](docs/MATHEMATICAL_CONVENTIONS.md), [`docs/core.md`](docs/core.md), [`docs/units.md`](docs/units.md), [`docs/geometry.md`](docs/geometry.md)) and this overview ([`README.md`](README.md)) must strictly conform to the **Engineering Standard plus applicable registered deviations**.
+3. **Current Specifications & Overviews**: Subordinate specifications ([`docs/VECTORIS_RENAME_MIGRATION.md`](docs/VECTORIS_RENAME_MIGRATION.md), [`docs/PURE_MATH_SCOPE.md`](docs/PURE_MATH_SCOPE.md), [`docs/MATHEMATICAL_CONVENTIONS.md`](docs/MATHEMATICAL_CONVENTIONS.md), [`docs/core.md`](docs/core.md), [`docs/units.md`](docs/units.md), [`docs/geometry.md`](docs/geometry.md), [`modules/VectorisDynamics/docs/dynamics.md`](modules/VectorisDynamics/docs/dynamics.md)) and this overview ([`README.md`](README.md)) must strictly conform to the **Engineering Standard plus applicable registered deviations**.
 4. **Audit & Evidence**: Audit documents ([`docs/audits/`](docs/audits/)) record historical findings and live qualification evidence; they carry zero normative authority to modify requirements.
 5. **Deprecated / Historical**: Legacy notes ([`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/CODING_STANDARD.md`](docs/CODING_STANDARD.md), [`CHANGELOG.md`](CHANGELOG.md), [`TECHDEBT.md`](TECHDEBT.md), [`TODO.md`](TODO.md)) are superseded and non-authoritative.
 
@@ -196,12 +206,13 @@ cmake --build .build/debug --target AegisMathLib_HeaderIsolation --parallel
 | **Entry Point** | [`README.md`](README.md) | Repository overview, subsystem architecture, build commands, and documentation index. |
 | **Normative (SSOT)** | [`docs/ENGINEERING_STANDARD_V1.md`](docs/ENGINEERING_STANDARD_V1.md) | Authoritative Single Source of Truth for engineering rules and coding standards. |
 | **Governance** | [`docs/DEVIATIONS.md`](docs/DEVIATIONS.md) | Formal deviation ledger tracking intentional, scoped exceptions to normative rules. |
+| **Migration Guide** | [`docs/VECTORIS_RENAME_MIGRATION.md`](docs/VECTORIS_RENAME_MIGRATION.md) | Authoritative migration guide documenting product, namespace, header, target mappings. |
 | **Current Specification** | [`docs/PURE_MATH_SCOPE.md`](docs/PURE_MATH_SCOPE.md) | Pure mathematics scope definition: mission, allowed/forbidden categories, decision framework. |
 | **Current Specification** | [`docs/MATHEMATICAL_CONVENTIONS.md`](docs/MATHEMATICAL_CONVENTIONS.md) | Cross-module coordinate systems, rotation directions, and transformation pipeline conventions. |
 | **Current Specification** | [`docs/core.md`](docs/core.md) | Core layer specification: scalar types, bounded numerical functions, IEEE-754 traits, error model. |
 | **Current Specification** | [`docs/units.md`](docs/units.md) | Units layer specification: Model B 8D dimensional algebra, unit tags, quantity ABI validation. |
 | **Current Specification** | [`docs/geometry.md`](docs/geometry.md) | Geometry layer specification: frame safety, matrix linear algebra, quaternion conventions, SPD solver. |
-| **Downstream Specification**| [`modules/AegisDynamics/docs/dynamics.md`](modules/AegisDynamics/docs/dynamics.md) | Dynamics module specification: spatial quantities, rigid-body state, inertia tensor, Euler integrator. |
+| **Downstream Specification**| [`modules/VectorisDynamics/docs/dynamics.md`](modules/VectorisDynamics/docs/dynamics.md) | Dynamics module specification: spatial quantities, rigid-body state, inertia tensor, Euler integrator. |
 | **Audit / Evidence** | [`docs/audits/AegisMathLib_Compliance_Audit_v1.md`](docs/audits/AegisMathLib_Compliance_Audit_v1.md) | Comprehensive compliance audit ledger across all CRITICAL, HIGH, MEDIUM, and LOW findings. |
 | **Audit / Evidence** | [`docs/audits/AegisMathLib_Stable_Core_Qualification_v1.md`](docs/audits/AegisMathLib_Stable_Core_Qualification_v1.md) | Quality qualification matrix, blocker status, header isolation, and DoD evidence. |
 | **Audit / Evidence** | [`docs/audits/EulerIntegrator_Contract_Review.md`](docs/audits/EulerIntegrator_Contract_Review.md) | Mathematical contract review of Euler numerical integrator and coordinate frame mixing. |

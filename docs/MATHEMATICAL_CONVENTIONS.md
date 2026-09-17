@@ -1,4 +1,4 @@
-# AegisMathLib Mathematical Conventions
+# Vectoris Mathematical Conventions
 
 > [!IMPORTANT]
 > **Document**: Cross-Module Mathematical Conventions  
@@ -12,12 +12,12 @@
 
 ## 1. Purpose & Authority Model
 
-This document defines the mathematical conventions used throughout AegisMathLib to eliminate ambiguity across coordinate frames, spatial transformations, attitude representations, dimensional algebra, and physical equations.
+This document defines the mathematical conventions used throughout Vectoris to eliminate ambiguity across coordinate frames, spatial transformations, attitude representations, dimensional algebra, and physical equations.
 
 ### Documentation Authority & Precedence
 - **Normative SSOT**: [`docs/ENGINEERING_STANDARD_V1.md`](ENGINEERING_STANDARD_V1.md) is the authoritative Single Source of Truth for all mathematical, engineering, and coding requirements.
 - **Scoped Exception Mechanism**: [`docs/DEVIATIONS.md`](DEVIATIONS.md) is the Engineering Standard's formally authorized scoped exception mechanism per Sections 101 & 102.
-- **Conventions & Specifications Hierarchy**: This conventions document and all subsystem module specifications ([`docs/core.md`](core.md), [`docs/units.md`](units.md), [`docs/geometry.md`](geometry.md), [`docs/dynamics.md`](dynamics.md)) must strictly conform to the **Engineering Standard plus applicable registered deviations**.
+- **Conventions & Specifications Hierarchy**: This conventions document and all subsystem module specifications ([`docs/core.md`](core.md), [`docs/units.md`](units.md), [`docs/geometry.md`](geometry.md), [`modules/VectorisDynamics/docs/dynamics.md`](../modules/VectorisDynamics/docs/dynamics.md)) must strictly conform to the **Engineering Standard plus applicable registered deviations**.
 - **Historical Evidence**: Audit reports ([`docs/audits/`](audits/)) provide historical evidence and qualification ledgers only; they carry zero normative authority to alter or define requirements.
 
 ## 2. Numerical Convention
@@ -33,7 +33,7 @@ Rationale: Aerospace simulation accuracy, navigation state stability, and numeri
 
 ## 3. Coordinate System Convention
 
-AegisMathLib standardizes on a **Right-Handed Coordinate System** with positive rotations governed by the **Right-Hand Rule**.
+Vectoris standardizes on a **Right-Handed Coordinate System** with positive rotations governed by the **Right-Hand Rule**.
 
 ### 3.1 Default Cartesian Frame (ENU Orientation)
 ```text
@@ -79,7 +79,7 @@ A spatial vector represents direction and magnitude in $\mathbb{R}^3$.
 ## 5. Matrix Convention
 
 ### 5.1 Column Vector Mapping
-AegisMathLib adopts the standard **column vector convention**:
+Vectoris adopts the standard **column vector convention**:
 $$\mathbf{v}' = \mathbf{M} \mathbf{v}$$
 
 ### 5.2 Storage Layout
@@ -112,7 +112,7 @@ All internal angles are strictly represented in **Radians** ($[A^1]$).
 
 ## 7. Frame Transformation Pipeline Composition
  
-As standardized in AegisMathLib (historically registered as AML-DEVIATION-001 before confirmation of full standard compliance with Sections 22–24), `operator*` on `RotationMatrix3` and `Quaternion` implements a **left-to-right transformation pipeline convention**:
+As standardized in Vectoris (historically registered as AML-DEVIATION-001 before confirmation of full standard compliance with Sections 22–24), `operator*` on `RotationMatrix3` and `Quaternion` implements a **left-to-right transformation pipeline convention**:
 
 $$\mathbf{R}_{A \to B} * \mathbf{R}_{B \to C} \implies \mathbf{R}_{A \to C}$$
 
@@ -160,7 +160,7 @@ $$\mathbf{g}_{\text{NED}} = [0, 0, +9.80665]^T \text{ m/s}^2$$
 
 ## 11. Rotational Dimensional Analysis & Angle Base Dimension Convention
 
-Per Engineering Standard Section 10–13, AegisMathLib treats Plane Angle ($A = \text{Angle}$) as an independent semantic physical base dimension within its 8-dimensional system (`Length`, `Mass`, `Time`, `Current`, `Temperature`, `Amount`, `Luminosity`, `Angle`).
+Per Engineering Standard Section 10–13, Vectoris treats Plane Angle ($A = \text{Angle}$) as an independent semantic physical base dimension within its 8-dimensional system (`Length`, `Mass`, `Time`, `Current`, `Temperature`, `Amount`, `Luminosity`, `Angle`).
 
 To preserve dimensional closure across rotational kinematics, dynamics, kinetic energy, work, torque, and power without algebraic inconsistency, rotational mechanical quantities carry compensating inverse-angle exponents:
 
@@ -185,7 +185,7 @@ To preserve dimensional closure across rotational kinematics, dynamics, kinetic 
    - $[I \cdot \alpha] = [M \cdot L^2 \cdot A^{-2}] \cdot [A \cdot T^{-2}] = [M \cdot L^2 \cdot T^{-2} \cdot A^{-1}] = [\tau]$
 
 ### Dimensional Separation of Torque and Energy
-In standard SI dimensional systems where angle is treated as dimensionless (1), Torque and Energy share the identical dimension $[M \cdot L^2 \cdot T^{-2}]$. Under AegisMathLib's 8-dimensional Model B:
+In standard SI dimensional systems where angle is treated as dimensionless (1), Torque and Energy share the identical dimension $[M \cdot L^2 \cdot T^{-2}]$. Under Vectoris's 8-dimensional Model B:
 - **Energy / Work**: $[M \cdot L^2 \cdot T^{-2} \cdot A^0]$ ($\text{J}$)
 - **Torque**: $[M \cdot L^2 \cdot T^{-2} \cdot A^{-1}]$ ($\text{N}\cdot\text{m}/\text{rad}$)
 This compile-time separation prevents assigning translational energy or work directly to torque (or vice versa), eliminating common dimensional errors in aerospace GNC code.
@@ -212,7 +212,7 @@ When Plane Angle is treated as an independent physical dimension ($A$), the ordi
   This has dimension of **Energy / Work ($A^0$)**, NOT **Torque ($A^{-1}$)**.
 
 ### 12.2 Explicit Radian Normalization Factor
-Standard engineering textbooks treat the radian as dimensionless ($1$), implicitly suppressing the normalization factor $1 / \text{rad}$. Under AegisMathLib's rigorous 8-dimensional type system, this hidden convention is forbidden.
+Standard engineering textbooks treat the radian as dimensionless ($1$), implicitly suppressing the normalization factor $1 / \text{rad}$. Under Vectoris's rigorous 8-dimensional type system, this hidden convention is forbidden.
 
 The true Lie bracket operation in dimensionful mechanics carries an explicit normalization by $1\text{ rad}$ ($[A^1]$):
 $$\operatorname{RotationalCross}(\boldsymbol{\omega}, \mathbf{L}) \triangleq \frac{\boldsymbol{\omega} \times \mathbf{L}}{1\text{ rad}}$$

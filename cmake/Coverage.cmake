@@ -3,26 +3,26 @@
 # Provides scoped LLVM source-based coverage instrumentation and verification.
 # ==============================================================================
 
-option(AEGISMATH_ENABLE_COVERAGE "Enable Stable-Core source-based coverage instrumentation" OFF)
+option(VECTORIS_ENABLE_COVERAGE "Enable Stable-Core source-based coverage instrumentation" OFF)
 
-if(AEGISMATH_ENABLE_COVERAGE)
+if(VECTORIS_ENABLE_COVERAGE)
     if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
         message(FATAL_ERROR "Coverage qualification is currently supported only for Clang and AppleClang. Unsupported compiler: ${CMAKE_CXX_COMPILER_ID}")
     endif()
 
-    if(AEGISMATH_ENABLE_ASAN OR AEGISMATH_ENABLE_UBSAN)
-        message(FATAL_ERROR "Coverage qualification requires sanitizer options (AEGISMATH_ENABLE_ASAN and AEGISMATH_ENABLE_UBSAN) to be OFF to prevent profile distortion.")
+    if(VECTORIS_ENABLE_ASAN OR VECTORIS_ENABLE_UBSAN)
+        message(FATAL_ERROR "Coverage qualification requires sanitizer options (VECTORIS_ENABLE_ASAN and VECTORIS_ENABLE_UBSAN) to be OFF to prevent profile distortion.")
     endif()
 
     # Support explicit cache overrides
-    set(AEGISMATH_LLVM_PROFDATA "" CACHE FILEPATH "Path to llvm-profdata executable override")
-    set(AEGISMATH_LLVM_COV "" CACHE FILEPATH "Path to llvm-cov executable override")
+    set(VECTORIS_LLVM_PROFDATA "" CACHE FILEPATH "Path to llvm-profdata executable override")
+    set(VECTORIS_LLVM_COV "" CACHE FILEPATH "Path to llvm-cov executable override")
 
-    if(AEGISMATH_LLVM_PROFDATA)
-        set(LLVM_PROFDATA_BIN "${AEGISMATH_LLVM_PROFDATA}")
+    if(VECTORIS_LLVM_PROFDATA)
+        set(LLVM_PROFDATA_BIN "${VECTORIS_LLVM_PROFDATA}")
     endif()
-    if(AEGISMATH_LLVM_COV)
-        set(LLVM_COV_BIN "${AEGISMATH_LLVM_COV}")
+    if(VECTORIS_LLVM_COV)
+        set(LLVM_COV_BIN "${VECTORIS_LLVM_COV}")
     endif()
 
     # On macOS with AppleClang, prefer developer toolchain tools via xcrun
@@ -65,8 +65,8 @@ if(AEGISMATH_ENABLE_COVERAGE)
     endif()
 endif()
 
-function(aegismath_apply_coverage TARGET_NAME)
-    if(NOT AEGISMATH_ENABLE_COVERAGE)
+function(vectoris_apply_coverage TARGET_NAME)
+    if(NOT VECTORIS_ENABLE_COVERAGE)
         return()
     endif()
 
@@ -77,14 +77,14 @@ function(aegismath_apply_coverage TARGET_NAME)
     endif()
 endfunction()
 
-function(aegismath_register_coverage_target TEST_TARGET)
-    if(NOT AEGISMATH_ENABLE_COVERAGE)
+function(vectoris_register_coverage_target TEST_TARGET)
+    if(NOT VECTORIS_ENABLE_COVERAGE)
         return()
     endif()
 
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
-    add_custom_target(AegisMathLib_Coverage
+    add_custom_target(VectorisNumerics_Coverage
         COMMAND ${Python3_EXECUTABLE} "${PROJECT_SOURCE_DIR}/tools/coverage/run_coverage.py"
             --test-binary "$<TARGET_FILE:${TEST_TARGET}>"
             --llvm-profdata "${LLVM_PROFDATA_BIN}"
@@ -96,7 +96,7 @@ function(aegismath_register_coverage_target TEST_TARGET)
         COMMENT "Running instrumented tests and evaluating coverage gate..."
     )
 
-    add_custom_target(AegisMathLib_Coverage_HTML
+    add_custom_target(VectorisNumerics_Coverage_HTML
         COMMAND ${Python3_EXECUTABLE} "${PROJECT_SOURCE_DIR}/tools/coverage/run_coverage.py"
             --test-binary "$<TARGET_FILE:${TEST_TARGET}>"
             --llvm-profdata "${LLVM_PROFDATA_BIN}"
@@ -108,4 +108,12 @@ function(aegismath_register_coverage_target TEST_TARGET)
         WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
         COMMENT "Running instrumented tests and generating HTML coverage report..."
     )
+endfunction()
+
+function(aegismath_apply_coverage TARGET_NAME)
+    vectoris_apply_coverage(${TARGET_NAME})
+endfunction()
+
+function(aegismath_register_coverage_target TEST_TARGET)
+    vectoris_register_coverage_target(${TEST_TARGET})
 endfunction()

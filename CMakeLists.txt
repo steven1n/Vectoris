@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(AegisMathLib LANGUAGES CXX)
+project(Vectoris LANGUAGES CXX)
 
 # ==============================================================================
 # 1. Global Build Standard (C++20 Mandatory Isolation)
@@ -9,17 +9,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # ==============================================================================
-# 2. Global Strict Compiler Discipline (applied only to Aegis-owned targets)
+# 2. Global Strict Compiler Discipline (applied only to Vectoris-owned targets)
 # ==============================================================================
-set(AEGIS_STRICT_WARNINGS "")
+set(VECTORIS_STRICT_WARNINGS "")
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang|GNU")
-    set(AEGIS_STRICT_WARNINGS
+    set(VECTORIS_STRICT_WARNINGS
             -Wall -Wextra -Wpedantic
             -Wconversion -Wshadow -Werror
     )
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    set(AEGIS_STRICT_WARNINGS /W4 /WX /permissive- /utf-8)
+    set(VECTORIS_STRICT_WARNINGS /W4 /WX /permissive- /utf-8)
 endif()
+set(AEGIS_STRICT_WARNINGS "${VECTORIS_STRICT_WARNINGS}")
 
 # ==============================================================================
 # 3. Third-Party Dependencies (GoogleTest)
@@ -47,14 +48,14 @@ include(cmake/Sanitizers.cmake)
 include(cmake/Coverage.cmake)
 
 # ==============================================================================
-# 5. Core Mathematics Library Module
+# 5. Core Mathematics Library Module (VectorisNumerics)
 # ==============================================================================
-add_subdirectory(modules/AegisMathLib)
+add_subdirectory(modules/VectorisNumerics)
 
 # ==============================================================================
-# 6. Optional Domain Physics Module (AegisDynamics)
+# 6. Optional Domain Physics Module (VectorisDynamics)
 # ==============================================================================
-option(AEGISMATH_BUILD_DYNAMICS "Build independent AegisDynamics domain physics module" ON)
-if(AEGISMATH_BUILD_DYNAMICS AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/modules/AegisDynamics/CMakeLists.txt")
-    add_subdirectory(modules/AegisDynamics)
+option(VECTORIS_BUILD_DYNAMICS "Build independent VectorisDynamics domain physics module" ON)
+if(VECTORIS_BUILD_DYNAMICS AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/modules/VectorisDynamics/CMakeLists.txt")
+    add_subdirectory(modules/VectorisDynamics)
 endif()

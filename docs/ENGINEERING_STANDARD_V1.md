@@ -1,16 +1,19 @@
-# AegisMathLib Engineering & Design Standard v1.0
+# Vectoris Engineering & Design Standard v1.0
 
 > [!IMPORTANT]
 > **Document**: Engineering & Design Standard  
-> **Document Version**: 1.0 (V1)  
+> **Document Version**: 1.1 (V1)  
 > **Status**: Normative Single Source of Truth (SSOT)  
-> **Code Baseline**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
-> **Last Updated**: 2026-09-15  
+> **Code Baseline**: `f9ebd7783621d7150a2761e52f6bbeab46bc4a45`  
+> **Last Updated**: 2026-09-17  
 > **Authority**: Single Source of Truth (Top Priority)
+
+> [!NOTE]
+> **Product Naming & Migration**: In September 2026, the project underwent a global architectural and namespace migration from its predecessor name `AegisMathLib` to **Vectoris** (`VectorisNumerics` and `VectorisDynamics`). This document has been updated to reflect the active Vectoris naming while preserving normative mathematical requirements. See [`docs/VECTORIS_RENAME_MIGRATION.md`](VECTORIS_RENAME_MIGRATION.md).
 
 ## 0. 文档目的
 
-本文档定义 AegisMathLib 的：
+本文档定义 Vectoris 的：
 
 - 软件架构规范
 - C++ 编码规范
@@ -35,15 +38,15 @@
 - SEI CERT C++ 安全编码原则
 - 现代 C++ 工程实践
 
-但针对 AegisMathLib 的 C++20 科学计算、工程仿真和控制应用进行了重新设计。
+但针对 Vectoris 的 C++20 科学计算、工程仿真和控制应用进行了重新设计。
 
 ---
 
 # 1. 项目定位
 
-AegisMathLib 是一个：
+Vectoris 是一个：
 
-> 面向工程仿真、导航、雷达、跟踪、控制、信号处理和数值计算的高可靠 C++ 数学基础库。
+> 面向工程仿真、导航、雷达、跟踪、控制、信号处理和数值计算的高可靠 C++ 数学与物理仿真基础库。
 
 核心目标：
 
@@ -86,7 +89,7 @@ Convenience
 
 ## LANG-001
 
-AegisMathLib Stable Core 统一使用：
+Vectoris Stable Core 统一使用：
 
 ```text
 ISO C++20
@@ -109,7 +112,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 或：
 
 ```cmake
-target_compile_features(AegisMathLib PUBLIC cxx_std_20)
+target_compile_features(VectorisNumerics PUBLIC cxx_std_20)
 ```
 
 ---
@@ -225,24 +228,26 @@ TargetTrack
 
 这些属于上层 Simulator。
 
-刚体动力学与领域物理状态（RigidBodyState、InertiaTensor3、Wrench6、Twist6 等）属于下游独立领域模块（如 `AegisDynamics`），严禁进入纯数学库 `AegisMathLib` 核心，具体边界判定与分类准则遵从权威规范：[`docs/PURE_MATH_SCOPE.md`](PURE_MATH_SCOPE.md)。
+刚体动力学与领域物理状态（RigidBodyState、InertiaTensor3、Wrench6、Twist6 等）属于下游独立领域模块（如 `VectorisDynamics`），严禁进入纯数学库 `VectorisNumerics` 核心，具体边界判定与分类准则遵从权威规范：[`docs/PURE_MATH_SCOPE.md`](PURE_MATH_SCOPE.md)。
 
 ---
 
 # 6. 文件布局
 
 ```text
-AegisMathLib/
-├── include/
-│   └── aegis/
-│       └── math/
-├── src/
-├── tests/
-├── benchmarks/
-├── examples/
-├── docs/
+Vectoris/
+├── CMakeLists.txt
+├── CMakePresets.json
+├── modules/
+│   ├── VectorisNumerics/
+│   │   ├── include/Vectoris/Numerics/
+│   │   └── tests/
+│   └── VectorisDynamics/
+│       ├── include/Vectoris/Dynamics/
+│       └── tests/
 ├── cmake/
-└── tools/
+├── tools/
+└── docs/
 ```
 
 ---
@@ -286,23 +291,23 @@ everything.hpp
 公开代码：
 
 ```cpp
-namespace aegis::math {
+namespace vectoris::numerics {
 }
 ```
 
 例如：
 
 ```cpp
-namespace aegis::math::units {}
-namespace aegis::math::geometry {}
-namespace aegis::math::estimation {}
+namespace vectoris::numerics::units {}
+namespace vectoris::numerics::geometry {}
+namespace vectoris::dynamics {}
 ```
 
 禁止在公共头文件：
 
 ```cpp
 using namespace std;
-using namespace aegis::math;
+using namespace vectoris::numerics;
 ```
 
 ---
@@ -645,7 +650,7 @@ Matrix<double, 9, 9>
 
 必须明确规定。
 
-AegisMathLib 默认：
+Vectoris 默认：
 
 ```text
 Row-major
@@ -757,7 +762,7 @@ simulation time
 wall-clock time
 ```
 
-AegisMathLib 只关心前者。
+Vectoris 只关心前者。
 
 ---
 
@@ -2074,7 +2079,7 @@ physical meaning
 
 # 96. Logging
 
-AegisMathLib Core 禁止：
+Vectoris Core 禁止：
 
 ```cpp
 std::cout
@@ -2677,7 +2682,7 @@ Experimental
 
 # 125. 核心不可违反原则
 
-AegisMathLib 的十条核心原则：
+Vectoris 的十条核心原则：
 
 ```text
 1. Never hide units.
@@ -2705,7 +2710,7 @@ AegisMathLib 的十条核心原则：
 
 # 126. 最终设计哲学
 
-AegisMathLib 不追求：
+Vectoris 不追求：
 
 ```text
 代码最短

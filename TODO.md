@@ -1,10 +1,10 @@
-# AegisMathLib TODO
+# Vectoris TODO (Historical Archive)
 
 > [!WARNING]
 > **Status**: DEPRECATED / HISTORICAL (Non-Authoritative)  
 > This file contains pre-governance task planning notes. Authoritative development roadmap and qualification blockers are tracked in:
 > - [`docs/ENGINEERING_STANDARD_V1.md`](docs/ENGINEERING_STANDARD_V1.md)
-> - [`docs/audits/AegisMathLib_Stable_Core_Qualification_v1.md`](docs/audits/AegisMathLib_Stable_Core_Qualification_v1.md)
+> - [`docs/VECTORIS_RENAME_MIGRATION.md`](docs/VECTORIS_RENAME_MIGRATION.md)
 
 # Current Milestone
 

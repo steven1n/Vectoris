@@ -1,4 +1,4 @@
-# AegisMathLib Units Module Specification
+# Vectoris Units Module Specification
 
 > [!IMPORTANT]
 > **Document**: Units Module Specification  
@@ -18,7 +18,7 @@ The `Units` module implements a zero-overhead, compile-time dimensionally safe p
 
 ## 2. Model B Dimensional System
 
-AegisMathLib adopts **Model B**, an 8-dimensional physical system where Plane Angle is treated as an independent physical base dimension ($A$) rather than a dimensionless scalar ($1$).
+Vectoris adopts **Model B**, an 8-dimensional physical system where Plane Angle is treated as an independent physical base dimension ($A$) rather than a dimensionless scalar ($1$).
 
 The 8 fundamental dimensions are:
 1. **Length** ($L$)
@@ -34,7 +34,7 @@ The 8 fundamental dimensions are:
 
 ## 3. Base Dimensions
 
-In [`include/AegisMath/Units/Dimension.h`](../include/AegisMath/Units/Dimension.h), dimensions are tracked as integer template parameters:
+In [`include/Vectoris/Numerics/Units/Dimension.h`](../include/Vectoris/Numerics/Units/Dimension.h), dimensions are tracked as integer template parameters:
 
 ```cpp
 template<
@@ -117,24 +117,24 @@ constexpr auto unit_cast(const Quantity<T, SourceUnit>& q) noexcept;
 
 ## 8. Base Units
 
-The `Units` module defines **8 SI Base Units** under `include/AegisMath/Units/BaseUnits/`:
+The `Units` module defines **8 SI Base Units** under `include/Vectoris/Numerics/Units/BaseUnits/`:
 
 | Quantity | Base Unit | Header |
 | :--- | :--- | :--- |
-| Length | `Meter` | [`Length.h`](../include/AegisMath/Units/BaseUnits/Length.h) |
-| Mass | `Kilogram` | [`Mass.h`](../include/AegisMath/Units/BaseUnits/Mass.h) |
-| Time | `Second` | [`Time.h`](../include/AegisMath/Units/BaseUnits/Time.h) |
-| Current | `Ampere` | [`Current.h`](../include/AegisMath/Units/BaseUnits/Current.h) |
-| Temperature | `Kelvin` | [`Temperature.h`](../include/AegisMath/Units/BaseUnits/Temperature.h) |
-| Amount | `Mole` | [`Amount.h`](../include/AegisMath/Units/BaseUnits/Amount.h) |
-| Luminosity | `Candela` | [`Luminosity.h`](../include/AegisMath/Units/BaseUnits/Luminosity.h) |
-| Angle | `Radian` | [`Angle.h`](../include/AegisMath/Units/BaseUnits/Angle.h) |
+| Length | `Meter` | [`Length.h`](../include/Vectoris/Numerics/Units/BaseUnits/Length.h) |
+| Mass | `Kilogram` | [`Mass.h`](../include/Vectoris/Numerics/Units/BaseUnits/Mass.h) |
+| Time | `Second` | [`Time.h`](../include/Vectoris/Numerics/Units/BaseUnits/Time.h) |
+| Current | `Ampere` | [`Current.h`](../include/Vectoris/Numerics/Units/BaseUnits/Current.h) |
+| Temperature | `Kelvin` | [`Temperature.h`](../include/Vectoris/Numerics/Units/BaseUnits/Temperature.h) |
+| Amount | `Mole` | [`Amount.h`](../include/Vectoris/Numerics/Units/BaseUnits/Amount.h) |
+| Luminosity | `Candela` | [`Luminosity.h`](../include/Vectoris/Numerics/Units/BaseUnits/Luminosity.h) |
+| Angle | `Radian` | [`Angle.h`](../include/Vectoris/Numerics/Units/BaseUnits/Angle.h) |
 
 ---
 
 ## 9. Derived Units
 
-Under `include/AegisMath/Units/DerivedUnits/`, **10 Derived Units** are defined:
+Under `include/Vectoris/Numerics/Units/DerivedUnits/`, **10 Derived Units** are defined:
 
 | Quantity | Unit Name | Dimension Exponents ($L, M, T, I, \Theta, N, J, A$) | SI Unit Expression |
 | :--- | :--- | :--- | :--- |
@@ -174,7 +174,7 @@ This prevents accidental assignment of work or energy to torque at compile time.
 In the Euler rotational equation, the gyroscopic term is $\boldsymbol{\omega} \times \mathbf{L}$.
 Computing dimensions:
 $$[\boldsymbol{\omega} \times \mathbf{L}] = [A \cdot T^{-1}] \cdot [M \cdot L^2 \cdot A^{-1} \cdot T^{-1}] = [M \cdot L^2 \cdot T^{-2} \cdot A^0] \equiv \text{Energy}$$
-The ordinary Cartesian cross product yields Energy, not Torque. To resolve this, AegisMathLib provides:
+The ordinary Cartesian cross product yields Energy, not Torque. To resolve this, Vectoris provides:
 $$\operatorname{RotationalCross}(\boldsymbol{\omega}, \mathbf{L}) \triangleq \frac{\boldsymbol{\omega} \times \mathbf{L}}{1\text{ rad}}$$
 $$[\operatorname{RotationalCross}(\boldsymbol{\omega}, \mathbf{L})] = \frac{[M \cdot L^2 \cdot T^{-2} \cdot A^0]}{[A^1]} = [M \cdot L^2 \cdot T^{-2} \cdot A^{-1}] \equiv [\boldsymbol{\tau}]$$
 Calling `LieBracket(omega, L)` or `RotationalCross(omega, L)` explicitly performs this normalization. Bypassing the dimensional system with `.value()` is forbidden.
@@ -183,7 +183,7 @@ Calling `LieBracket(omega, L)` or `RotationalCross(omega, L)` explicitly perform
 
 ## 11. Frequency Contract
 
-[`include/AegisMath/Units/DerivedUnits/Frequency.h`](../include/AegisMath/Units/DerivedUnits/Frequency.h) specifies:
+[`include/Vectoris/Numerics/Units/DerivedUnits/Frequency.h`](../include/Vectoris/Numerics/Units/DerivedUnits/Frequency.h) specifies:
 - Dimension: `FrequencyDimension = Dimension<0, 0, -1, 0, 0, 0, 0, 0>;` ($T^{-1}$).
 - Unit Tag: `struct HertzUnit { using Dimension = FrequencyDimension; using Ratio = std::ratio<1>; static constexpr bool IsBaseUnit = false; };`.
 - Quantity Aliases: `using Frequency = Quantity<Scalar, HertzUnit>;` and `using Hertz = Frequency;`.
@@ -219,9 +219,9 @@ These checks confirm that `Quantity` stores one scalar value and introduces no a
 
 ## 14. Verification Evidence
 
-- [`tests/Units/UnitsTest.cpp`](../tests/Units/UnitsTest.cpp):
+- [`tests/Units/UnitsTest.cpp`](../modules/VectorisNumerics/tests/Units/UnitsTest.cpp):
   - `CRTPABIAndZeroInit`: ABI size, alignment, trivial copyability.
   - `StrictTypeConceptAndCast`: Concept checks, velocity derivation from length/time.
   - `RotationalAndInertiaUnits`: Torque, moment of inertia, power, angular momentum dimensional algebra.
   - `FrequencyCompileTimeContractAndAlgebra`: Hertz dimension exponents, ABI validation, frequency-time algebra, and exclusion of duplicate `NewtonUnit` symbol collision.
-- [`tests/Units/PublicTemplateInstantiationTest.cpp`](../tests/Units/PublicTemplateInstantiationTest.cpp): Instantiation tests across `float` and `double`.
+- [`tests/Units/PublicTemplateInstantiationTest.cpp`](../modules/VectorisNumerics/tests/Units/PublicTemplateInstantiationTest.cpp): Instantiation tests across `float` and `double`.

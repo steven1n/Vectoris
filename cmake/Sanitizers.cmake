@@ -3,11 +3,11 @@
 # Provides scoped AddressSanitizer and UndefinedBehaviorSanitizer options.
 # ==============================================================================
 
-option(AEGISMATH_ENABLE_ASAN "Enable AddressSanitizer (ASan)" OFF)
-option(AEGISMATH_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer (UBSan)" OFF)
+option(VECTORIS_ENABLE_ASAN "Enable AddressSanitizer (ASan)" OFF)
+option(VECTORIS_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer (UBSan)" OFF)
 
-function(aegismath_apply_sanitizers TARGET_NAME)
-    if(NOT AEGISMATH_ENABLE_ASAN AND NOT AEGISMATH_ENABLE_UBSAN)
+function(vectoris_apply_sanitizers TARGET_NAME)
+    if(NOT VECTORIS_ENABLE_ASAN AND NOT VECTORIS_ENABLE_UBSAN)
         return()
     endif()
 
@@ -15,12 +15,12 @@ function(aegismath_apply_sanitizers TARGET_NAME)
     set(SANITIZER_LINK_FLAGS "")
 
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang|GNU")
-        if(AEGISMATH_ENABLE_ASAN)
+        if(VECTORIS_ENABLE_ASAN)
             list(APPEND SANITIZER_COMPILE_FLAGS -fsanitize=address -fno-omit-frame-pointer)
             list(APPEND SANITIZER_LINK_FLAGS -fsanitize=address)
         endif()
 
-        if(AEGISMATH_ENABLE_UBSAN)
+        if(VECTORIS_ENABLE_UBSAN)
             list(APPEND SANITIZER_COMPILE_FLAGS -fsanitize=undefined -fno-omit-frame-pointer)
             list(APPEND SANITIZER_LINK_FLAGS -fsanitize=undefined)
         endif()
@@ -38,4 +38,8 @@ function(aegismath_apply_sanitizers TARGET_NAME)
             target_link_options(${TARGET_NAME} PRIVATE ${SANITIZER_LINK_FLAGS})
         endif()
     endif()
+endfunction()
+
+function(aegismath_apply_sanitizers TARGET_NAME)
+    vectoris_apply_sanitizers(${TARGET_NAME})
 endfunction()

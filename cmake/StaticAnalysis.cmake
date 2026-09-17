@@ -3,40 +3,45 @@
 # Provides scoped Clang-Tidy and Cppcheck qualification targets.
 # ==============================================================================
 
-option(AEGISMATH_ENABLE_STATIC_ANALYSIS "Enable static analysis qualification targets" OFF)
+option(VECTORIS_ENABLE_STATIC_ANALYSIS "Enable static analysis qualification targets" OFF)
 
-if(NOT AEGISMATH_ENABLE_STATIC_ANALYSIS)
+if(NOT VECTORIS_ENABLE_STATIC_ANALYSIS)
     return()
 endif()
 
 # Support explicit cache overrides
-set(AEGISMATH_CLANG_TIDY "" CACHE FILEPATH "Path to clang-tidy executable override")
-set(AEGISMATH_CPPCHECK "" CACHE FILEPATH "Path to cppcheck executable override")
+set(VECTORIS_CLANG_TIDY "" CACHE FILEPATH "Path to clang-tidy executable override")
+set(VECTORIS_CPPCHECK "" CACHE FILEPATH "Path to cppcheck executable override")
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
-# Target: AegisMathLib_ClangTidy
-add_custom_target(AegisMathLib_ClangTidy
+# Target: VectorisNumerics_ClangTidy
+add_custom_target(VectorisNumerics_ClangTidy
     COMMAND ${Python3_EXECUTABLE}
             ${PROJECT_SOURCE_DIR}/tools/static_analysis/run_clang_tidy.py
             --build-dir ${CMAKE_BINARY_DIR}
-            $<$<BOOL:${AEGISMATH_CLANG_TIDY}>:--clang-tidy=${AEGISMATH_CLANG_TIDY}>
+            $<$<BOOL:${VECTORIS_CLANG_TIDY}>:--clang-tidy=${VECTORIS_CLANG_TIDY}>
             --warnings-as-errors
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     COMMENT "Executing Clang-Tidy static analysis qualification gate..."
 )
 
-# Target: AegisMathLib_Cppcheck
-add_custom_target(AegisMathLib_Cppcheck
+# Target: VectorisNumerics_Cppcheck
+add_custom_target(VectorisNumerics_Cppcheck
     COMMAND ${Python3_EXECUTABLE}
             ${PROJECT_SOURCE_DIR}/tools/static_analysis/run_cppcheck.py
-            $<$<BOOL:${AEGISMATH_CPPCHECK}>:--cppcheck=${AEGISMATH_CPPCHECK}>
+            $<$<BOOL:${VECTORIS_CPPCHECK}>:--cppcheck=${VECTORIS_CPPCHECK}>
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     COMMENT "Executing Cppcheck static analysis qualification runner..."
 )
 
-# Combined Target: AegisMathLib_StaticAnalysis
-add_custom_target(AegisMathLib_StaticAnalysis
-    DEPENDS AegisMathLib_ClangTidy AegisMathLib_Cppcheck
+# Combined Target: VectorisNumerics_StaticAnalysis
+add_custom_target(VectorisNumerics_StaticAnalysis
+    DEPENDS VectorisNumerics_ClangTidy VectorisNumerics_Cppcheck
     COMMENT "Mandatory static-analysis gate completed; recommended analyzers reported separately."
 )
+
+# Backward-compatible target aliases
+add_custom_target(AegisMathLib_ClangTidy DEPENDS VectorisNumerics_ClangTidy)
+add_custom_target(AegisMathLib_Cppcheck DEPENDS VectorisNumerics_Cppcheck)
+add_custom_target(AegisMathLib_StaticAnalysis DEPENDS VectorisNumerics_StaticAnalysis)

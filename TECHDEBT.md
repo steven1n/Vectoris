@@ -1,10 +1,9 @@
-# Technical Debt Registry
+# Vectoris Technical Debt Registry (Historical Archive)
 
 > [!WARNING]
 > **Status**: DEPRECATED / HISTORICAL (Non-Authoritative)  
 > This file contains pre-governance technical debt tracking notes. Authoritative compliance findings and qualification debt are formally tracked in:
-> - [`docs/audits/AegisMathLib_Compliance_Audit_v1.md`](docs/audits/AegisMathLib_Compliance_Audit_v1.md)
-> - [`docs/audits/AegisMathLib_Stable_Core_Qualification_v1.md`](docs/audits/AegisMathLib_Stable_Core_Qualification_v1.md)
+> - [`docs/VECTORIS_RENAME_MIGRATION.md`](docs/VECTORIS_RENAME_MIGRATION.md)
 > - [`docs/DEVIATIONS.md`](docs/DEVIATIONS.md)
 
 

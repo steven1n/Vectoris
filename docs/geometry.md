@@ -1,4 +1,4 @@
-# AegisMathLib Geometry Module Specification
+# Vectoris Geometry Module Specification
 
 > [!IMPORTANT]
 > **Document**: Geometry Module Specification  
@@ -18,25 +18,25 @@ The `Geometry` module implements 3D spatial geometry, linear algebra, coordinate
 
 ## 2. Public Headers
 
-The `Geometry` module exposes **15 public headers** under `include/AegisMath/Geometry/`:
+The `Geometry` module exposes **15 public headers** under `include/Vectoris/Numerics/Geometry/`:
 
 | Header | Description |
 | :--- | :--- |
-| [`AlmostEqual.h`](../include/AegisMath/Geometry/AlmostEqual.h) | Tolerance-aware comparison helpers for spatial and attitude types. |
-| [`Concepts.h`](../include/AegisMath/Geometry/Concepts.h) | Frame tag concepts (`IsFrameTag`, `SameFrame`, `ValidRotationFrame`). |
-| [`CoordinateConvention.h`](../include/AegisMath/Geometry/CoordinateConvention.h) | Right-handed axis conventions, NED/ENU frame documentation. |
-| [`Detail/ABI.h`](../include/AegisMath/Geometry/Detail/ABI.h) | Standard layout, alignment, and size validation helpers for geometry types. |
-| [`Detail/RotationInvariant.h`](../include/AegisMath/Geometry/Detail/RotationInvariant.h) | Orthogonality verification helper using squared Frobenius norm. |
-| [`FrameTags.h`](../include/AegisMath/Geometry/FrameTags.h) | Semantic coordinate frame tags (`WorldFrame`, `BodyFrame`, `ECEFFrame`, etc.). |
-| [`Matrix3.h`](../include/AegisMath/Geometry/Matrix3.h) | Generic, frame-agnostic numerical $3 \times 3$ matrix container in row-major storage. |
-| [`Point3.h`](../include/AegisMath/Geometry/Point3.h) | Frame-tagged affine point in $\mathbb{R}^3$. |
-| [`Quaternion.h`](../include/AegisMath/Geometry/Quaternion.h) | Frame-tagged Hamilton unit quaternion for $SO(3)$ rotations. |
-| [`RotationMatrix3.h`](../include/AegisMath/Geometry/RotationMatrix3.h) | Frame-tagged direction cosine matrix (DCM) in $SO(3)$. |
-| [`SymmetricLinearSolver3.h`](../include/AegisMath/Geometry/SymmetricLinearSolver3.h) | Fixed $3 \times 3$ analytic $LDL^T$ SPD linear solver with conditioning bounds. |
-| [`Traits.h`](../include/AegisMath/Geometry/Traits.h) | Geometry precision traits and tolerance defaults. |
-| [`Transform3.h`](../include/AegisMath/Geometry/Transform3.h) | Frame-tagged $SE(3)$ homogeneous rigid-body transformation (rotation + translation). |
-| [`UnitVector3.h`](../include/AegisMath/Geometry/UnitVector3.h) | Normalized unit direction vector in $S^2$. |
-| [`Vector3.h`](../include/AegisMath/Geometry/Vector3.h) | Frame-tagged Euclidean vector in $\mathbb{R}^3$. |
+| [`AlmostEqual.h`](../include/Vectoris/Numerics/Geometry/AlmostEqual.h) | Tolerance-aware comparison helpers for spatial and attitude types. |
+| [`Concepts.h`](../include/Vectoris/Numerics/Geometry/Concepts.h) | Frame tag concepts (`IsFrameTag`, `SameFrame`, `ValidRotationFrame`). |
+| [`CoordinateConvention.h`](../include/Vectoris/Numerics/Geometry/CoordinateConvention.h) | Right-handed axis conventions, NED/ENU frame documentation. |
+| [`Detail/ABI.h`](../include/Vectoris/Numerics/Geometry/Detail/ABI.h) | Standard layout, alignment, and size validation helpers for geometry types. |
+| [`Detail/RotationInvariant.h`](../include/Vectoris/Numerics/Geometry/Detail/RotationInvariant.h) | Orthogonality verification helper using squared Frobenius norm. |
+| [`FrameTags.h`](../include/Vectoris/Numerics/Geometry/FrameTags.h) | Semantic coordinate frame tags (`WorldFrame`, `BodyFrame`, `ECEFFrame`, etc.). |
+| [`Matrix3.h`](../include/Vectoris/Numerics/Geometry/Matrix3.h) | Generic, frame-agnostic numerical $3 \times 3$ matrix container in row-major storage. |
+| [`Point3.h`](../include/Vectoris/Numerics/Geometry/Point3.h) | Frame-tagged affine point in $\mathbb{R}^3$. |
+| [`Quaternion.h`](../include/Vectoris/Numerics/Geometry/Quaternion.h) | Frame-tagged Hamilton unit quaternion for $SO(3)$ rotations. |
+| [`RotationMatrix3.h`](../include/Vectoris/Numerics/Geometry/RotationMatrix3.h) | Frame-tagged direction cosine matrix (DCM) in $SO(3)$. |
+| [`SymmetricLinearSolver3.h`](../include/Vectoris/Numerics/Geometry/SymmetricLinearSolver3.h) | Fixed $3 \times 3$ analytic $LDL^T$ SPD linear solver with conditioning bounds. |
+| [`Traits.h`](../include/Vectoris/Numerics/Geometry/Traits.h) | Geometry precision traits and tolerance defaults. |
+| [`Transform3.h`](../include/Vectoris/Numerics/Geometry/Transform3.h) | Frame-tagged $SE(3)$ homogeneous rigid-body transformation (rotation + translation). |
+| [`UnitVector3.h`](../include/Vectoris/Numerics/Geometry/UnitVector3.h) | Normalized unit direction vector in $S^2$. |
+| [`Vector3.h`](../include/Vectoris/Numerics/Geometry/Vector3.h) | Frame-tagged Euclidean vector in $\mathbb{R}^3$. |
 
 ---
 
@@ -51,7 +51,7 @@ The `Geometry` module exposes **15 public headers** under `include/AegisMath/Geo
 
 ## 4. Frame-Safe Geometry
 
-AegisMathLib prevents accidental cross-frame operations at compile time:
+Vectoris prevents accidental cross-frame operations at compile time:
 - `Vector3<T, Frame>`: A vector rooted in a specific reference frame.
 - `Point3<T, Frame>`: An absolute spatial location in a specific reference frame.
 - `Quaternion<T, FromFrame, ToFrame>`: An active rotation transforming coordinates from `FromFrame` to `ToFrame`.
@@ -67,7 +67,7 @@ AegisMathLib prevents accidental cross-frame operations at compile time:
 
 ## 5. Equality & Comparison Model
 
-AegisMathLib explicitly separates three distinct tiers of floating-point comparison:
+Vectoris explicitly separates three distinct tiers of floating-point comparison:
 
 ### 5.1 Exact Component-Wise Value Equality (`operator==`, `operator!=`)
 - Direct component comparison using standard C++ floating-point `==` (`x == rhs.x && y == rhs.y && z == rhs.z`).
@@ -138,14 +138,14 @@ $$\mathbf{M}_{AC} = \mathbf{M}_{BC} \mathbf{M}_{AB} \quad (\text{i.e. } \texttt{
 
 ## 9. Verification Evidence
 
-- [`tests/Geometry/Matrix3Test.cpp`](../tests/Geometry/Matrix3Test.cpp): Adjoint cofactor inversion indices, aliasing prevention, pure numerical algebra.
-- [`tests/Geometry/SymmetricLinearSolver3Test.cpp`](../tests/Geometry/SymmetricLinearSolver3Test.cpp): Analytic $LDL^T$ solve, backward error tracking, ill-conditioned rejection.
-- [`tests/Geometry/AttitudeEngineTest.cpp`](../tests/Geometry/AttitudeEngineTest.cpp): Rotation composition, quaternion-to-matrix agreement.
-- [`tests/Geometry/GeometryComparisonTest.cpp`](../tests/Geometry/GeometryComparisonTest.cpp): 13 dedicated tests for `operator==`, `AlmostEqual`, `RotationEquivalent`, $180^\circ$ edge cases, near-zero $w$, compile-time rejection guards.
+- [`tests/Geometry/Matrix3Test.cpp`](../modules/VectorisNumerics/tests/Geometry/Matrix3Test.cpp): Adjoint cofactor inversion indices, aliasing prevention, pure numerical algebra.
+- [`tests/Geometry/SymmetricLinearSolver3Test.cpp`](../modules/VectorisNumerics/tests/Geometry/SymmetricLinearSolver3Test.cpp): Analytic $LDL^T$ solve, backward error tracking, ill-conditioned rejection.
+- [`tests/Geometry/AttitudeEngineTest.cpp`](../modules/VectorisNumerics/tests/Geometry/AttitudeEngineTest.cpp): Rotation composition, quaternion-to-matrix agreement.
+- [`tests/Geometry/GeometryComparisonTest.cpp`](../modules/VectorisNumerics/tests/Geometry/GeometryComparisonTest.cpp): 13 dedicated tests for `operator==`, `AlmostEqual`, `RotationEquivalent`, $180^\circ$ edge cases, near-zero $w$, compile-time rejection guards.
 
 ---
 
 ## 10. Registered Deviations
 
 1. **AML-DEVIATION-002**: Public mutable data members (`x, y, z` and `w, x, y, z`) for existing API compatibility and aggregate direct access (registered in [`docs/DEVIATIONS.md`](DEVIATIONS.md)).
-2. **AML-DEVIATION-003**: Namespace `AegisMath::Geometry` instead of `aegis::math::geometry` (registered in [`docs/DEVIATIONS.md`](DEVIATIONS.md)).
+2. **AML-DEVIATION-003 (Resolved)**: Namespace `vectoris::numerics::geometry` satisfies Section 8; deviation is formally closed (see [`docs/DEVIATIONS.md`](DEVIATIONS.md)).
