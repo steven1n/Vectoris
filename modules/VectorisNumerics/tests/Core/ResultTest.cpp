@@ -312,18 +312,18 @@ TEST(ResultTest, RvalueAndRefQualifiedAccessors) {
 #if !defined(NDEBUG)
 TEST(ResultDeathTest, ValueCalledOnErrorResultAborts) {
     auto r = Result<int>::failure(MathError::domain_error);
-    EXPECT_DEATH((void)r.value(), ".*Vectoris Precondition Violation.*");
-    EXPECT_DEATH((void)r.Value(), ".*Vectoris Precondition Violation.*");
+    EXPECT_DEATH(static_cast<void>(r.value()), ".*Vectoris Precondition Violation.*");
+    EXPECT_DEATH(static_cast<void>(r.Value()), ".*Vectoris Precondition Violation.*");
     const auto& cr = r;
-    EXPECT_DEATH((void)cr.value(), ".*Vectoris Precondition Violation.*");
-    EXPECT_DEATH((void)cr.Value(), ".*Vectoris Precondition Violation.*");
+    EXPECT_DEATH(static_cast<void>(cr.value()), ".*Vectoris Precondition Violation.*");
+    EXPECT_DEATH(static_cast<void>(cr.Value()), ".*Vectoris Precondition Violation.*");
 }
 
 TEST(ResultDeathTest, ErrorCalledOnSuccessResultAborts) {
     auto r = Result<int>::success(42);
-    EXPECT_DEATH((void)r.error(), ".*Vectoris Precondition Violation.*");
+    EXPECT_DEATH(static_cast<void>(r.error()), ".*Vectoris Precondition Violation.*");
     const auto& cr = r;
-    EXPECT_DEATH((void)cr.error(), ".*Vectoris Precondition Violation.*");
+    EXPECT_DEATH(static_cast<void>(cr.error()), ".*Vectoris Precondition Violation.*");
 }
 #endif
 

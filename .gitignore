@@ -9,3 +9,8 @@ cmake-build-*/
 # LLVM coverage intermediates
 *.profraw
 *.profdata
+
+# Python bytecode
+__pycache__/
+*.pyc
+

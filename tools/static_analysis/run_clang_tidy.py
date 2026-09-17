@@ -255,6 +255,8 @@ def main():
         print("\n--- Failed Translation Units Details ---")
         for sf, retcode, stdout, stderr in failed_tus:
             print(f"TU {sf} exited with {retcode}")
+            if stdout:
+                print("  Stdout snippet:", "\n".join(stdout.splitlines()[:10]))
             if stderr:
                 print("  Stderr snippet:", "\n".join(stderr.splitlines()[:5]))
         print("=" * 80)
