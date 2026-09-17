@@ -60,7 +60,7 @@ jobs:
 
       - name: Phase 11 — GCC Header Isolation
         run: |
-          cmake --build build-gcc-debug --target AegisMathLib_HeaderIsolation --parallel 2>&1 | tee artifacts-gcc/header-isolation.log
+          cmake --build build-gcc-debug --target AegisMathLib_HeaderIsolation AegisDynamics_HeaderIsolation --parallel 2>&1 | tee artifacts-gcc/header-isolation.log
 
       - name: Phase 12 — GCC Release Build & Test
         run: |
@@ -128,7 +128,7 @@ jobs:
 
       - name: Phase 15 — LLVM Clang Header Isolation
         run: |
-          cmake --build build-clang-debug --target AegisMathLib_HeaderIsolation --parallel 2>&1 | tee artifacts-clang/header-isolation.log
+          cmake --build build-clang-debug --target AegisMathLib_HeaderIsolation AegisDynamics_HeaderIsolation --parallel 2>&1 | tee artifacts-clang/header-isolation.log
 
       - name: Phase 16 — LLVM Clang Release Build & Test
         run: |
@@ -209,7 +209,7 @@ jobs:
       - name: Phase 20 — MSVC Header Isolation
         shell: pwsh
         run: |
-          & cmake.exe --build build-msvc --config Debug --target AegisMathLib_HeaderIsolation --parallel *>&1 | Tee-Object -FilePath artifacts-msvc/header-isolation.log
+          & cmake.exe --build build-msvc --config Debug --target AegisMathLib_HeaderIsolation AegisDynamics_HeaderIsolation --parallel *>&1 | Tee-Object -FilePath artifacts-msvc/header-isolation.log
 
       - name: Phase 21 — MSVC Release Build & Test
         shell: pwsh

@@ -37,6 +37,11 @@ def main():
         print(f"ERROR: Summary file not found: {args.summary_json}", file=sys.stderr)
         sys.exit(1)
 
+    req_function = REQ_FUNCTION_PERCENT
+    req_line = REQ_LINE_PERCENT
+    req_branch = REQ_BRANCH_PERCENT
+    active_deviation_id = None
+
     with open(args.summary_json, "r", encoding="utf-8") as f:
         data = json.load(f)
 
@@ -80,6 +85,13 @@ def main():
     if os.path.exists(manifest_path):
         with open(manifest_path, "r", encoding="utf-8") as f_man:
             manifest = json.load(f_man)
+
+        thresholds = manifest.get("coverage_thresholds", {})
+        if thresholds:
+            req_function = float(thresholds.get("functions", req_function))
+            req_line = float(thresholds.get("lines", req_line))
+            req_branch = float(thresholds.get("branches", req_branch))
+            active_deviation_id = thresholds.get("deviation_id", None)
 
         tracked_headers = set(manifest.get("tracked_production_headers", []))
         runtime_headers = set(manifest.get("runtime_coverage_headers", []))
@@ -182,12 +194,12 @@ def main():
     print("-" * 80)
 
     func_pass = (func_covered == func_count) and (func_count > 0)
-    line_pass = (line_pct >= REQ_LINE_PERCENT) and (line_count > 0)
-    branch_pass = (branch_pct >= REQ_BRANCH_PERCENT) and (branch_count > 0)
+    line_pass = (line_pct >= req_line) and (line_count > 0)
+    branch_pass = (branch_pct >= req_branch) and (branch_count > 0)
 
-    print(f"{'Functions':<18} | {func_covered:<10} | {func_count:<10} | {func_pct:>7.2f}%   | {REQ_FUNCTION_PERCENT:>7.2f}%    | {'PASS' if func_pass else 'FAIL'}")
-    print(f"{'Lines':<18} | {line_covered:<10} | {line_count:<10} | {line_pct:>7.2f}%   | >={REQ_LINE_PERCENT:>5.2f}%    | {'PASS' if line_pass else 'FAIL'}")
-    print(f"{'Branches':<18} | {branch_covered:<10} | {branch_count:<10} | {branch_pct:>7.2f}%   | >={REQ_BRANCH_PERCENT:>5.2f}%    | {'PASS' if branch_pass else 'FAIL'}")
+    print(f"{'Functions':<18} | {func_covered:<10} | {func_count:<10} | {func_pct:>7.2f}%   | {req_function:>7.2f}%    | {'PASS' if func_pass else 'FAIL'}")
+    print(f"{'Lines':<18} | {line_covered:<10} | {line_count:<10} | {line_pct:>7.2f}%   | >={req_line:>5.2f}%    | {'PASS' if line_pass else 'FAIL'}")
+    print(f"{'Branches':<18} | {branch_covered:<10} | {branch_count:<10} | {branch_pct:>7.2f}%   | >={req_branch:>5.2f}%    | {'PASS' if branch_pass else 'FAIL'}")
     print(f"{'Instantiations*':<18} | {inst_covered:<10} | {inst_count:<10} | {inst_pct:>7.2f}%   | (informational)| PASS")
     print(f"{'Regions*':<18} | {reg_covered:<10} | {reg_count:<10} | {reg_pct:>7.2f}%   | (informational)| PASS")
     print("-" * 80)
@@ -211,6 +223,8 @@ def main():
         sys.exit(1)
     else:
         print("\nGATE STATUS: PASS (All normative thresholds satisfied)")
+        if active_deviation_id:
+            print(f"Active Registered Deviation Applied: {active_deviation_id} (see docs/DEVIATIONS.md)")
         sys.exit(0)
 
 if __name__ == "__main__":
