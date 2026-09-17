@@ -64,3 +64,15 @@ TEST(NumericTraitsTest, StrictAlmostEqual) {
     EXPECT_FALSE(AlmostEqual(1.0, NumericTraits<Real>::quietNaN(), absTol, relTol));
     EXPECT_FALSE(AlmostEqual(NumericTraits<Real>::quietNaN(), NumericTraits<Real>::quietNaN(), absTol, relTol));
 }
+
+TEST(NumericTraitsTest, FloatStrictAlmostEqual) {
+    const float a = 1.0f;
+    const float b = 1.0f + NumericTraits<float>::epsilon() * 0.5f;
+    EXPECT_TRUE(AlmostEqual(a, b, 1e-4f, 1e-4f));
+    EXPECT_TRUE(AlmostEqual(a, a, 1e-4f, 1e-4f));
+    EXPECT_FALSE(AlmostEqual(1.0f, 1.1f, 1e-4f, 1e-4f));
+    EXPECT_FALSE(AlmostEqual(1.0f, -1.0f, 1e-4f, 1e-4f));
+    EXPECT_FALSE(AlmostEqual(NumericTraits<float>::quietNaN(), 1.0f, 1e-4f, 1e-4f));
+    EXPECT_FALSE(AlmostEqual(1.0f, NumericTraits<float>::quietNaN(), 1e-4f, 1e-4f));
+    EXPECT_FALSE(AlmostEqual(NumericTraits<float>::quietNaN(), NumericTraits<float>::quietNaN(), 1e-4f, 1e-4f));
+}

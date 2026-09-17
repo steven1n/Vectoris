@@ -297,4 +297,33 @@ TEST(ResultTest, RvalueAndRefQualifiedAccessors) {
     auto q_res = Result<QuatT>::failure(MathError::invalid_state);
     EXPECT_EQ(q_res.error(), MathError::invalid_state);
     EXPECT_EQ(std::move(q_res).error(), MathError::invalid_state);
+
+    auto q_val = QuatT::TryCreate(1.0, 0.0, 0.0, 0.0).Value();
+    auto q_ok = Result<QuatT>::success(q_val);
+    EXPECT_TRUE(q_ok.has_value());
+    EXPECT_DOUBLE_EQ(q_ok.value().w, 1.0);
+    EXPECT_DOUBLE_EQ(q_ok.Value().w, 1.0);
+    const auto& q_ok_const = q_ok;
+    EXPECT_DOUBLE_EQ(q_ok_const.value().w, 1.0);
+    EXPECT_DOUBLE_EQ(q_ok_const.Value().w, 1.0);
+    EXPECT_DOUBLE_EQ(std::move(q_ok).Value().w, 1.0);
 }
+
+#if !defined(NDEBUG)
+TEST(ResultDeathTest, ValueCalledOnErrorResultAborts) {
+    auto r = Result<int>::failure(MathError::domain_error);
+    EXPECT_DEATH((void)r.value(), ".*AegisMath Precondition Violation.*");
+    EXPECT_DEATH((void)r.Value(), ".*AegisMath Precondition Violation.*");
+    const auto& cr = r;
+    EXPECT_DEATH((void)cr.value(), ".*AegisMath Precondition Violation.*");
+    EXPECT_DEATH((void)cr.Value(), ".*AegisMath Precondition Violation.*");
+}
+
+TEST(ResultDeathTest, ErrorCalledOnSuccessResultAborts) {
+    auto r = Result<int>::success(42);
+    EXPECT_DEATH((void)r.error(), ".*AegisMath Precondition Violation.*");
+    const auto& cr = r;
+    EXPECT_DEATH((void)cr.error(), ".*AegisMath Precondition Violation.*");
+}
+#endif
+

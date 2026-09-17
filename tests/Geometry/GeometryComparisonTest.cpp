@@ -593,6 +593,51 @@ TEST(GeometryComparisonTest, GenericMatrix3UnframedInteroperability) {
     auto res = SolveSymmetricPositiveDefinite3x3(A, b);
     ASSERT_TRUE(res.has_value());
     EXPECT_TRUE(AlmostEqual(res.value(), b));
+
+    // Exercise defensive error paths on this instantiation
+    EXPECT_FALSE(SolveSymmetricPositiveDefinite3x3(Matrix3<double>::Zero(), b).has_value());
+
+    Matrix3<double> A_asym(
+        2.0, 1.0, 0.0,
+        0.0, 2.0, 0.0,
+        0.0, 0.0, 2.0
+    );
+    EXPECT_FALSE(SolveSymmetricPositiveDefinite3x3(A_asym, b).has_value());
+
+    Matrix3<double> A_indef1(
+        -2.0, 0.0, 0.0,
+         0.0, 2.0, 0.0,
+         0.0, 0.0, 2.0
+    );
+    EXPECT_FALSE(SolveSymmetricPositiveDefinite3x3(A_indef1, b).has_value());
+
+    Matrix3<double> A_sing1(
+        0.0, 0.0, 0.0,
+        0.0, 2.0, 0.0,
+        0.0, 0.0, 2.0
+    );
+    EXPECT_FALSE(SolveSymmetricPositiveDefinite3x3(A_sing1, b).has_value());
+
+    Matrix3<double> A_indef2(
+        1.0, 2.0, 0.0,
+        2.0, 1.0, 0.0,
+        0.0, 0.0, 1.0
+    );
+    EXPECT_FALSE(SolveSymmetricPositiveDefinite3x3(A_indef2, b).has_value());
+
+    Matrix3<double> A_indef3(
+        1.0, 0.0, 2.0,
+        0.0, 1.0, 0.0,
+        2.0, 0.0, 1.0
+    );
+    EXPECT_FALSE(SolveSymmetricPositiveDefinite3x3(A_indef3, b).has_value());
+
+    Matrix3<double> A_ill(
+        1.0, 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 5e-15
+    );
+    EXPECT_FALSE(SolveSymmetricPositiveDefinite3x3(A_ill, b).has_value());
 }
 
 // ----------------------------------------------------------------------------

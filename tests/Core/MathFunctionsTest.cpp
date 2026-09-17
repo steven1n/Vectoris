@@ -310,9 +310,11 @@ TEST(CoreSqrtTest, ExtendedCoverageEdgeCases) {
     EXPECT_FLOAT_EQ(denorm_res_f, std::sqrt(denorm_min_f));
     EXPECT_LE(iters, 64U);
 
-    // 9. Float value triggering ULP oscillation in Newton iteration
+    // 9. Float and double values triggering ULP oscillation / upward step in Newton iteration
     const float osc_f = 5.16958886e-26f;
     EXPECT_NEAR(Core::Detail::BoundedNewtonSqrt(osc_f), std::sqrt(osc_f), 1e-19f);
+    const double osc_d = 8.90029543402880454e-308;
+    EXPECT_NEAR(Core::Detail::BoundedNewtonSqrt(osc_d), std::sqrt(osc_d), 1e-160);
 
     // 10. Math functions: sin, cos, sqrt (float and double)
     EXPECT_DOUBLE_EQ(Core::Math::sin(0.0), 0.0);

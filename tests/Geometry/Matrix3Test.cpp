@@ -133,3 +133,59 @@ TEST(Matrix3Test, ScaledWellConditionedMatrix) {
     EXPECT_NEAR(inv(1, 1), 1e4, 1e-6);
     EXPECT_NEAR(inv(2, 2), 1e4, 1e-6);
 }
+
+TEST(Matrix3Test, NonFiniteInputTryInverseRejection) {
+    Matrix3<double> nan_mat(
+        std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 1.0
+    );
+    Matrix3<double> inv;
+    EXPECT_FALSE(nan_mat.TryInverse(inv));
+
+    Matrix3<double> inf_mat(
+        std::numeric_limits<double>::infinity(), 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 1.0
+    );
+    EXPECT_FALSE(inf_mat.TryInverse(inv));
+}
+
+TEST(Matrix3Test, DeterminantOverflowTryInverseRejection) {
+    Matrix3<double> big_pos(
+        1e200, 0.0, 0.0,
+        0.0, 1e200, 0.0,
+        0.0, 0.0, 1e200
+    );
+    Matrix3<double> inv;
+    EXPECT_FALSE(big_pos.TryInverse(inv));
+
+    Matrix3<double> big_neg(
+        -1e200, 0.0, 0.0,
+        0.0, 1e200, 0.0,
+        0.0, 0.0, 1e200
+    );
+    EXPECT_FALSE(big_neg.TryInverse(inv));
+}
+
+TEST(Matrix3Test, FloatComparisonAndAlmostEqual) {
+    Matrix3<float> m1 = Matrix3<float>::Identity();
+    Matrix3<float> m2 = m1;
+    Matrix3<float> m3(
+        1.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 1.01f
+    );
+    EXPECT_TRUE(m1 == m2);
+    EXPECT_FALSE(m1 != m2);
+    EXPECT_FALSE(m1 == m3);
+    EXPECT_TRUE(m1 != m3);
+    EXPECT_TRUE(m1.AlmostEqual(m2));
+    EXPECT_TRUE(m1.AlmostEqual(m3, 0.05f, 0.05f));
+    EXPECT_FALSE(m1.AlmostEqual(m3, 0.001f, 0.001f));
+    EXPECT_TRUE(AlmostEqual(m1, m2));
+    EXPECT_TRUE(AlmostEqual(m1, m3, 0.05f, 0.05f));
+    EXPECT_FALSE(AlmostEqual(m1, m3, 0.001f, 0.001f));
+}
+
+

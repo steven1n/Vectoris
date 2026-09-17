@@ -249,3 +249,24 @@ TEST(UnitsSystemCoverageTest, DetailABIRuntimeExercise) {
     };
     EXPECT_FALSE(AegisMath::Units::Detail::QuantityABIValidator<DummyNonTrivial>::Validate());
 }
+
+TEST(UnitsSystemCoverageTest, UnaryNegationAndABINonStandardLayout) {
+    using namespace AegisMath::Units;
+    Quantity<double, MeterUnit> q(5.0);
+    auto neg = -q;
+    EXPECT_DOUBLE_EQ(neg.value(), -5.0);
+    auto pos = -neg;
+    EXPECT_DOUBLE_EQ(pos.value(), 5.0);
+
+    auto (*zero_fn)() = &Quantity<double, MeterUnit>::Zero;
+    auto zero_m = zero_fn();
+    EXPECT_DOUBLE_EQ(zero_m.value(), 0.0);
+
+    struct NonStandardLayoutBase { int x; };
+    struct DummyNonStandardLayout : NonStandardLayoutBase {
+        using ValueType = double;
+        int y;
+    };
+    EXPECT_FALSE(AegisMath::Units::Detail::QuantityABIValidator<DummyNonStandardLayout>::Validate());
+}
+
