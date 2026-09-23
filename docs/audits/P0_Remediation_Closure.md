@@ -8,7 +8,14 @@ Baseline:
 AegisMathLib Engineering Standard Compliance Audit v1
 
 Baseline Commit:
-`fb9e4f4`
+`fb9e4f434bce51d1b4b403f9d1a8a8dab0d75381`
+
+> [!WARNING]
+> This closure report is historical evidence for the recorded baseline commit
+> above. Its finding-level “Closed” entries do not describe current Vectoris
+> qualification status. The current project remains **NOT REQUALIFIED /
+> Experimental**; use the current Engineering Standard and incremental
+> remediation ledger for current contracts and evidence.
 
 ---
 

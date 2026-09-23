@@ -1,12 +1,20 @@
 #pragma once
+#include "Namespace.h"
 #include <type_traits>
 #include <concepts>
 
 namespace vectoris::numerics::Geometry {
 
-    // 约束 T 必须支持基础数学代数，且结果仍为算术类型
+    // Geometry aggregates are not scalars, regardless of their operator set.
+    // Specializations must precede use in scalar overload resolution.
+    template <typename T>
+    inline constexpr bool is_geometry_aggregate_v = false;
+
+    // Reject aggregates before probing operators that may themselves require
+    // ScalarArithmetic. Preserve support for user-defined scalar arithmetic.
     template<typename T>
-    concept ScalarArithmetic = requires(T a, T b) {
+    concept ScalarArithmetic =
+        (!is_geometry_aggregate_v<std::remove_cvref_t<T>>) && requires(T a, T b) {
         { a + b }; { a - b }; { a * b }; { a / b };
         { -a };
     };

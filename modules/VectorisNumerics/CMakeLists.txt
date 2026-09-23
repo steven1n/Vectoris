@@ -4,7 +4,8 @@
 # ==============================================================================
 
 set(VECTORIS_NUMERICS_PUBLIC_HEADERS
-        # Core (10)
+        # Core (11)
+        include/Vectoris/Numerics/Core/Namespace.h
         include/Vectoris/Numerics/Core/BasicTypes.h
         include/Vectoris/Numerics/Core/Compiler.h
         include/Vectoris/Numerics/Core/Concepts.h
@@ -16,7 +17,8 @@ set(VECTORIS_NUMERICS_PUBLIC_HEADERS
         include/Vectoris/Numerics/Core/Precision.h
         include/Vectoris/Numerics/Core/Result.h
 
-        # Units (30)
+        # Units (31)
+        include/Vectoris/Numerics/Units/Namespace.h
         include/Vectoris/Numerics/Units/BaseUnits/Amount.h
         include/Vectoris/Numerics/Units/BaseUnits/Angle.h
         include/Vectoris/Numerics/Units/BaseUnits/Current.h
@@ -48,7 +50,8 @@ set(VECTORIS_NUMERICS_PUBLIC_HEADERS
         include/Vectoris/Numerics/Units/UnitConcepts.h
         include/Vectoris/Numerics/Units/UnitTraits.h
 
-        # Geometry (15)
+        # Geometry (16)
+        include/Vectoris/Numerics/Geometry/Namespace.h
         include/Vectoris/Numerics/Geometry/AlmostEqual.h
         include/Vectoris/Numerics/Geometry/Concepts.h
         include/Vectoris/Numerics/Geometry/CoordinateConvention.h
@@ -68,6 +71,7 @@ set(VECTORIS_NUMERICS_PUBLIC_HEADERS
 
 add_library(VectorisNumerics INTERFACE ${VECTORIS_NUMERICS_PUBLIC_HEADERS})
 add_library(Vectoris::Numerics ALIAS VectorisNumerics)
+target_compile_features(VectorisNumerics INTERFACE cxx_std_20)
 
 target_include_directories(VectorisNumerics INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -81,19 +85,40 @@ endif()
 # ==============================================================================
 # Numerics Unit Tests
 # ==============================================================================
-if(TARGET gtest)
+if(BUILD_TESTING)
     add_executable(VectorisNumerics_Tests
             tests/Core/NumericTraitsTest.cpp
+            tests/Core/AlmostEqualExtremeTest.cpp
             tests/Core/MathFunctionsTest.cpp
+            tests/Core/SqrtContractTest.cpp
             tests/Core/PublicTemplateInstantiationTest.cpp
             tests/Core/ResultTest.cpp
+            tests/Core/ResultExceptionTest.cpp
             tests/Units/UnitsTest.cpp
             tests/Units/PublicTemplateInstantiationTest.cpp
             tests/Geometry/AttitudeEngineTest.cpp
+            tests/Geometry/UnitVector3Test.cpp
+            tests/Geometry/Matrix3PublicMultiplicationTest.cpp
+            tests/Geometry/Matrix3RepresentationTest.cpp
             tests/Geometry/Matrix3Test.cpp
             tests/Geometry/SymmetricLinearSolver3Test.cpp
+            tests/Geometry/SymmetricLinearSolver3ScaleTest.cpp
             tests/Geometry/PublicTemplateInstantiationTest.cpp
             tests/Geometry/GeometryComparisonTest.cpp
+            tests/Geometry/AlmostEqualWrapperTest.cpp
+            tests/PublicApi/PublicApiSurfaceTest.cpp
+            tests/PublicApi/NamespaceOrder/Core_Units.cpp
+            tests/PublicApi/NamespaceOrder/Core_Geometry.cpp
+            tests/PublicApi/NamespaceOrder/Units_Core.cpp
+            tests/PublicApi/NamespaceOrder/Units_Geometry.cpp
+            tests/PublicApi/NamespaceOrder/Geometry_Core.cpp
+            tests/PublicApi/NamespaceOrder/Geometry_Units.cpp
+            tests/PublicApi/NamespaceOrder/Core_Units_Geometry.cpp
+            tests/PublicApi/NamespaceOrder/Core_Geometry_Units.cpp
+            tests/PublicApi/NamespaceOrder/Units_Core_Geometry.cpp
+            tests/PublicApi/NamespaceOrder/Units_Geometry_Core.cpp
+            tests/PublicApi/NamespaceOrder/Geometry_Core_Units.cpp
+            tests/PublicApi/NamespaceOrder/Geometry_Units_Core.cpp
             tests/Architecture/DependencyLayerTest.cpp
     )
 
@@ -131,4 +156,15 @@ endif()
 # ==============================================================================
 # Static Analysis Qualification
 # ==============================================================================
-include(${PROJECT_SOURCE_DIR}/cmake/StaticAnalysis.cmake)
+if(BUILD_TESTING)
+    include(${PROJECT_SOURCE_DIR}/cmake/StaticAnalysis.cmake)
+endif()
+
+option(VECTORIS_BUILD_BENCHMARKS "Build informational performance microbenchmarks" OFF)
+if(VECTORIS_BUILD_BENCHMARKS)
+    add_executable(VectorisNumerics_Matrix3_Benchmarks
+            ../../benchmarks/Matrix3Benchmark.cpp
+    )
+    target_compile_options(VectorisNumerics_Matrix3_Benchmarks PRIVATE ${VECTORIS_STRICT_WARNINGS})
+    target_link_libraries(VectorisNumerics_Matrix3_Benchmarks PRIVATE VectorisNumerics)
+endif()

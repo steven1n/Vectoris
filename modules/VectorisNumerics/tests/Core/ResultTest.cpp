@@ -1,4 +1,7 @@
 #include <gtest/gtest.h>
+#include <string>
+#include <type_traits>
+#include <utility>
 #include "Vectoris/Numerics/Core/Result.h"
 #include "Vectoris/Numerics/Core/MathError.h"
 #include "Vectoris/Numerics/Geometry/Matrix3.h"
@@ -327,3 +330,272 @@ TEST(ResultDeathTest, ErrorCalledOnSuccessResultAborts) {
 }
 #endif
 
+TEST(ResultFactoryTest, FailureAlwaysSelectsErrorAlternative) {
+    auto result = Result<int, long>::failure(3);
+    ASSERT_FALSE(result.has_value());
+    ASSERT_NE(result.error_if(), nullptr);
+    EXPECT_EQ(result.value_if(), nullptr);
+    EXPECT_EQ(result.error(), 3L);
+    EXPECT_EQ(result.value_or(99), 99);
+}
+
+TEST(ResultFactoryTest, SuccessAlwaysSelectsValueAlternative) {
+    auto result = Result<double, int>::success(3);
+    ASSERT_TRUE(result.has_value());
+    ASSERT_NE(result.value_if(), nullptr);
+    EXPECT_EQ(result.error_if(), nullptr);
+    EXPECT_DOUBLE_EQ(result.value(), 3.0);
+    EXPECT_DOUBLE_EQ(result.value_or(99.0), 3.0);
+}
+namespace {
+struct DualNumericSource {
+    constexpr operator int() const noexcept { return 11; }
+    constexpr operator long() const noexcept { return 29L; }
+};
+struct CategorySource {
+    int id;
+    explicit CategorySource(int value) noexcept : id(value) {}
+    CategorySource(const CategorySource&) = default;
+    CategorySource& operator=(const CategorySource&) = default;
+    CategorySource(CategorySource&& other) noexcept : id(std::exchange(other.id, -1)) {}
+    CategorySource& operator=(CategorySource&& other) noexcept {
+        id = std::exchange(other.id, -1);
+        return *this;
+    }
+    ~CategorySource() = default;
+};
+template <int Tag> struct CategoryPayload {
+    int id;
+    int category;
+    CategoryPayload() = delete;
+    explicit CategoryPayload(CategorySource& source) noexcept : id(source.id), category(1) {}
+    explicit CategoryPayload(const CategorySource& source) noexcept(false) : id(source.id), category(2) {}
+    explicit CategoryPayload(CategorySource&& source) noexcept
+        : id(CategorySource(std::move(source)).id), category(3) {}
+};
+template <int Tag> struct MoveOnlyPayload {
+    int id;
+    MoveOnlyPayload() = delete;
+    explicit MoveOnlyPayload(int value) noexcept : id(value) {}
+    MoveOnlyPayload(const MoveOnlyPayload&) = delete;
+    MoveOnlyPayload& operator=(const MoveOnlyPayload&) = delete;
+    MoveOnlyPayload(MoveOnlyPayload&& other) noexcept : id(std::exchange(other.id, -1)) {}
+    MoveOnlyPayload& operator=(MoveOnlyPayload&& other) noexcept {
+        id = std::exchange(other.id, -1);
+        return *this;
+    }
+    ~MoveOnlyPayload() = default;
+};
+struct FactoryConstructionError {};
+struct NoThrowPayload {
+    int id;
+    explicit NoThrowPayload(int value) noexcept : id(value) {}
+};
+struct ThrowingPayload {
+    explicit ThrowingPayload(int) { throw FactoryConstructionError{}; }
+};
+struct IndexAwarePayload {
+    int category{0};
+    IndexAwarePayload() noexcept = default;
+    explicit IndexAwarePayload(std::in_place_index_t<0>) noexcept : category(9) {}
+};
+template <typename R, typename A> concept CanSucceed = requires(A&& value) {
+    R::success(std::forward<A>(value));
+};
+template <typename R, typename A> concept CanFail = requires(A&& value) {
+    R::failure(std::forward<A>(value));
+};
+} // namespace
+
+TEST(ResultFactoryTest, DualConvertibleSourceAndCheckedPointers) {
+    using R = Result<int, long>;
+    static_assert(std::is_convertible_v<DualNumericSource, int>);
+    static_assert(std::is_convertible_v<DualNumericSource, long>);
+    const auto check = [](auto&& value_source, auto&& error_source) {
+        auto ok = R::success(std::forward<decltype(value_source)>(value_source));
+        auto error = R::failure(std::forward<decltype(error_source)>(error_source));
+        ASSERT_TRUE(ok.has_value());
+        ASSERT_FALSE(error.has_value());
+        ASSERT_NE(ok.value_if(), nullptr);
+        ASSERT_NE(error.error_if(), nullptr);
+        EXPECT_EQ(*ok.value_if(), 11);
+        EXPECT_EQ(*error.error_if(), 29L);
+        EXPECT_EQ(ok.error_if(), nullptr);
+        EXPECT_EQ(error.value_if(), nullptr);
+        const auto& const_ok = ok;
+        const auto& const_error = error;
+        EXPECT_EQ(const_ok.value_if(), ok.value_if());
+        EXPECT_EQ(const_ok.error_if(), nullptr);
+        EXPECT_EQ(const_error.error_if(), error.error_if());
+        EXPECT_EQ(const_error.value_if(), nullptr);
+        EXPECT_TRUE(static_cast<bool>(ok));
+        EXPECT_FALSE(static_cast<bool>(error));
+    };
+    DualNumericSource value_source;
+    DualNumericSource error_source;
+    const DualNumericSource const_value_source;
+    const DualNumericSource const_error_source;
+    check(value_source, error_source);
+    check(const_value_source, const_error_source);
+    check(DualNumericSource{}, DualNumericSource{});
+}
+
+TEST(ResultFactoryTest, ForwardingCategoryAndConditionalNoexcept) {
+    using R = Result<CategoryPayload<0>, CategoryPayload<1>>;
+    static_assert(!std::is_default_constructible_v<CategoryPayload<0>>);
+    static_assert(!std::is_default_constructible_v<CategoryPayload<1>>);
+    static_assert(noexcept(R::success(std::declval<CategorySource&>())));
+    static_assert(!noexcept(R::success(std::declval<const CategorySource&>())));
+    static_assert(noexcept(R::success(std::declval<CategorySource&&>())));
+    static_assert(noexcept(R::failure(std::declval<CategorySource&>())));
+    static_assert(!noexcept(R::failure(std::declval<const CategorySource&>())));
+    static_assert(noexcept(R::failure(std::declval<CategorySource&&>())));
+    const auto check = [](auto&& value_source, auto&& error_source, int expected_category) {
+        auto ok = R::success(std::forward<decltype(value_source)>(value_source));
+        auto error = R::failure(std::forward<decltype(error_source)>(error_source));
+        ASSERT_TRUE(ok.has_value());
+        ASSERT_FALSE(error.has_value());
+        EXPECT_EQ(ok.value().category, expected_category);
+        EXPECT_EQ(error.error().category, expected_category);
+        EXPECT_EQ(ok.value().id, 42);
+        EXPECT_EQ(error.error().id, 42);
+    };
+    CategorySource value_source{42};
+    CategorySource error_source{42};
+    const CategorySource const_value_source{42};
+    const CategorySource const_error_source{42};
+    check(value_source, error_source, 1);
+    check(const_value_source, const_error_source, 2);
+    check(CategorySource{42}, CategorySource{42}, 3);
+}
+
+TEST(ResultFactoryTest, NoexceptTracksSelectedAlternativeAndPropagatesConstructionException) {
+    using ValueNoThrow = Result<NoThrowPayload, ThrowingPayload>;
+    using ErrorNoThrow = Result<ThrowingPayload, NoThrowPayload>;
+    static_assert(noexcept(ValueNoThrow::success(7)));
+    static_assert(!noexcept(ValueNoThrow::failure(7)));
+    static_assert(!noexcept(ErrorNoThrow::success(7)));
+    static_assert(noexcept(ErrorNoThrow::failure(7)));
+    auto ok = ValueNoThrow::success(7);
+    ASSERT_TRUE(ok.has_value());
+    EXPECT_EQ(ok.value().id, 7);
+    auto error = ErrorNoThrow::failure(7);
+    ASSERT_FALSE(error.has_value());
+    EXPECT_EQ(error.error().id, 7);
+    // Construction fails before a Result exists. This does not test or repair VRT-13 assignment.
+    EXPECT_THROW(static_cast<void>(ValueNoThrow::failure(7)), FactoryConstructionError);
+    EXPECT_THROW(static_cast<void>(ErrorNoThrow::success(7)), FactoryConstructionError);
+}
+
+TEST(ResultFactoryTest, MoveOnlyNonDefaultValueAndError) {
+    using V = MoveOnlyPayload<0>;
+    using E = MoveOnlyPayload<1>;
+    using R = Result<V, E>;
+    static_assert(!std::is_default_constructible_v<V> && !std::is_default_constructible_v<E>);
+    static_assert(!std::is_copy_constructible_v<R> && !std::is_copy_assignable_v<R>);
+    static_assert(std::is_nothrow_move_constructible_v<R> && std::is_nothrow_move_assignable_v<R>);
+    static_assert(CanSucceed<R, V> && !CanSucceed<R, V&> && !CanSucceed<R, const V&>);
+    static_assert(CanFail<R, E> && !CanFail<R, E&> && !CanFail<R, const E&>);
+    auto source_value = R::success(V{7});
+    auto value = std::move(source_value);
+    ASSERT_TRUE(value.has_value());
+    EXPECT_EQ(value.value().id, 7);
+    auto source_error = R::failure(E{9});
+    auto error = std::move(source_error);
+    ASSERT_FALSE(error.has_value());
+    EXPECT_EQ(error.error().id, 9);
+    value = std::move(error); // cross-alternative move assignment
+    ASSERT_FALSE(value.has_value());
+    EXPECT_EQ(value.error().id, 9);
+    value = R::success(11); // direct construction of non-default, move-only T from int
+    ASSERT_TRUE(value.has_value());
+    EXPECT_EQ(value.value().id, 11);
+    auto extracted = std::move(value).value_or(V{99});
+    EXPECT_EQ(extracted.id, 11);
+    auto failed = R::failure(13); // direct construction of non-default, move-only E from int
+    auto fallback = std::move(failed).value_or(V{99});
+    EXPECT_EQ(fallback.id, 99);
+}
+
+TEST(ResultFactoryTest, CopyAndAssignmentKeepTheChosenState) {
+    using R = Result<int, long>;
+    const auto ok = R::success(4L);
+    const auto error = R::failure(8);
+    auto value_copy = ok;
+    auto error_copy = error;
+    ASSERT_TRUE(value_copy.has_value());
+    ASSERT_FALSE(error_copy.has_value());
+    EXPECT_EQ(value_copy.value(), 4);
+    EXPECT_EQ(error_copy.error(), 8L);
+    value_copy = error;
+    error_copy = ok;
+    ASSERT_FALSE(value_copy.has_value());
+    ASSERT_TRUE(error_copy.has_value());
+    EXPECT_EQ(value_copy.error(), 8L);
+    EXPECT_EQ(error_copy.value(), 4);
+    auto next_value = error_copy;
+    auto next_error = value_copy;
+    ASSERT_TRUE(next_value.has_value());
+    ASSERT_FALSE(next_error.has_value());
+    next_value = R::failure(12);
+    next_error = R::success(16L);
+    ASSERT_FALSE(next_value.has_value());
+    ASSERT_TRUE(next_error.has_value());
+    EXPECT_EQ(next_value.error(), 12L);
+    EXPECT_EQ(next_error.value(), 16);
+    next_value = R::failure(20); // same-alternative assignment
+    next_error = R::success(24L);
+    EXPECT_EQ(next_value.error(), 20L);
+    EXPECT_EQ(next_error.value(), 24);
+}
+
+TEST(ResultFactoryTest, ConstexprVariadicAndDirectConstructionCompatibility) {
+    constexpr auto ok = Result<double, int>::success(3);
+    constexpr auto error = Result<int, long>::failure(3);
+    static_assert(ok.has_value() && ok.error_if() == nullptr);
+    static_assert(!error.has_value() && error.value_if() == nullptr);
+    static_assert(*error.error_if() == 3L);
+    EXPECT_DOUBLE_EQ(ok.value(), 3.0);
+    EXPECT_EQ(error.error(), 3L);
+    auto empty = Result<int, long>::success();
+    ASSERT_TRUE(empty.has_value());
+    EXPECT_EQ(empty.value(), 0);
+    auto text = Result<std::string, int>::success(std::size_t{3}, 'x');
+    ASSERT_TRUE(text.has_value());
+    EXPECT_EQ(text.value(), "xxx");
+    Result<std::string, int> direct_in_place(std::in_place, std::size_t{2}, 'y');
+    ASSERT_TRUE(direct_in_place.has_value());
+    EXPECT_EQ(direct_in_place.value(), "yy");
+    Result<int, long> direct_value(5);
+    Result<int, long> direct_error(6L);
+    ASSERT_TRUE(direct_value.has_value());
+    ASSERT_FALSE(direct_error.has_value());
+    EXPECT_EQ(direct_value.value(), 5);
+    EXPECT_EQ(direct_error.error(), 6L);
+    auto explicit_template = Result<int, long>::success<int>(7);
+    auto explicit_failure = Result<int, long>::failure<long>(8L);
+    ASSERT_TRUE(explicit_template.has_value());
+    ASSERT_FALSE(explicit_failure.has_value());
+    EXPECT_EQ(explicit_template.value(), 7);
+    EXPECT_EQ(explicit_failure.error(), 8L);
+}
+
+TEST(ResultFactoryTest, FactoryConstraintsAndIndexTokensAsPayload) {
+    using R = Result<IndexAwarePayload, long>;
+    auto default_value = R::success();
+    auto token_value = R::success(std::in_place_index<0>);
+    ASSERT_TRUE(default_value.has_value());
+    ASSERT_TRUE(token_value.has_value());
+    EXPECT_EQ(default_value.value().category, 0);
+    EXPECT_EQ(token_value.value().category, 9);
+    R direct_token(std::in_place_index<0>); // existing direct constructor still treats the token as payload
+    ASSERT_TRUE(direct_token.has_value());
+    EXPECT_EQ(direct_token.value().category, 9);
+    static_assert(!CanSucceed<Result<int, long>, std::string>);
+    static_assert(!CanFail<Result<int, long>, std::string>);
+    static_assert(CanSucceed<Result<NoThrowPayload, long>, int>);
+    static_assert(!CanFail<Result<NoThrowPayload, long>, NoThrowPayload>);
+    static_assert(!CanSucceed<Result<int, NoThrowPayload>, NoThrowPayload>);
+    static_assert(CanFail<Result<int, NoThrowPayload>, int>);
+    static_assert(!std::is_default_constructible_v<Result<int, long>>);
+}

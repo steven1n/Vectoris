@@ -1,8 +1,10 @@
 #pragma once
+#include "Namespace.h"
 #include <cmath>
 #include <numbers>
 #include "NumericTraits.h"
 #include "Constants.h"
+#include "Math.h"
 
 namespace vectoris::numerics::Core::Math {
 
@@ -19,14 +21,10 @@ namespace vectoris::numerics::Core::Math {
         return (value >= T{0}) ? value : -value;
     }
 
-    // 平方根
-    template <typename T>
-    [[nodiscard]] inline T sqrt(T value) noexcept {
-        // 防御性拦截：负数开方在实数域无意义，返回 0 以避免 NaN 传播
-        if (value <= T{0}) {
-            return T{0};
-        }
-        return std::sqrt(value);
+    // Compatibility spelling; all type/domain/constexpr semantics come from core::sqrt.
+    template <Concepts::SupportedSqrtScalar T>
+    [[nodiscard]] inline constexpr T sqrt(T value) noexcept {
+        return ::vectoris::numerics::Core::sqrt(value);
     }
 
     // 三角函数: 正弦

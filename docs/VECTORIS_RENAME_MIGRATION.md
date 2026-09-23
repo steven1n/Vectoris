@@ -3,10 +3,18 @@
 > [!IMPORTANT]
 > **Document**: Vectoris Global Rename Migration Guide & Specification  
 > **Version**: 1.0  
-> **Status**: Authoritative Architectural Migration Document  
+> **Status**: Historical Migration Record; not a current qualification report
 > **Baseline Commit**: `f9ebd7783621d7150a2761e52f6bbeab46bc4a45`  
 > **Target Release**: Vectoris v1.0.0-RC1  
 > **Date**: 2026-09-17  
+
+> [!WARNING]
+> This document records the rename snapshot at baseline `f9ebd7783621d7150a2761e52f6bbeab46bc4a45`.
+> Its R1 qualification, test, header, and coverage statements below are superseded
+> by later red-team remediation. The current project status is
+> **NOT REQUALIFIED / Experimental**. See the append-only remediation ledger for
+> step-specific local evidence; no old count in this migration record is a current
+> metric.
 
 ---
 
@@ -21,7 +29,7 @@ In September 2026, the **AegisMathLib** project completed its transition from an
    - *Future planned modules*: `VectorisEstimation`, `VectorisControl`, `VectorisSignal`, `VectorisSimulation`.
 2. **Namespace Standard Conformance**: The legacy PascalCase root namespace `AegisMath` (which required a formal deviation `AML-DEVIATION-003`) was replaced with modern ISO C++ conforming lowercase hierarchical namespaces: `vectoris::numerics` and `vectoris::dynamics`.
 3. **Strict Zero-Coupling Architecture**: Header locations and include paths reflect clean physical module boundaries with zero legacy umbrella leakage.
-4. **Zero Numerical Semantic Alteration**: This migration is strictly an architectural, naming, and structural migration. **Zero mathematical formulas, algorithms, numerical tolerances, or floating-point constants were modified.**
+4. **Migration-Snapshot Scope**: The rename commit itself was intended as an architectural, naming, and structural migration. The historical statement that no mathematical formulas changed applies only to that migration snapshot; later VRT remediations do intentionally change numerical contracts.
 
 ---
 
@@ -71,6 +79,11 @@ All public include paths were migrated to namespaced directory hierarchies:
 | **Numerics Units** | `namespace AegisMath::Units` | `namespace vectoris::numerics::units` |
 | **Numerics Geometry** | `namespace AegisMath::Geometry` | `namespace vectoris::numerics::geometry` |
 | **Dynamics** | `namespace AegisDynamics` | `namespace vectoris::dynamics` |
+
+For the current public contract, lowercase `core`, `units`, and `geometry` are
+canonical. `Core`, `Units`, and `Geometry` remain nondeprecated compatibility
+spellings for this release. Each public Numerics header provides its namespace
+contract independently; see the Engineering Standard and module specifications.
 
 ---
 
@@ -128,7 +141,7 @@ All public include paths were migrated to namespaced directory hierarchies:
 | Item | Legacy Status | Vectoris Status | Rationale |
 | :--- | :--- | :--- | :--- |
 | **`AML-DEVIATION-003`** | `REGISTERED / ACCEPTED` | **`RESOLVED / CLOSED`** | Root namespace migrated from `AegisMath` to standard `vectoris::numerics`. |
-| **Active Deviations** | 2 (`AML-DEVIATION-002`, `003`) | **1 (`AML-DEVIATION-002`)** | Only public coordinate struct members remain deviated. |
+| **Active Deviations** | 2 (`AML-DEVIATION-002`, `003`) | At the migration snapshot, `AML-DEVIATION-002` remained active. | Consult the current [`DEVIATIONS.md`](DEVIATIONS.md); later remediations registered additional scoped deviations. |
 
 ---
 
@@ -137,34 +150,18 @@ All public include paths were migrated to namespaced directory hierarchies:
 To preserve historical audit records without falsifying past engineering logs:
 1. **Audit Logs Preserved**: Historical audit documents in [`docs/audits/`](audits/) maintain their historical file names, finding identifiers (`AML-CRIT-*`, `AML-HIGH-*`, `AML-MED-*`, `AML-LOW-*`), and historical text unchanged.
 2. **Disclaimer Annotations**: Each historical audit document contains an authoritative disclaimer noting its role as an immutable historical record of the pre-migration baseline.
-3. **Current Documentation Synchronized**: [`README.md`](../README.md), [`docs/ENGINEERING_STANDARD_V1.md`](ENGINEERING_STANDARD_V1.md), [`docs/DEVIATIONS.md`](DEVIATIONS.md), [`docs/PURE_MATH_SCOPE.md`](PURE_MATH_SCOPE.md), [`docs/core.md`](core.md), [`docs/units.md`](units.md), [`docs/geometry.md`](geometry.md), and [`modules/VectorisDynamics/docs/dynamics.md`](../modules/VectorisDynamics/docs/dynamics.md) reflect canonical Vectoris naming.
+3. **Migration-Snapshot Documentation**: The listed specifications were synchronized at the migration snapshot. Their current contracts and namespace details are maintained in the Engineering Standard and module specifications.
 
 ---
 
-## 4. Verification Evidence
+## 4. Historical Verification Evidence
 
-Current qualification baseline:
-```text
-Vectoris
-VectorisNumerics
-Internal Project Qualification: PASS (R1 Remediated & Verified)
-VectorisDynamics
-Migration Integrity: PASS
-```
-
-> [!NOTE]
-> **Qualification Boundary Notice**: This is an internal engineering qualification only. It is not DO-178C certification, ISO 26262 certification, MISRA certification, FAA/EASA approval, or flight-software certification.
-
-The baseline has been verified under:
-1. **Source Code Cleanliness**: 0 active legacy include paths or namespace declarations across production headers and tests.
-2. **Header Isolation**: 100% pass across all 55 `VectorisNumerics` standalone translation units and all 11 `VectorisDynamics` translation units.
-3. **Test Suite Integrity**: 100% pass across 136/136 unit, property, and boundary tests with zero numerical drift.
-4. **Dynamic Sanitizers**:
-   - ASan: No AddressSanitizer diagnostics observed during the qualified workload.
-   - UBSan: No UndefinedBehaviorSanitizer diagnostics observed during the qualified workload.
-   - ASan + UBSan: No enabled sanitizer diagnostics observed during the qualified workload.
-5. **Structural Coverage**:
-   - Raw LLVM branch instrumentation: 302 / 336 = 89.88%
-   - Internal qualified reachable-branch accounting: 302 / 302 = 100.00% (The validity of the reachable-branch qualification methodology is subject to independent red-team review.)
-   - Function coverage: 100.00% (158/158), Line coverage: 98.70% (833/844).
-6. **Cross-Compiler Matrix**: GCC 13.3.0, LLVM Clang 18.1.3, MSVC 19.51 (Visual Studio 2022).
+The R1 result recorded by the migration-era qualification documents applied only
+to the historical migration snapshot identified above. Its test, header-isolation,
+and coverage counts are intentionally not repeated here as current metrics. The
+old R1 report contains two different baseline hashes in its header and its
+environment section; that inconsistency is documented in the report and neither
+hash identifies the current working tree. Current coverage uses raw LLVM branch
+counts without denominator adjustment, and current local findings remain
+**NOT REQUALIFIED / Experimental**. Consult the dated incremental remediation
+ledger for later, scoped verification evidence.

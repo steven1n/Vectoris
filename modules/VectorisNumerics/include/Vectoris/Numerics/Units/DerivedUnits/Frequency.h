@@ -1,4 +1,5 @@
 #pragma once
+#include "../Namespace.h"
 #include "../Quantity.h"
 #include "../BaseUnits/Time.h"
 #include "../Detail/ABI.h"

@@ -1,4 +1,5 @@
 #pragma once
+#include "Namespace.h"
 #include <cstddef> // for offsetof
 #include "Concepts.h"
 #include "FrameTags.h"
@@ -72,6 +73,9 @@ namespace vectoris::numerics::Geometry {
         }
     };
 
+    template <ScalarArithmetic T, FrameTag Frame>
+    inline constexpr bool is_geometry_aggregate_v<Vector3<T, Frame>> = true;
+
     // 容差自适应近似相等 (Tolerance-Aware Numerical Comparison)
     template <ScalarArithmetic T, FrameTag Frame>
     [[nodiscard]] inline bool AlmostEqual(
@@ -93,11 +97,11 @@ namespace vectoris::numerics::Geometry {
         using FrameType = Frame;
     };
 
-    // [GEO-002, GEO-003] ABI Contract
+    // Source-level layout checks; not a cross-build ABI guarantee.
     template<typename T, FrameTag Frame>
     struct VectorABIContract {
         using V = Vector3<T, Frame>;
-        static_assert(Detail::GeometryABIValidator<V>::value, "Vector3 failed base ABI.");
+        static_assert(Detail::GeometryABIValidator<V>::value, "Vector3 failed source layout constraints.");
 
         // 精确验证内存布局无缝隙
         static_assert(offsetof(V, x) == 0, "Vector3 x-offset mismatch");

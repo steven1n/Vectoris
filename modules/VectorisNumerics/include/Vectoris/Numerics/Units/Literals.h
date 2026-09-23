@@ -1,4 +1,5 @@
 #pragma once
+#include "Namespace.h"
 #include "BaseUnits/Length.h"
 #include "BaseUnits/Time.h"
 #include "BaseUnits/Angle.h"

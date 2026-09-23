@@ -9,6 +9,15 @@
 > **Governing Baseline**: `docs/ENGINEERING_STANDARD_V1.md` (Sections 10-13, 22-24, 60, 63)
 > **Status**: Contract Review Completed — Implementation Pending User Approval
 
+> [!WARNING]
+> This is an archived review of a predecessor `AegisMathLib` source snapshot.
+> Its “Implementation Pending User Approval” status is historical and does not
+> describe the current Dynamics implementation. The original review did not
+> record a full source SHA, so it is not current implementation evidence. Use
+> [`modules/VectorisDynamics/docs/dynamics.md`](../../modules/VectorisDynamics/docs/dynamics.md)
+> for the current Dynamics contract. Overall project status is
+> **NOT REQUALIFIED / Experimental**.
+
 ---
 
 ## 1. Executive Summary

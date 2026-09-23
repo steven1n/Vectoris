@@ -1,4 +1,5 @@
 #pragma once
+#include "Namespace.h"
 #include "Concepts.h"
 
 namespace vectoris::numerics::Geometry {
@@ -20,7 +21,3 @@ namespace vectoris::numerics::Geometry {
     static_assert(FrameTag<FrameBody>);
 
 } // namespace vectoris::numerics::Geometry
-
-namespace vectoris::numerics {
-    namespace geometry = Geometry;
-}

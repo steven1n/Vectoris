@@ -1,4 +1,5 @@
 #pragma once
+#include "Namespace.h"
 
 namespace vectoris::numerics::Geometry {
 

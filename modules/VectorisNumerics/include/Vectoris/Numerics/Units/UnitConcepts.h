@@ -1,4 +1,5 @@
 #pragma once
+#include "Namespace.h"
 #include <type_traits>
 #include "../Core/Concepts.h"
 #include "UnitTraits.h"
@@ -20,7 +21,3 @@ namespace vectoris::numerics::Units {
     concept IsQuantity = IsQuantityTrait<T>::value;
 
 } // namespace vectoris::numerics::Units
-
-namespace vectoris::numerics {
-    namespace units = Units;
-}

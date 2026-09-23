@@ -1,4 +1,5 @@
 #pragma once
+#include "Namespace.h"
 #include <cstddef> // For offsetof
 #include "Concepts.h"
 #include "FrameTags.h"
@@ -37,7 +38,8 @@ namespace vectoris::numerics::Geometry {
         }
 
         template <FrameTag F1 = FrameFrom, FrameTag F2 = FrameTo>
-        requires std::same_as<F1, F2>
+        requires std::same_as<FrameFrom, FrameTo> &&
+                 std::same_as<F1, F2>
         static constexpr Transform3 Identity() noexcept {
             return Transform3(
                 Quaternion<T, FrameFrom, FrameTo>::Identity(),
@@ -110,7 +112,7 @@ namespace vectoris::numerics::Geometry {
         using TransformT = Transform3<T, FrameFrom, FrameTo>; // 定义别名绕过宏的逗号限制
 
         static_assert(Detail::GeometryABIValidator<TransformT>::value, 
-            "Transform3 failed base ABI constraints.");
+            "Transform3 failed source layout constraints.");
             
         // 精确的 offsetof 校验
         static_assert(offsetof(TransformT, originOffset_) == sizeof(QuatT), 

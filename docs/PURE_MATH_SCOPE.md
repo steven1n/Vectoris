@@ -41,7 +41,7 @@ An abstraction belongs in **VectorisNumerics** if and only if it satisfies the f
 | Category | Allowed Concepts & Primitives | Examples in VectorisNumerics |
 | :--- | :--- | :--- |
 | **Error & Type Infrastructure** | Monadic results, mathematical errors, type constraints | `Result<T, MathError>`, `Numeric`, `FloatingPoint` |
-| **Scalar Numerics** | Bounded elementary functions, traits, dual tolerances | `core::Math::sqrt`, `AlmostEqual`, `NumericTraits` |
+| **Scalar Numerics** | Bounded elementary functions, traits, dual tolerances | `core::sqrt` (`core::Math::sqrt` compatibility wrapper), `AlmostEqual`, `NumericTraits` |
 | **Dimensional Algebra** | Base dimensions, derived dimensions, strong quantities | `Dimension`, `Quantity<T, Unit>`, `UnitCast` |
 | **SI Physical Units** | Standard SI units, prefixes, dimensional products | `Meter`, `Second`, `Radian`, `Newton`, `TorqueUnit` |
 | **Spatial Geometry** | Euclidean vectors, affine points, frame tags | `Vector3<T, Frame>`, `Point3<T, Frame>`, `FrameTag` |

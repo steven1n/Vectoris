@@ -1,4 +1,5 @@
 #pragma once
+#include "Namespace.h"
 #include <cstddef>
 #include <limits>
 #include "Concepts.h"
@@ -12,7 +13,11 @@ namespace vectoris::numerics::Geometry {
     // 纯数学 3x3 矩阵，无坐标系(Frame)约束，基于 Row-Major (行主序) 存储
     template <ScalarArithmetic T>
     struct Matrix3 final {
-        // [GEO-REV-003] Row-major 连续内存存储 (MISRA & DMA 友好)
+        // AML-DEVIATION: AML-DEVIATION-005
+        // Reason: Preserve the established row-major nine-scalar value representation and existing callers.
+        // Risk: Public writes can set arbitrary values, including NaN/Inf; Matrix3 has no finite-value invariant.
+        // Mitigation: This type promises no rotation/SPD invariant; consuming APIs validate their own preconditions.
+        // The representation is not a C ABI, wire format, or persistent-storage guarantee.
         T m[9];
 
         // [GEO-REV-002] 强制值初始化，避免不可预测的随机内存态
@@ -38,7 +43,7 @@ namespace vectoris::numerics::Geometry {
             );
         }
 
-        // Row-Major 索引访问 (0-indexed)
+        // Unchecked row-major access; precondition: row < 3 and col < 3.
         constexpr T& operator()(size_t row, size_t col) noexcept {
             return m[row * 3 + col];
         }
@@ -65,9 +70,8 @@ namespace vectoris::numerics::Geometry {
             );
         }
 
-        // 标量乘法 (显式约束排他，防止 ScalarArithmetic 自指递归)
-        template <typename S>
-        requires (!std::same_as<std::remove_cvref_t<S>, Matrix3>) && ScalarArithmetic<S>
+        // ScalarArithmetic excludes all Matrix3 and Vector3 specializations.
+        template <ScalarArithmetic S>
         constexpr auto operator*(const S& scalar) const noexcept {
             using ResT = decltype(m[0] * scalar);
             return Matrix3<ResT>(
@@ -229,6 +233,20 @@ namespace vectoris::numerics::Geometry {
         }
     };
 
+    template <ScalarArithmetic T>
+    inline constexpr bool is_geometry_aggregate_v<Matrix3<T>> = true;
+
+    template <ScalarArithmetic S, ScalarArithmetic T>
+    constexpr auto operator*(const S& scalar, const Matrix3<T>& matrix)
+        noexcept(noexcept(scalar * matrix.m[0])) {
+        using ResT = decltype(scalar * matrix.m[0]);
+        return Matrix3<ResT>(
+            scalar*matrix.m[0], scalar*matrix.m[1], scalar*matrix.m[2],
+            scalar*matrix.m[3], scalar*matrix.m[4], scalar*matrix.m[5],
+            scalar*matrix.m[6], scalar*matrix.m[7], scalar*matrix.m[8]
+        );
+    }
+
     // 容差自适应近似相等 (Tolerance-Aware Numerical Comparison)
     template <ScalarArithmetic T>
     [[nodiscard]] inline bool AlmostEqual(
@@ -247,16 +265,16 @@ namespace vectoris::numerics::Geometry {
         using ScalarType = T;
     };
 
-    // ABI Contract
+    // Source-level layout checks; this is not a cross-build ABI guarantee.
     template<typename T>
     struct Matrix3ABIContract {
         using M = Matrix3<T>;
         
         static_assert(Detail::GeometryABIValidator<M>::value, 
-            "Matrix3 failed base ABI.");
+            "Matrix3 failed source layout requirements.");
             
         static_assert(sizeof(M) == sizeof(T) * GeometryTraits<M>::Elements, 
-            "Matrix3 size contains padding.");
+            "Matrix3 source representation contains unexpected padding.");
             
         static constexpr bool value = true;
     };

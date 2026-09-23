@@ -14,10 +14,29 @@ namespace vectoris::dynamics {
 
     // 确定性一阶欧拉积分器（支持硬实时无堆分配，强类型物理量推进，强事务状态一致性保证）
     class EulerIntegrator final {
-    public:
+    private:
         template <DynamicsScalar T, Geometry::FrameTag RefFrame, Geometry::FrameTag BodyFrame>
-        static constexpr Core::Result<bool, Core::MathError> Step(
-            KinematicState<T, RefFrame, BodyFrame>& state,
+        [[nodiscard]] static constexpr bool IsStateFinite(
+            const KinematicState<T, RefFrame, BodyFrame>& s
+        ) noexcept {
+            return Traits::IsFinite(s.position.x.value()) &&
+                   Traits::IsFinite(s.position.y.value()) &&
+                   Traits::IsFinite(s.position.z.value()) &&
+                   Traits::IsFinite(s.linearVelocity.x.value()) &&
+                   Traits::IsFinite(s.linearVelocity.y.value()) &&
+                   Traits::IsFinite(s.linearVelocity.z.value()) &&
+                   Traits::IsFinite(s.angularVelocity.x.value()) &&
+                   Traits::IsFinite(s.angularVelocity.y.value()) &&
+                   Traits::IsFinite(s.angularVelocity.z.value()) &&
+                   Traits::IsFinite(s.attitude.w) &&
+                   Traits::IsFinite(s.attitude.x) &&
+                   Traits::IsFinite(s.attitude.y) &&
+                   Traits::IsFinite(s.attitude.z);
+        }
+
+        template <DynamicsScalar T, Geometry::FrameTag RefFrame, Geometry::FrameTag BodyFrame>
+        [[nodiscard]] static constexpr Core::Result<bool, Core::MathError> ValidateStepInputs(
+            const KinematicState<T, RefFrame, BodyFrame>& state,
             const RigidBodyParameters<T, BodyFrame>& params,
             const Wrench6<T, BodyFrame>& wrench,
             Units::Quantity<T, Units::SecondUnit> dt
@@ -30,6 +49,48 @@ namespace vectoris::dynamics {
             }
             if (dt.value() <= static_cast<T>(0)) {
                 return ResultType(Core::MathError::invalid_argument);
+            }
+
+            // 2. 刚体物理参数校验 (质量必须有限且严格正定)
+            if (!Traits::IsFinite(params.mass.value())) {
+                return ResultType(Core::MathError::non_finite_input);
+            }
+            if (params.mass.value() <= static_cast<T>(0)) {
+                return ResultType(Core::MathError::invalid_argument);
+            }
+
+            // 3. 外力和力矩输入有限性校验
+            if (!Traits::IsFinite(wrench.force.x.value()) ||
+                !Traits::IsFinite(wrench.force.y.value()) ||
+                !Traits::IsFinite(wrench.force.z.value()) ||
+                !Traits::IsFinite(wrench.moment.x.value()) ||
+                !Traits::IsFinite(wrench.moment.y.value()) ||
+                !Traits::IsFinite(wrench.moment.z.value())) {
+                return ResultType(Core::MathError::non_finite_input);
+            }
+
+            // 4. 输入初始状态有限性校验
+            if (!IsStateFinite(state)) {
+                return ResultType(Core::MathError::non_finite_input);
+            }
+
+            return ResultType::success(true);
+        }
+
+    public:
+        template <DynamicsScalar T, Geometry::FrameTag RefFrame, Geometry::FrameTag BodyFrame>
+        static constexpr Core::Result<bool, Core::MathError> Step(
+            KinematicState<T, RefFrame, BodyFrame>& state,
+            const RigidBodyParameters<T, BodyFrame>& params,
+            const Wrench6<T, BodyFrame>& wrench,
+            Units::Quantity<T, Units::SecondUnit> dt
+        ) noexcept {
+            using ResultType = Core::Result<bool, Core::MathError>;
+
+            // 1. 输入参数与初始状态前提条件校验
+            auto input_check = ValidateStepInputs(state, params, wrench, dt);
+            if (!input_check.has_value()) {
+                return input_check;
             }
 
             // 2. 事务性候选状态副本 (栈上轻量值拷贝，零堆分配，杜绝局部提交破坏一致性)
@@ -49,35 +110,50 @@ namespace vectoris::dynamics {
             candidate.linearVelocity += lin_accel * dt;
             candidate.angularVelocity += ang_accel * dt;
 
+            // 校验候选速度是否发生数值溢出
+            if (!Traits::IsFinite(candidate.linearVelocity.x.value()) ||
+                !Traits::IsFinite(candidate.linearVelocity.y.value()) ||
+                !Traits::IsFinite(candidate.linearVelocity.z.value()) ||
+                !Traits::IsFinite(candidate.angularVelocity.x.value()) ||
+                !Traits::IsFinite(candidate.angularVelocity.y.value()) ||
+                !Traits::IsFinite(candidate.angularVelocity.z.value())) {
+                return ResultType(Core::MathError::non_finite_input);
+            }
+
             // 4. 坐标系安全变换：将候选机体线速度投影至参考坐标系并推进位置 (pos += vel_ref * dt)
             auto vel_ref = candidate.attitude * candidate.linearVelocity;
             candidate.position += vel_ref * dt;
 
+            // 校验候选位置是否发生数值溢出
+            if (!Traits::IsFinite(candidate.position.x.value()) ||
+                !Traits::IsFinite(candidate.position.y.value()) ||
+                !Traits::IsFinite(candidate.position.z.value())) {
+                return ResultType(Core::MathError::non_finite_input);
+            }
+
             // 5. 刚体姿态四元数一阶运动学推进：
-            // dq/dt = 0.5 * q ⊗ omega_body
-            // q_{k+1} = normalize(q_k + dq/dt * dt)
+            // dq/dt = 0.5 * q ⊗ (omega_body / (1 rad))
+            // q_{k+1} = normalize(q_k + 0.5 * q_k ⊗ (omega_body * dt / (1 rad)))
             //
-            // [Quaternion Kinematics Boundary]:
-            // Quaternion components are dimensionless unit scalars representing SO(3) rotations.
-            // Rotational rate (angularVelocity: rad/s, [A T^-1]) is explicitly extracted as
-            // dimensionless radian scalar rates at this audited kinematic boundary.
-            const T wx = candidate.angularVelocity.x.value();
-            const T wy = candidate.angularVelocity.y.value();
-            const T wz = candidate.angularVelocity.z.value();
-            const T dt_val = dt.value();
+            // [Quaternion Kinematics Boundary]: q uses dimensionless coordinates, so form
+            // each angular increment as (omega * dt) / (1 rad) before extracting its scalar.
+            constexpr Units::Quantity<T, Units::RadianUnit> one_rad(static_cast<T>(1));
+            const T wx_dt_over_rad = ((candidate.angularVelocity.x * dt) / one_rad).value();
+            const T wy_dt_over_rad = ((candidate.angularVelocity.y * dt) / one_rad).value();
+            const T wz_dt_over_rad = ((candidate.angularVelocity.z * dt) / one_rad).value();
 
             const T qw = candidate.attitude.w;
             const T qx = candidate.attitude.x;
             const T qy = candidate.attitude.y;
             const T qz = candidate.attitude.z;
 
-            const T half_dt = static_cast<T>(0.5) * dt_val;
+            const T half = static_cast<T>(0.5);
 
-            // q_dot = 0.5 * q * omega
-            const T dqw = half_dt * (-qx * wx - qy * wy - qz * wz);
-            const T dqx = half_dt * ( qw * wx + qy * wz - qz * wy);
-            const T dqy = half_dt * ( qw * wy - qx * wz + qz * wx);
-            const T dqz = half_dt * ( qw * wz + qx * wy - qy * wx);
+            // q_{k+1} = normalize(q_k + 0.5 * q_k ⊗ (omega * dt / 1 rad))
+            const T dqw = half * (-qx * wx_dt_over_rad - qy * wy_dt_over_rad - qz * wz_dt_over_rad);
+            const T dqx = half * ( qw * wx_dt_over_rad + qy * wz_dt_over_rad - qz * wy_dt_over_rad);
+            const T dqy = half * ( qw * wy_dt_over_rad - qx * wz_dt_over_rad + qz * wx_dt_over_rad);
+            const T dqz = half * ( qw * wz_dt_over_rad + qx * wy_dt_over_rad - qy * wx_dt_over_rad);
 
             const T new_w = qw + dqw;
             const T new_x = qx + dqx;
@@ -90,7 +166,12 @@ namespace vectoris::dynamics {
             }
             candidate.attitude = new_att.value();
 
-            // 6. 事务原子提交：全步骤全部成功时方才变更外部状态
+            // 6. 最终全状态完整性校验 (位置、姿态、线速度、角速度全部有效)
+            if (!IsStateFinite(candidate)) {
+                return ResultType(Core::MathError::non_finite_input);
+            }
+
+            // 7. 事务原子提交：全步骤全部成功且所有候选分量严格有效方才变更外部状态
             state = candidate;
             return ResultType::success(true);
         }

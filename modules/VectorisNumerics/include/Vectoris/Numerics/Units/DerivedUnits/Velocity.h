@@ -1,4 +1,5 @@
 #pragma once
+#include "../Namespace.h"
 #include "../Quantity.h"
 #include "../BaseUnits/Length.h"
 #include "../BaseUnits/Time.h"
@@ -14,7 +15,7 @@ namespace vectoris::numerics::Units {
 
     using Velocity = Quantity<Scalar, MeterPerSecondUnit>;
 
-    // 导出单位同样受到严密的 ABI 合同保护
+    // Exported units satisfy the declared C++ object-representation checks.
     static_assert(Detail::ValidateQuantityABI<Velocity>(), "Velocity ABI contract violation!");
 
 } // namespace vectoris::numerics::Units

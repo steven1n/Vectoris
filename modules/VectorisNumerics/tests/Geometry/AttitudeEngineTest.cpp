@@ -1,5 +1,8 @@
 #include <gtest/gtest.h>
 #include <cstddef>
+#include <array>
+#include <cmath>
+#include <limits>
 #include "Vectoris/Numerics/Geometry/Vector3.h"
 #include "Vectoris/Numerics/Geometry/Point3.h"
 #include "Vectoris/Numerics/Geometry/Quaternion.h"
@@ -115,3 +118,105 @@ TEST(Transform3Test, CompositionAndInverse) {
     EXPECT_NEAR(p_C.y, p_C_restored.y, 1e-5);
     EXPECT_NEAR(p_C.z, p_C_restored.z, 1e-5);
 }
+namespace {
+template <typename T>
+class QuaternionScaleTest : public ::testing::Test {};
+using QuaternionScalars = ::testing::Types<float, double>;
+TYPED_TEST_SUITE(QuaternionScaleTest, QuaternionScalars);
+
+TYPED_TEST(QuaternionScaleTest, NormalizesAcrossFiniteExponentRange) {
+    using T = TypeParam;
+    using Q = Quaternion<T, FrameA, FrameB>;
+    const std::array<T, 6> scales{
+        std::numeric_limits<T>::denorm_min(), std::numeric_limits<T>::min(),
+        T{1e-5F}, T{1}, std::numeric_limits<T>::max() / T{4},
+        std::numeric_limits<T>::max()};
+    const T tolerance = std::numeric_limits<T>::epsilon() * T{32};
+    for (const T scale : scales) {
+        SCOPED_TRACE(scale);
+        const auto result = Q::TryCreate(scale, -scale, scale, -scale);
+        ASSERT_TRUE(result.IsSuccess());
+        const auto& q = result.Value();
+        // Analytic normalized value, independent of the implementation's norm.
+        EXPECT_NEAR(q.w, T{0.5}, tolerance);
+        EXPECT_NEAR(q.x, T{-0.5}, tolerance);
+        EXPECT_NEAR(q.y, T{0.5}, tolerance);
+        EXPECT_NEAR(q.z, T{-0.5}, tolerance);
+        EXPECT_NEAR(std::hypot(std::hypot(q.w, q.x), std::hypot(q.y, q.z)),
+                    T{1}, tolerance);
+        const auto rotation = q.ToRotationMatrix();
+        ASSERT_TRUE(rotation.IsSuccess());
+        const auto mapped = rotation.Value() * Vector3<T, FrameA>(T{1}, T{0}, T{0});
+        EXPECT_NEAR(mapped.x, T{0}, tolerance);
+        EXPECT_NEAR(mapped.y, T{-1}, tolerance);
+        EXPECT_NEAR(mapped.z, T{0}, tolerance);
+        EXPECT_NEAR(rotation.Value().ToMatrix().det(), T{1}, tolerance);
+        const auto single_axis = Q::TryCreate(-scale, T{0}, T{0}, T{0});
+        ASSERT_TRUE(single_axis.IsSuccess());
+        EXPECT_NEAR(single_axis.Value().w, T{1}, tolerance);
+        ASSERT_TRUE(single_axis.Value().ToRotationMatrix().IsSuccess());
+    }
+}
+
+TYPED_TEST(QuaternionScaleTest, RejectsInvalidInputAndModifiedState) {
+    using T = TypeParam;
+    using Q = Quaternion<T, FrameA, FrameA>;
+    using Error = vectoris::numerics::Core::MathError;
+    const auto zero = Q::TryCreate(T{0}, -T{0}, T{0}, -T{0});
+    ASSERT_FALSE(zero.IsSuccess());
+    EXPECT_EQ(zero.error(), Error::zero_norm);
+    for (const T bad : {std::numeric_limits<T>::infinity(),
+                        -std::numeric_limits<T>::infinity(),
+                        std::numeric_limits<T>::quiet_NaN()}) {
+        for (std::size_t component = 0; component < 4; ++component) {
+            std::array<T, 4> input{T{1}, T{0}, T{0}, T{0}};
+            input[component] = bad;
+            const auto result = Q::TryCreate(input[0], input[1], input[2], input[3]);
+            ASSERT_FALSE(result.IsSuccess());
+            EXPECT_EQ(result.error(), Error::non_finite_input);
+            auto modified = Q::Identity();
+            std::array<T*, 4> members{&modified.w, &modified.x, &modified.y, &modified.z};
+            *members[component] = bad;
+            const auto rotation = modified.ToRotationMatrix();
+            ASSERT_FALSE(rotation.IsSuccess());
+            EXPECT_EQ(rotation.error(), Error::non_finite_input);
+        }
+    }
+    for (const T bad : {T{0}, T{0.5}, std::numeric_limits<T>::max()}) {
+        for (std::size_t component = 0; component < 4; ++component) {
+            auto modified = Q::Identity();
+            modified.w = T{0};
+            std::array<T*, 4> members{&modified.w, &modified.x, &modified.y, &modified.z};
+            *members[component] = bad;
+            const auto rotation = RotationMatrix3<T, FrameA, FrameA>::FromQuaternion(modified);
+            ASSERT_FALSE(rotation.IsSuccess());
+            EXPECT_EQ(rotation.error(), Error::invalid_state);
+        }
+    }
+}
+
+TEST(QuaternionTest, AccumulatedDriftIsCheckedAndCanBeRenormalized) {
+    using Q = Quaternion<double, FrameA, FrameA>;
+    const auto step = Q::TryCreate(std::cos(0.01), 0.0, 0.0, std::sin(0.01));
+    ASSERT_TRUE(step.IsSuccess());
+    auto accumulated = Q::Identity();
+    constexpr int max_iterations = 100000;
+    for (int i = 0; i < max_iterations; ++i) {
+        accumulated = accumulated * step.Value();
+    }
+    const auto rotation = accumulated.ToRotationMatrix();
+    if (!rotation.IsSuccess()) {
+        EXPECT_EQ(rotation.error(), vectoris::numerics::Core::MathError::invalid_state);
+    } else {
+        EXPECT_NEAR(rotation.Value().ToMatrix().det(), 1.0, 1e-13);
+    }
+    const auto normalized = Q::TryCreate(accumulated.w, accumulated.x, accumulated.y, accumulated.z);
+    ASSERT_TRUE(normalized.IsSuccess());
+    const auto recovered = normalized.Value().ToRotationMatrix();
+    ASSERT_TRUE(recovered.IsSuccess());
+    const auto mapped = recovered.Value() * Vector3<double, FrameA>(1.0, 0.0, 0.0);
+    EXPECT_NEAR(mapped.x, std::cos(2000.0), 1e-10);
+    EXPECT_NEAR(mapped.y, std::sin(2000.0), 1e-10);
+    EXPECT_NEAR(mapped.z, 0.0, 1e-14);
+}
+} // namespace

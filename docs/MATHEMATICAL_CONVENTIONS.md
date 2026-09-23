@@ -102,6 +102,7 @@ Quaternions follow the **Hamilton convention**:
 $$q = w + x\mathbf{i} + y\mathbf{j} + z\mathbf{k}, \quad \mathbf{i}^2 = \mathbf{j}^2 = \mathbf{k}^2 = \mathbf{i}\mathbf{j}\mathbf{k} = -1$$
 - **Storage Order**: `[w, x, y, z]` (scalar component first).
 - **Unit Constraint**: Rotation quaternions produced through validated construction APIs satisfy $\|\mathbf{q}\| \approx 1$. (Because coordinate components $w, x, y, z$ remain public mutable members per AML-DEVIATION-002, unit normalization is a construction-time guarantee, not an immutable lifetime invariant).
+- **Identity Factory**: `Quaternion<T, F, F>::Identity()` is constrained by the class's actual frames; legacy explicit arguments may name any same-frame pair but do not select the class mapping. They cannot make `Quaternion<T, F, H>` with `F != H` produce an identity.
 
 ### 6.3 Euler Angle Convention (Aerospace ZYX)
 When converting to or from Euler angles, the canonical sequence is **Yaw-Pitch-Roll (ZYX)**:
@@ -268,7 +269,7 @@ In compliance with Rule 9 ("Never trust floating-point equality"):
 3. **Rotational Equivalence (`RotationEquivalent`) & Canonicalization Policy**:
    - Quaternions represent $SO(3)$ rotations via a double cover ($\mathbb{S}^3 \to SO(3)$), meaning $\mathbf{q}$ and $-\mathbf{q}$ represent the identical physical orientation.
    - **Construction-Time Sign Normalization (Option A)**: `Quaternion::TryCreate` applies exact deterministic sign normalization (`w < 0 -> negate`), guaranteeing $w \ge 0$ whenever $w \ne 0$. For 180-degree pure vector rotations where $w == 0$ (e.g. $[0, 1, 0, 0]$ and $[0, -1, 0, 0]$), sign canonicalization is degenerate and does not enforce lexicographical uniqueness on the vector part.
-   - **Transitional Mutability Policy**: Quaternion components (`w, x, y, z`) remain public data members to satisfy standard-layout / trivially copyable ABI constraints for embedded telemetry and hardware DMA buffers. Therefore, canonicalization is a construction-time guarantee, NOT an immutable lifetime invariant.
+   - **Transitional Mutability Policy**: Quaternion components (`w, x, y, z`) remain public data members under AML-DEVIATION-002 for source compatibility and direct scalar access. Standard-layout/trivially-copyable checks do not establish a cross-build ABI, telemetry wire format, DMA mapping, or persistent representation. Therefore, canonicalization is a construction-time guarantee, NOT an immutable lifetime invariant.
    - **Independent $SO(3)$ Equivalence**: `RotationEquivalent(q1, q2)` is independent of whether instances are canonical or modified. It checks both $\mathbf{q}_1 \approx \mathbf{q}_2$ and $\mathbf{q}_1 \approx -\mathbf{q}_2$, providing robust tolerance-aware $SO(3)$ equivalence across all orientations, including $\theta = \pi$ ($w = 0$), near-zero $w$, and non-canonical representations.
 4. **Rotation Invariant Tolerance**:
    - The orthogonality check $\mathbf{R}^T \mathbf{R} \approx \mathbf{I}$ uses the squared Frobenius norm:

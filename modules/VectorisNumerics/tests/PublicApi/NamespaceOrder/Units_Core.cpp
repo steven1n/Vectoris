@@ -1,0 +1,7 @@
+// VRT-12: isolated include permutation, canonical and compatibility lookup.
+#include <Vectoris/Numerics/Units/Dimension.h>
+static_assert(vectoris::numerics::units::LengthDimension::length == 1);
+static_assert(vectoris::numerics::Units::LengthDimension::length == 1);
+#include <Vectoris/Numerics/Core/Math.h>
+static_assert(vectoris::numerics::core::sqrt(4.0) == 2.0);
+static_assert(vectoris::numerics::Core::sqrt(4.0) == 2.0);

@@ -219,16 +219,16 @@ namespace vectoris::dynamics {
     template <Geometry::FrameTag Frame, typename T = Scalar>
     using AngularMomentum3 = QuantityVector3<Units::Quantity<T, Units::AngularMomentumUnit>, Frame>;
 
-    // 旋转 Lie 括号与动力学截面算子 (Rotational Cross / so(3) Lie Bracket):
-    // tau = omega x L / (1 rad)
-    // 在 Angle 作为独立基本量纲时，旋转截面算子包含显式 1/rad 规范化因子
+    // 物理旋转叉积：先执行保留量纲的普通 Cross，再显式除以一个弧度。
+    // 只有采用 radian 角坐标约定的旋转运动学/动力学项才应调用本 API。
+    // 通用 Cross 始终执行纯量纲代数，不会隐式消去 Angle。
     template <Geometry::FrameTag Frame, typename T = Scalar>
     [[nodiscard]] constexpr Torque3<Frame, T> RotationalCross(
         const AngularVelocity3<Frame, T>& w,
         const AngularMomentum3<Frame, T>& L) noexcept
     {
         auto raw_cross = Cross(w, L);
-        Units::Quantity<T, Units::RadianUnit> one_rad(static_cast<T>(1.0));
+        constexpr Units::Quantity<T, Units::RadianUnit> one_rad(static_cast<T>(1));
         return raw_cross / one_rad;
     }
 
@@ -240,19 +240,16 @@ namespace vectoris::dynamics {
         return RotationalCross(w, L);
     }
 
-    // 弧度作为角度量纲在科氏力项交叉时的自然无量纲解算:
-    // omega (AngularVelocity) x v (Velocity) -> Acceleration
+    // 机体系旋转传输项： (omega x v) / (1 rad) -> Acceleration。
+    // 保留 generic Cross 的原始 A L T^-2 量纲，明确由 one_rad 消去 Angle。
     template <Geometry::FrameTag Frame, typename T = Scalar>
-    [[nodiscard]] constexpr Acceleration3<Frame, T> Cross(
+    [[nodiscard]] constexpr Acceleration3<Frame, T> RotationalCross(
         const AngularVelocity3<Frame, T>& w,
         const Velocity3<Frame, T>& v) noexcept
     {
-        using AccelQ = Units::Quantity<T, Units::MeterPerSecondSquaredUnit>;
-        return Acceleration3<Frame, T>(
-            AccelQ(w.y.value() * v.z.value() - w.z.value() * v.y.value()),
-            AccelQ(w.z.value() * v.x.value() - w.x.value() * v.z.value()),
-            AccelQ(w.x.value() * v.y.value() - w.y.value() * v.x.value())
-        );
+        const auto raw_cross = Cross(w, v);
+        constexpr Units::Quantity<T, Units::RadianUnit> one_rad(static_cast<T>(1));
+        return raw_cross / one_rad;
     }
 
     // ABI 静态验证

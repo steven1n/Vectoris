@@ -1,4 +1,5 @@
 #pragma once
+#include "Namespace.h"
 #include "MathError.h"
 #include <cassert>
 #include <variant>
@@ -7,14 +8,41 @@
 
 namespace vectoris::numerics::Core {
 
-    // 专为无异常/无堆分配环境设计的强类型 Result 范式
+    // 两态 Result；用户载荷构造/赋值可抛异常，存储本身不分配内存。
     // 遵从 ISO C++20 与 Engineering Standard v1.0 Section 45
     template <typename T, typename E = MathError>
     class Result final {
         static_assert(!std::is_same_v<T, E>, "Result value type T and error type E cannot be the same type.");
+        static_assert(std::is_nothrow_destructible_v<T> && std::is_nothrow_destructible_v<E>,
+                      "Result payload destructors must be noexcept.");
 
     private:
+        struct FactoryTag final {};
         std::variant<T, E> storage_;
+
+        // Cross-alternative copy assignment either cannot throw on construction,
+        // or constructs a temporary before committing with a nonthrowing move.
+        static constexpr bool safe_copy_assignment =
+            std::is_copy_assignable_v<std::variant<T, E>> &&
+            (std::is_nothrow_copy_constructible_v<T> || std::is_nothrow_move_constructible_v<T>) &&
+            (std::is_nothrow_copy_constructible_v<E> || std::is_nothrow_move_constructible_v<E>);
+        static constexpr bool safe_move_assignment =
+            std::is_move_assignable_v<std::variant<T, E>> &&
+            std::is_nothrow_move_constructible_v<T> && std::is_nothrow_move_constructible_v<E>;
+
+        // Named factories select an alternative explicitly, never by source type.
+        // The private leading tag keeps these overloads out of ordinary construction.
+        template <typename... Args>
+        requires std::is_constructible_v<T, Args&&...>
+        constexpr explicit Result(FactoryTag, std::in_place_index_t<0>, Args&&... args)
+            noexcept(std::is_nothrow_constructible_v<T, Args&&...>)
+            : storage_(std::in_place_index<0>, std::forward<Args>(args)...) {}
+
+        template <typename... Args>
+        requires std::is_constructible_v<E, Args&&...>
+        constexpr explicit Result(FactoryTag, std::in_place_index_t<1>, Args&&... args)
+            noexcept(std::is_nothrow_constructible_v<E, Args&&...>)
+            : storage_(std::in_place_index<1>, std::forward<Args>(args)...) {}
 
     public:
         using value_type = T;
@@ -22,6 +50,20 @@ namespace vectoris::numerics::Core {
 
         // 禁止无参数默认构造，强制每个 Result 必须明确携带有效值或具体错误原因
         constexpr Result() = delete;
+
+        // A throwing constructor creates no destination Result. The source keeps
+        // its alternative (its payload may be moved-from).
+        constexpr Result(const Result&) = default;
+        constexpr Result(Result&&) = default;
+
+        // Same-alternative payload assignment may throw but keeps that alternative.
+        // Delete unsafe operations explicitly; in particular, do not let unsafe
+        // rvalue assignment silently fall back to the const-lvalue overload.
+        constexpr Result& operator=(const Result&) requires(safe_copy_assignment) = default;
+        constexpr Result& operator=(const Result&) requires(!safe_copy_assignment) = delete;
+        constexpr Result& operator=(Result&&) requires(safe_move_assignment) = default;
+        constexpr Result& operator=(Result&&) requires(!safe_move_assignment) = delete;
+        ~Result() = default;
 
         // 值构造
         template <typename U = T>
@@ -48,24 +90,26 @@ namespace vectoris::numerics::Core {
             noexcept(std::is_nothrow_constructible_v<E, Err>)
             : storage_(std::in_place_index<1>, std::forward<Err>(err)) {}
 
-        // 显式工厂
+        // 显式工厂：目标类型和状态由工厂名称决定，与实参源类型无关。
         template <typename U = T>
+        requires std::is_constructible_v<T, U&&>
         static constexpr Result success(U&& val)
-            noexcept(std::is_nothrow_constructible_v<T, U>) {
-            return Result(std::forward<U>(val));
+            noexcept(std::is_nothrow_constructible_v<T, U&&>) {
+            return Result(FactoryTag{}, std::in_place_index<0>, std::forward<U>(val));
         }
 
         template <typename... Args>
-        requires std::is_constructible_v<T, Args...>
+        requires std::is_constructible_v<T, Args&&...>
         static constexpr Result success(Args&&... args)
-            noexcept(std::is_nothrow_constructible_v<T, Args...>) {
-            return Result(std::in_place, std::forward<Args>(args)...);
+            noexcept(std::is_nothrow_constructible_v<T, Args&&...>) {
+            return Result(FactoryTag{}, std::in_place_index<0>, std::forward<Args>(args)...);
         }
 
         template <typename Err = E>
+        requires std::is_constructible_v<E, Err&&>
         static constexpr Result failure(Err&& err)
-            noexcept(std::is_nothrow_constructible_v<E, Err>) {
-            return Result(std::forward<Err>(err));
+            noexcept(std::is_nothrow_constructible_v<E, Err&&>) {
+            return Result(FactoryTag{}, std::in_place_index<1>, std::forward<Err>(err));
         }
 
         // 状态查询

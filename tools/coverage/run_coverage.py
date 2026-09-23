@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AegisMathLib Stable-Core Coverage Runner (P2-COV)
+ VectorisNumerics LLVM Coverage Runner (P2-COV)
 
 Orchestrates:
 1. Clean profiles directory
@@ -18,8 +18,8 @@ import subprocess
 import sys
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Run AegisMathLib coverage pipeline.")
-    parser.add_argument("--test-binary", required=True, help="Path to AegisMathLib_Tests binary")
+    parser = argparse.ArgumentParser(description="Run VectorisNumerics raw LLVM coverage pipeline.")
+    parser.add_argument("--test-binary", required=True, help="Path to VectorisNumerics_Tests binary")
     parser.add_argument("--llvm-profdata", required=True, help="Path to llvm-profdata executable")
     parser.add_argument("--llvm-cov", required=True, help="Path to llvm-cov executable")
     parser.add_argument("--build-dir", required=True, help="CMake build directory")

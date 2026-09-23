@@ -1,4 +1,5 @@
 #pragma once
+#include "Namespace.h"
 #include <limits>
 #include <cmath>
 #include <algorithm>
@@ -52,11 +53,43 @@ namespace vectoris::numerics::Traits {
         return std::abs(value) <= tolerance;
     }
 
+    namespace Detail {
+        // Preconditions: finite, unequal inputs and finite nonnegative tolerances.
+        template <Concepts::FloatingPoint T>
+        [[nodiscard]] inline Bool FiniteAlmostEqual(T a, T b, T absoluteTolerance,
+                                                    T relativeTolerance) noexcept {
+            const T high = std::max(std::abs(a), std::abs(b));
+            const T low = std::min(std::abs(a), std::abs(b));
+            if ((a < T{0}) == (b < T{0})) {
+                // Same-sign subtraction cannot overflow. Keep the absolute check
+                // at the original scale, including subnormal differences.
+                const T diff = high - low;
+                return diff <= absoluteTolerance || diff / high <= relativeTolerance;
+            }
+            // Opposite signs: |a-b| = high+low. Rearrange the absolute check
+            // without forming that sum or overflowing a tolerance product.
+            if (high <= absoluteTolerance && low <= absoluteTolerance - high) {
+                return true;
+            }
+            // Relative difference = 1+low/high. Handle the exact endpoint before
+            // dividing: low/high can underflow even though low is nonzero.
+            if (relativeTolerance <= T{1}) {
+                return relativeTolerance == T{1} && low == T{0};
+            }
+            return relativeTolerance >= T{2} || low / high <= relativeTolerance - T{1};
+        }
+    } // namespace Detail
+
     // =========================================================================
     // 工业级浮点安全比较算法
     // =========================================================================
     template <Concepts::FloatingPoint T>
     [[nodiscard]] inline Bool AlmostEqual(T a, T b, T absoluteTolerance, T relativeTolerance) noexcept {
+        // Invalid tolerances always fail, including exact equality and infinity.
+        if (!IsFinite(absoluteTolerance) || !IsFinite(relativeTolerance) ||
+            absoluteTolerance < T{0} || relativeTolerance < T{0}) {
+            return false;
+        }
         // [防御] 拦截 NaN：NaN 与任何数值（包括其自身）比较均为 false
         if (IsNaN(a) || IsNaN(b)) {
             return false;
@@ -75,12 +108,12 @@ namespace vectoris::numerics::Traits {
             return true;
         }
 
-        const T diff = std::abs(a - b);
-        const T absA = std::abs(a);
-        const T absB = std::abs(b);
-        const T maxAbs = std::max(absA, absB);
-
-        return diff <= std::max(absoluteTolerance, relativeTolerance * maxAbs);
+        return Detail::FiniteAlmostEqual(a, b, absoluteTolerance, relativeTolerance);
     }
 
 } // namespace vectoris::numerics::Traits
+
+// Selective public spelling for the existing comparison; no wrapper or Detail import.
+namespace vectoris::numerics::Core {
+    using Traits::AlmostEqual;
+}

@@ -4,8 +4,9 @@
 > **Document**: Units Module Specification  
 > **Document Version**: 1.0  
 > **Status**: Authoritative Module Specification  
-> **Code Baseline**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
-> **Last Updated**: 2026-09-15  
+> **Reviewed Starting HEAD**: `cfbecc6390fb30d857f10f2516f39bb2ef75f996` (working tree contains uncommitted remediations)
+> **Last Updated**: 2026-09-23
+> **Current Qualification**: NOT REQUALIFIED / Experimental
 > **Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](ENGINEERING_STANDARD_V1.md)
 
 ---
@@ -13,6 +14,22 @@
 ## 1. Purpose
 
 The `Units` module implements a zero-overhead, compile-time dimensionally safe physical quantity system. It guarantees that incompatible physical quantities cannot be added, subtracted, or assigned to one another, while automatically deducing correct dimensional types under multiplication and division.
+
+### Public namespace contract (VRT-12)
+
+`vectoris::numerics::units` is the canonical public spelling.
+`vectoris::numerics::Units` remains a compatibility spelling for this release,
+**not deprecated**. Older `Units::` examples in this document use that spelling;
+both denote identical entities. Each public header directly includes the layer's
+`Units/Namespace.h`, making the alias usable from that header alone and
+independent of include order. No umbrella header is required. Definitions stay
+in their historical namespace; template identity, ADL and numerical behavior do
+not change. Existing nested `Detail` names remain implementation-only under
+both spellings, with no supported API or ABI promise. The Units header inventory
+is now 31, including the authoritative
+[`Namespace.h`](../modules/VectorisNumerics/include/Vectoris/Numerics/Units/Namespace.h).
+No aliases are placed
+under `vectoris::dynamics`. Overall status remains Experimental.
 
 ---
 
@@ -34,7 +51,7 @@ The 8 fundamental dimensions are:
 
 ## 3. Base Dimensions
 
-In [`include/Vectoris/Numerics/Units/Dimension.h`](../include/Vectoris/Numerics/Units/Dimension.h), dimensions are tracked as integer template parameters:
+In [`include/Vectoris/Numerics/Units/Dimension.h`](../modules/VectorisNumerics/include/Vectoris/Numerics/Units/Dimension.h), dimensions are tracked as integer template parameters:
 
 ```cpp
 template<
@@ -121,14 +138,14 @@ The `Units` module defines **8 SI Base Units** under `include/Vectoris/Numerics/
 
 | Quantity | Base Unit | Header |
 | :--- | :--- | :--- |
-| Length | `Meter` | [`Length.h`](../include/Vectoris/Numerics/Units/BaseUnits/Length.h) |
-| Mass | `Kilogram` | [`Mass.h`](../include/Vectoris/Numerics/Units/BaseUnits/Mass.h) |
-| Time | `Second` | [`Time.h`](../include/Vectoris/Numerics/Units/BaseUnits/Time.h) |
-| Current | `Ampere` | [`Current.h`](../include/Vectoris/Numerics/Units/BaseUnits/Current.h) |
-| Temperature | `Kelvin` | [`Temperature.h`](../include/Vectoris/Numerics/Units/BaseUnits/Temperature.h) |
-| Amount | `Mole` | [`Amount.h`](../include/Vectoris/Numerics/Units/BaseUnits/Amount.h) |
-| Luminosity | `Candela` | [`Luminosity.h`](../include/Vectoris/Numerics/Units/BaseUnits/Luminosity.h) |
-| Angle | `Radian` | [`Angle.h`](../include/Vectoris/Numerics/Units/BaseUnits/Angle.h) |
+| Length | `Meter` | [`Length.h`](../modules/VectorisNumerics/include/Vectoris/Numerics/Units/BaseUnits/Length.h) |
+| Mass | `Kilogram` | [`Mass.h`](../modules/VectorisNumerics/include/Vectoris/Numerics/Units/BaseUnits/Mass.h) |
+| Time | `Second` | [`Time.h`](../modules/VectorisNumerics/include/Vectoris/Numerics/Units/BaseUnits/Time.h) |
+| Current | `Ampere` | [`Current.h`](../modules/VectorisNumerics/include/Vectoris/Numerics/Units/BaseUnits/Current.h) |
+| Temperature | `Kelvin` | [`Temperature.h`](../modules/VectorisNumerics/include/Vectoris/Numerics/Units/BaseUnits/Temperature.h) |
+| Amount | `Mole` | [`Amount.h`](../modules/VectorisNumerics/include/Vectoris/Numerics/Units/BaseUnits/Amount.h) |
+| Luminosity | `Candela` | [`Luminosity.h`](../modules/VectorisNumerics/include/Vectoris/Numerics/Units/BaseUnits/Luminosity.h) |
+| Angle | `Radian` | [`Angle.h`](../modules/VectorisNumerics/include/Vectoris/Numerics/Units/BaseUnits/Angle.h) |
 
 ---
 
@@ -177,13 +194,21 @@ $$[\boldsymbol{\omega} \times \mathbf{L}] = [A \cdot T^{-1}] \cdot [M \cdot L^2 
 The ordinary Cartesian cross product yields Energy, not Torque. To resolve this, Vectoris provides:
 $$\operatorname{RotationalCross}(\boldsymbol{\omega}, \mathbf{L}) \triangleq \frac{\boldsymbol{\omega} \times \mathbf{L}}{1\text{ rad}}$$
 $$[\operatorname{RotationalCross}(\boldsymbol{\omega}, \mathbf{L})] = \frac{[M \cdot L^2 \cdot T^{-2} \cdot A^0]}{[A^1]} = [M \cdot L^2 \cdot T^{-2} \cdot A^{-1}] \equiv [\boldsymbol{\tau}]$$
-Calling `LieBracket(omega, L)` or `RotationalCross(omega, L)` explicitly performs this normalization. Bypassing the dimensional system with `.value()` is forbidden.
+Calling `LieBracket(omega, L)` or `RotationalCross(omega, L)` explicitly performs this normalization. Do not extract `.value()` to bypass dimensional cross-product algebra. Scalar access remains appropriate for finite checks, same-unit numerical solver adapters that reify their result type, and dimensionless values after an explicit typed normalization.
+
+### 10.4 Generic Cross Versus Physical Rotational Cross
+The generic Dynamics `Cross(a, b)` follows ordinary dimensional multiplication and preserves the `Frame` type. For example:
+$$[\boldsymbol{\omega} \times \mathbf{v}] = [A \cdot T^{-1}][L \cdot T^{-1}] = [A \cdot L \cdot T^{-2}]$$
+This is not `Acceleration`. The physical rotating-frame transport term uses the radian coordinate convention explicitly:
+$$\operatorname{RotationalCross}(\boldsymbol{\omega}, \mathbf{v}) \triangleq \frac{\boldsymbol{\omega} \times \mathbf{v}}{1\text{ rad}}$$
+$$[\operatorname{RotationalCross}(\boldsymbol{\omega}, \mathbf{v})] = [L \cdot T^{-2}]$$
+The divisor is a typed `Radian` quantity with numeric value one, so this dimensional conversion does not introduce a numerical scale factor. Use `Cross` for ordinary algebra; use `RotationalCross` only for physical rotational equations whose angular-coordinate convention consumes one radian. The implementation currently supports the production transport term `(AngularVelocity3, Velocity3)` and gyroscopic term `(AngularVelocity3, AngularMomentum3)`; it does not expose unused position or angular-acceleration combinations.
 
 ---
 
 ## 11. Frequency Contract
 
-[`include/Vectoris/Numerics/Units/DerivedUnits/Frequency.h`](../include/Vectoris/Numerics/Units/DerivedUnits/Frequency.h) specifies:
+[`include/Vectoris/Numerics/Units/DerivedUnits/Frequency.h`](../modules/VectorisNumerics/include/Vectoris/Numerics/Units/DerivedUnits/Frequency.h) specifies:
 - Dimension: `FrequencyDimension = Dimension<0, 0, -1, 0, 0, 0, 0, 0>;` ($T^{-1}$).
 - Unit Tag: `struct HertzUnit { using Dimension = FrequencyDimension; using Ratio = std::ratio<1>; static constexpr bool IsBaseUnit = false; };`.
 - Quantity Aliases: `using Frequency = Quantity<Scalar, HertzUnit>;` and `using Hertz = Frequency;`.
@@ -195,7 +220,7 @@ Calling `LieBracket(omega, L)` or `RotationalCross(omega, L)` explicitly perform
 
 ---
 
-## 12. ABI Contract
+## 12. C++ Object-Representation Checks
 
 All exported quantity types must satisfy `Detail::ValidateQuantityABI<Q>()`:
 - `sizeof(Quantity<T, Unit>) == sizeof(T)`
@@ -203,7 +228,7 @@ All exported quantity types must satisfy `Detail::ValidateQuantityABI<Q>()`:
 - `std::is_standard_layout_v<Quantity<T, Unit>> == true`
 - `std::is_trivially_copyable_v<Quantity<T, Unit>> == true`
 
-These checks confirm that `Quantity` stores one scalar value and introduces no additional per-object storage or padding beyond that scalar under the verified ABI checks. While standard layout and trivial copyability allow predictable memory representations and low-overhead integration, portability across differing compiler ABI specifications or network wire formats depends on platform conventions.
+These compile-time checks confirm the listed properties for the instantiated `Quantity` type under the current compiler. The historical validator names containing `ABI` are retained for source compatibility; they do not establish a C ABI, cross-build binary compatibility, DMA suitability, persistent representation, or network wire format. Serialization and device transfer require separately specified encodings and alignment contracts.
 
 ---
 

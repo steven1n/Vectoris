@@ -3,7 +3,7 @@
 # Provides scoped LLVM source-based coverage instrumentation and verification.
 # ==============================================================================
 
-option(VECTORIS_ENABLE_COVERAGE "Enable Stable-Core source-based coverage instrumentation" OFF)
+option(VECTORIS_ENABLE_COVERAGE "Enable VectorisNumerics LLVM coverage instrumentation" OFF)
 
 if(VECTORIS_ENABLE_COVERAGE)
     if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")

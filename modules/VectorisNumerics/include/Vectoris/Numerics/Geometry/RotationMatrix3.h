@@ -1,4 +1,5 @@
 #pragma once
+#include "Namespace.h"
 #include "Concepts.h"
 #include "FrameTags.h"
 #include "Matrix3.h"
@@ -103,7 +104,7 @@ namespace vectoris::numerics::Geometry {
 
         // --- 四元数转换构造工厂 ---
         template <typename QuatType>
-        static constexpr RotationMatrix3 FromQuaternion(const QuatType& q) noexcept {
+        [[nodiscard]] static constexpr Core::Result<RotationMatrix3> FromQuaternion(const QuatType& q) noexcept {
             return q.ToRotationMatrix();
         }
 
@@ -142,10 +143,10 @@ namespace vectoris::numerics::Geometry {
         using TargetFrame = FrameTo;
 
         static_assert(Detail::GeometryABIValidator<RotationMatrix3<T, FrameFrom, FrameTo>>::value, 
-            "RotationMatrix3 failed base ABI constraints.");
+            "RotationMatrix3 failed source layout constraints.");
             
         static_assert(sizeof(RotationMatrix3<T, FrameFrom, FrameTo>) == sizeof(T) * 9, 
-            "RotationMatrix3 must have zero padding overhead relative to Matrix3.");
+            "RotationMatrix3 source representation must contain nine scalar slots.");
     };
 
 } // namespace vectoris::numerics::Geometry

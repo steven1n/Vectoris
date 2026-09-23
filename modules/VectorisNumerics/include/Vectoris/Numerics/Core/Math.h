@@ -1,4 +1,5 @@
 #pragma once
+#include "Namespace.h"
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -9,11 +10,13 @@
 #include "Concepts.h"
 
 // 依据 docs/ENGINEERING_STANDARD_V1.md Section 15 (IEEE-754 语义 baseline):
-// bit-level 指数折半初值算法严格依赖 IEEE-754 binary32 与 binary64 物理内存布局。
+// constexpr 平方根的整数有效数字算法依赖 IEEE-754 binary32/binary64 布局。
 static_assert(std::numeric_limits<float>::is_iec559, "[VectorisNumerics] float must conform to IEEE-754 binary32");
+static_assert(std::numeric_limits<float>::digits == 24 && std::numeric_limits<float>::max_exponent == 128);
 static_assert(sizeof(float) == 4, "[VectorisNumerics] sizeof(float) must be exactly 4 bytes");
 
 static_assert(std::numeric_limits<double>::is_iec559, "[VectorisNumerics] double must conform to IEEE-754 binary64");
+static_assert(std::numeric_limits<double>::digits == 53 && std::numeric_limits<double>::max_exponent == 1024);
 static_assert(sizeof(double) == 8, "[VectorisNumerics] sizeof(double) must be exactly 8 bytes");
 
 namespace vectoris::numerics::Core {
@@ -25,111 +28,88 @@ namespace vectoris::numerics::Core {
     }
 
     namespace Detail {
-        template <Concepts::SupportedSqrtScalar T>
-        constexpr T InitialSqrtGuess(T x) noexcept {
-            if constexpr (std::is_same_v<T, double>) {
-                if (x >= std::numeric_limits<double>::min()) {
-                    const uint64_t bits = std::bit_cast<uint64_t>(x);
-                    const uint64_t guess_bits = (bits >> 1) + (1023ULL << 51);
-                    return std::bit_cast<double>(guess_bits);
-                } else {
-                    // Subnormal double: scale by 2^52
-                    const double scaled = x * 4503599627370496.0;
-                    const uint64_t bits = std::bit_cast<uint64_t>(scaled);
-                    const uint64_t guess_bits = (bits >> 1) + (1023ULL << 51);
-                    return std::bit_cast<double>(guess_bits) * 1.4901161193847656e-08; // 2^-26
-                }
-            } else {
-                // float (binary32)
-                if (x >= std::numeric_limits<float>::min()) {
-                    const uint32_t bits = std::bit_cast<uint32_t>(x);
-                    const uint32_t guess_bits = (bits >> 1) + (127U << 22);
-                    return std::bit_cast<float>(guess_bits);
-                } else {
-                    // Subnormal float: scale by 2^24
-                    const float scaled = x * 16777216.0f;
-                    const uint32_t bits = std::bit_cast<uint32_t>(scaled);
-                    const uint32_t guess_bits = (bits >> 1) + (127U << 22);
-                    return std::bit_cast<float>(guess_bits) * 0.000244140625f; // 2^-12
-                }
+        // Extract a pair from M << shift without constructing the 106-bit radicand.
+        // Preconditions: M has p<=53 bits; 0<=low<=2*(p-1), shift is p-1 or p.
+        constexpr std::uint64_t SqrtRadicandPair(std::uint64_t significand, int low, int shift) noexcept {
+            if (low >= shift) {
+                return (significand >> (low - shift)) & 3U;
             }
+            if (low + 1 == shift) {
+                return (significand & 1U) << 1;
+            }
+            return 0;
         }
 
-        template <Concepts::SupportedSqrtScalar T>
-        constexpr T BoundedNewtonSqrt(T x, std::size_t* iterations_out = nullptr) noexcept {
-            if (Traits::IsNaN(x)) {
-                if (iterations_out != nullptr) {
-                    *iterations_out = 0;
-                }
-                return Traits::NumericTraits<T>::quietNaN();
+        // Precondition: x is positive and finite. Internal implementation only.
+        // Exactly p digit steps; prefix = root^2 + remainder, remainder < 2*root+1.
+        // All intermediates fit uint64_t: even the shifted remainder is < 2^55.
+        template <typename T>
+        requires (std::same_as<T, float> || std::same_as<T, double>)
+        constexpr T DigitSqrtPositive(T x) noexcept {
+            using UInt = std::conditional_t<std::is_same_v<T, float>, std::uint32_t, std::uint64_t>;
+            constexpr int digits = std::numeric_limits<T>::digits;
+            constexpr int bias = std::numeric_limits<T>::max_exponent - 1;
+            const UInt bits = std::bit_cast<UInt>(x);
+            const UInt raw_exponent = bits >> (digits - 1);
+            std::uint64_t significand = bits & ((UInt{1} << (digits - 1)) - 1);
+            int exponent = static_cast<int>(raw_exponent) - bias;
+            if (raw_exponent == 0) {
+                const int shift = std::countl_zero(significand) - (64 - digits);
+                significand <<= shift;
+                exponent = 1 - bias - shift;
+            } else {
+                significand |= std::uint64_t{1} << (digits - 1);
             }
-            // Vectoris Core::sqrt project-specific domain policy:
-            // 非正数（包括 -0.0、负有限数、-Inf）防御性截断返回 +0.0，避免在非实数域传播 NaN
-            if (x <= T{}) {
-                if (iterations_out != nullptr) {
-                    *iterations_out = 0;
-                }
-                return T{};
-            }
-            if (Traits::IsInfinity(x)) {
-                if (iterations_out != nullptr) {
-                    *iterations_out = 0;
-                }
-                return x;
-            }
-
-            T curr = InitialSqrtGuess(x);
-            constexpr std::size_t kMaxIterations = 64;
-            constexpr T eps = Traits::NumericTraits<T>::epsilon();
-            std::size_t iter_count = 0;
-
-            for (std::size_t i = 0; i < kMaxIterations; ++i) {
-                ++iter_count;
-                const T prev = curr;
-                curr = static_cast<T>(0.5) * (curr + x / curr);
-
-                const T diff = abs(curr - prev);
-                const T scale = curr > prev ? curr : prev;
-                if (curr == prev || diff <= eps * scale) {
-                    break;
+            const int odd = exponent % 2 != 0 ? 1 : 0;
+            std::uint64_t root = 0;
+            std::uint64_t remainder = 0;
+            constexpr int max_iterations = digits; // binary32: 24; binary64: 53.
+            for (int step = 0; step < max_iterations; ++step) {
+                remainder = (remainder << 2) |
+                    SqrtRadicandPair(significand, 2 * (digits - step - 1), digits - 1 + odd);
+                const std::uint64_t trial = (root << 2) | 1U;
+                root <<= 1;
+                if (remainder >= trial) {
+                    remainder -= trial;
+                    ++root;
                 }
             }
-
-            if (iterations_out != nullptr) {
-                *iterations_out = iter_count;
+            // Nearest rounding: N > (root+1/2)^2 iff integer remainder > root.
+            // An exact halfway case is impossible because N is an integer.
+            if (remainder > root) {
+                ++root;
             }
-            return curr;
+            // Scale exponents: [-98,40] for float, [-589,459] for double.
+            // The encoded scale and every positive result are normal and finite.
+            const int scale_exponent = (exponent - odd) / 2 - (digits - 1);
+            const UInt scale_bits = static_cast<UInt>(scale_exponent + bias) << (digits - 1);
+            return static_cast<T>(root) * std::bit_cast<T>(scale_bits);
         }
     } // namespace Detail
 
     /**
-     * @brief 平方根计算函数 (限定 float / double)
-     *
-     * @domain Vectoris Core::sqrt project-specific domain policy:
-     * - x > 0: 计算并返回平方根
-     * - x == 0: 返回 +0.0 (保留既有契约: sqrt(-0.0) -> +0.0)
-     * - x < 0: 防御性截断返回 +0.0 (避免非实数域 NaN 扩散)
-     * - +Inf: 返回 +Inf
-     * - -Inf: 防御性截断返回 +0.0
-     * - NaN: 返回 quiet_NaN
-     *
-     * @note 编译期求值在 constexpr 条件下调用具备硬迭代上限 (kMaxIterations=64) 的
-     *       牛顿迭代实现 Detail::BoundedNewtonSqrt；
-     *       运行时求值通过 std::is_constant_evaluated() 委派给标准库实现 std::sqrt。
+     * Canonical scalar square root. float/double: constexpr and runtime;
+     * long double: runtime support (no portable C++20 constexpr guarantee).
+     * Preserve signed zero and +Inf; negative nonzero inputs and NaNs yield NaN.
+     * Runtime positive inputs use std::sqrt. Constant float/double evaluation
+     * extracts exactly 24/53 binary digits and rounds to nearest, with no
+     * convergence exit or fallback. See docs/core.md for proof and non-guarantees.
      */
     template <Concepts::SupportedSqrtScalar T>
-    constexpr T sqrt(T x) noexcept {
-        if (std::is_constant_evaluated()) {
-            return Detail::BoundedNewtonSqrt(x);
-        } else {
-            if (Traits::IsNaN(x)) {
-                return Traits::NumericTraits<T>::quietNaN();
-            }
-            if (x <= T{}) {
-                return T{};
-            }
-            return std::sqrt(x);
+    [[nodiscard]] constexpr T sqrt(T x) noexcept {
+        if (Traits::IsNaN(x) || x < T{0}) {
+            return Traits::NumericTraits<T>::quietNaN();
         }
+        // Exact zero classification preserves -0; this is not approximate comparison.
+        if (x == T{0} || Traits::IsInfinity(x)) {
+            return x;
+        }
+        if constexpr (std::same_as<T, float> || std::same_as<T, double>) {
+            if (std::is_constant_evaluated()) {
+                return Detail::DigitSqrtPositive(x);
+            }
+        }
+        return std::sqrt(x);
     }
 
 } // namespace vectoris::numerics::Core

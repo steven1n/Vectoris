@@ -1,4 +1,5 @@
 #pragma once
+#include "../Namespace.h"
 #include <type_traits>
 
 namespace vectoris::numerics::Units::Detail {
@@ -7,8 +8,8 @@ namespace vectoris::numerics::Units::Detail {
     template <typename Q>
     struct QuantityABIValidator {
         static constexpr bool Validate() {
-            return std::is_standard_layout_v<Q> &&           // 保证内存布局 (DMA/序列化安全)
-                   std::is_trivially_copyable_v<Q> &&        // 保证可以通过 memcpy 拷贝
+            return std::is_standard_layout_v<Q> &&           // C++ object-layout trait only
+                   std::is_trivially_copyable_v<Q> &&        // permits bytewise copying of object representation
                    sizeof(Q) == sizeof(typename Q::ValueType); // 保证无额外开销 (Zero-overhead)
         }
     };

@@ -1,4 +1,5 @@
 #pragma once
+#include "Namespace.h"
 #include <type_traits>
 #include <ratio>
 

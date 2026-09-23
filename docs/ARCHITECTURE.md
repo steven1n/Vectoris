@@ -209,10 +209,14 @@ static_assert(
     Detail::ValidateQuantityABI<T>()
 );
 Purpose:
-Guarantee compatibility with:
+Provide source-level properties useful when defining an independently verified:
 Serialization
 DMA
 Shared memory
+
+These C++ type traits alone do not define a cross-language ABI, serialization schema,
+DMA descriptor, or persistent/wire format. Each external representation requires its
+own explicit mapping and platform validation.
 Network transport
 6. Algebra Layer
 Location:

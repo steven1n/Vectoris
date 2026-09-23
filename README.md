@@ -2,7 +2,7 @@
 
 Vectoris is a modular, deterministic, header-only ISO C++20 numerical computing and engineering simulation framework for high-reliability applications, scientific computation, and spatial dynamics.
 
-The framework prioritizes compile-time dimensional safety, coordinate frame safety, zero-overhead abstraction, standard-layout ABI stability, and verifiable numerical contracts without runtime exceptions or dynamic heap allocations.
+The framework prioritizes compile-time dimensional safety, coordinate-frame safety, zero-overhead abstractions, verified source-level type layouts where required, and verifiable numerical contracts without runtime exceptions or dynamic heap allocations. Type-layout checks are not a general ABI-stability promise.
 
 > [!NOTE]
 > **Modular Architecture**: Vectoris enforces a strict separation between pure mathematics ([`VectorisNumerics`](modules/VectorisNumerics/)) and domain-specific physical mechanics ([`VectorisDynamics`](modules/VectorisDynamics/)). See [`docs/PURE_MATH_SCOPE.md`](docs/PURE_MATH_SCOPE.md) and [`docs/VECTORIS_RENAME_MIGRATION.md`](docs/VECTORIS_RENAME_MIGRATION.md).
@@ -61,8 +61,8 @@ Vectoris/
 ```
 
 **Key layout principles:**
-- `modules/VectorisNumerics/` = pure mathematics library (55 headers, 12 test files)
-- `modules/VectorisDynamics/` = downstream rigid-body / physics module (11 headers, 11 test files, depends on `VectorisNumerics`)
+- `modules/VectorisNumerics/` = pure mathematics library and its tests
+- `modules/VectorisDynamics/` = downstream rigid-body / physics module and its tests, depending on `VectorisNumerics`
 - `.build/` = all local generated build output (never tracked by Git)
 - `cmake/` = reusable CMake infrastructure (sanitizers, coverage, isolation, static analysis)
 
@@ -70,37 +70,19 @@ Vectoris/
 
 ## Current Status
 
-| Metric | Status |
-| :--- | :--- |
-| **Language Baseline** | ISO C++20 (`-std=c++20`, strict mode) |
-| **Compiler Warnings** | **0 warnings** (`-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror`) |
-| **Open CRITICAL Findings** | **0** |
-| **Open HIGH Findings** | **0** |
-| **Code-Level MEDIUM Blockers** | **0** |
-| **Public Headers Standalone Isolation** | **PASS** (55 / 55 headers in `VectorisNumerics_HeaderIsolation`, 11 / 11 in `VectorisDynamics_HeaderIsolation`) |
-| **Numerics Test Suite Execution** | **PASS** in Debug and Release (106 / 106 tests) |
-| **Dynamics Test Suite Execution** | **PASS** in Debug and Release (30 / 30 tests) |
-| **Total Test Suite Execution** | **PASS** (136 / 136 tests) |
-| **VectorisNumerics Qualification** | **Internal Project Qualification: PASS (R1 Remediated & Verified)** |
-| **VectorisDynamics Migration** | **Migration Integrity: PASS** |
+**NOT REQUALIFIED / Experimental.** The R1 qualification is historical and does
+not qualify the current source tree. The incremental red-team remediation ledger
+records step-specific local changes and verification; findings remain pending CI
+and independent review until explicitly closed.
 
-> [!NOTE]
-> **Internal Qualification Baseline**: Current project status:
->
-> ```text
-> Vectoris
-> VectorisNumerics
-> Internal Project Qualification: PASS (R1 Remediated & Verified)
-> VectorisDynamics
-> Migration Integrity: PASS
-> ```
->
-> This is an internal engineering qualification only.
-> It is not DO-178C certification,
-> ISO 26262 certification,
-> MISRA certification,
-> FAA/EASA approval,
-> or flight-software certification.
+LLVM function coverage measures emitted functions only. HeaderIsolation checks
+independent header inclusion, the Public API surface gate checks its declared
+template/API matrix, and clang-tidy checks an independently derived translation
+unit set. None of these measurements alone proves coverage of every possible
+public template instantiation. See [Engineering Standard §86](docs/ENGINEERING_STANDARD_V1.md)
+and the [remediation ledger](docs/audits/Vectoris_Red_Team_Remediation_2026-09-20.md)
+for scoped evidence. Historical test and coverage counts are not current
+qualification metrics.
 
 ---
 
@@ -134,7 +116,7 @@ Lower layers NEVER depend on higher layers. Cyclic dependencies, domain bleed, a
 - Canonical namespace: `vectoris::numerics::core`
 - Default scalar: IEEE-754 `double` (`float` supported, integer/long double restricted).
 - Monadic error handling: `Result<T, MathError>` backed by standard `std::variant`. Zero exceptions in mathematical kernels.
-- Bounded elementary functions: `core::Math::sqrt` with bounded Newton-Raphson iteration (hard cap 64 iterations) and scale-aware convergence.
+- Bounded elementary functions: canonical `core::sqrt` with fixed 24/53-step float/double constexpr digit extraction and IEEE/libm-compatible domain semantics; `core::Math::sqrt` forwards for compatibility.
 - IEEE-754 traits: `AlmostEqual` with dual absolute and relative tolerances.
 
 ### 2. [`Units`](docs/units.md) (Layer 1)
@@ -164,13 +146,16 @@ Lower layers NEVER depend on higher layers. Cyclic dependencies, domain bleed, a
 ## Build & Test Procedure
 
 ### Prerequisites
-- CMake $\ge 3.14$
+- CMake $\ge 3.14$ for direct configure/build; this project uses `FetchContent_MakeAvailable`.
+- CMake $\ge 3.25$ for the checked-in version-6 CMake presets.
 - ISO C++20 conforming compiler:
-  - Locally verified: AppleClang 21.0.0 (macOS x86_64/arm64)
-  - Formally qualified cross-compiler matrix (gate `PASS`):
-    - GNU GCC 13.3.0 (Ubuntu 24.04.1 x86_64)
-    - Upstream LLVM Clang 18.1.3 (Ubuntu 24.04.1 x86_64)
-    - MSVC 19.51.36256.0 / Visual Studio 18 2026 (Windows Server 2025 x64)
+  - The checked-in CMake targets propagate `cxx_std_20`; repository-owned targets use extensions-off mode.
+
+The test-enabled presets set `BUILD_TESTING=ON`. A consumer may configure with
+`-DBUILD_TESTING=OFF`; this omits GoogleTest and all Vectoris test, isolation,
+coverage, and static-analysis targets. The supported repository consumption
+model is `add_subdirectory`; no installed package or `find_package` contract is
+provided.
 
 ### Build and Run Tests (Using Presets)
 ```bash
@@ -211,7 +196,7 @@ cmake --build .build/debug --target VectorisNumerics_HeaderIsolation VectorisDyn
 1. **Normative Baseline (SSOT)**: [`docs/ENGINEERING_STANDARD_V1.md`](docs/ENGINEERING_STANDARD_V1.md) is the single source of truth for all normative mathematical, architectural, and engineering rules.
 2. **Authorized Scoped Exceptions**: [`docs/DEVIATIONS.md`](docs/DEVIATIONS.md) is the Engineering Standard's formally authorized exception mechanism per Sections 101 & 102. Within an explicitly registered deviation scope, the registered deviation modifies only the cited rule for the declared component and lifetime; outside that scope, the Standard remains fully authoritative.
 3. **Current Specifications & Overviews**: Subordinate specifications ([`docs/VECTORIS_RENAME_MIGRATION.md`](docs/VECTORIS_RENAME_MIGRATION.md), [`docs/PURE_MATH_SCOPE.md`](docs/PURE_MATH_SCOPE.md), [`docs/MATHEMATICAL_CONVENTIONS.md`](docs/MATHEMATICAL_CONVENTIONS.md), [`docs/core.md`](docs/core.md), [`docs/units.md`](docs/units.md), [`docs/geometry.md`](docs/geometry.md), [`modules/VectorisDynamics/docs/dynamics.md`](modules/VectorisDynamics/docs/dynamics.md)) and this overview ([`README.md`](README.md)) must strictly conform to the **Engineering Standard plus applicable registered deviations**.
-4. **Audit & Evidence**: Audit documents ([`docs/audits/`](docs/audits/)) record historical findings and live qualification evidence; they carry zero normative authority to modify requirements.
+4. **Audit & Evidence**: Audit documents ([`docs/audits/`](docs/audits/)) record historical findings and step-scoped local evidence; they carry zero normative authority and do not imply current qualification unless explicitly tied to a current candidate.
 5. **Deprecated / Historical**: Legacy notes ([`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/CODING_STANDARD.md`](docs/CODING_STANDARD.md), [`CHANGELOG.md`](CHANGELOG.md), [`TECHDEBT.md`](TECHDEBT.md), [`TODO.md`](TODO.md)) are superseded and non-authoritative.
 
 ### Complete Documentation Inventory
@@ -228,15 +213,15 @@ cmake --build .build/debug --target VectorisNumerics_HeaderIsolation VectorisDyn
 | **Current Specification** | [`docs/units.md`](docs/units.md) | Units layer specification: Model B 8D dimensional algebra, unit tags, quantity ABI validation. |
 | **Current Specification** | [`docs/geometry.md`](docs/geometry.md) | Geometry layer specification: frame safety, matrix linear algebra, quaternion conventions, SPD solver. |
 | **Downstream Specification**| [`modules/VectorisDynamics/docs/dynamics.md`](modules/VectorisDynamics/docs/dynamics.md) | Dynamics module specification: spatial quantities, rigid-body state, inertia tensor, Euler integrator. |
-| **Audit / Evidence** | [`docs/audits/AegisMathLib_Compliance_Audit_v1.md`](docs/audits/AegisMathLib_Compliance_Audit_v1.md) | Comprehensive compliance audit ledger across all CRITICAL, HIGH, MEDIUM, and LOW findings. |
-| **Audit / Evidence** | [`docs/audits/AegisMathLib_Stable_Core_Qualification_v1.md`](docs/audits/AegisMathLib_Stable_Core_Qualification_v1.md) | Quality qualification matrix, blocker status, header isolation, and DoD evidence. |
-| **Audit / Evidence** | [`docs/audits/EulerIntegrator_Contract_Review.md`](docs/audits/EulerIntegrator_Contract_Review.md) | Mathematical contract review of Euler numerical integrator and coordinate frame mixing. |
-| **Audit / Evidence** | [`docs/audits/P0_Remediation_Closure.md`](docs/audits/P0_Remediation_Closure.md) | Historical verification report for P0 remediation closure (AML-CRIT-001 through 003). |
+| **Historical Audit** | [`docs/audits/AegisMathLib_Compliance_Audit_v1.md`](docs/audits/AegisMathLib_Compliance_Audit_v1.md) | Superseded AegisMathLib compliance baseline; not current Vectoris findings. |
+| **Historical Qualification** | [`docs/audits/AegisMathLib_Stable_Core_Qualification_v1.md`](docs/audits/AegisMathLib_Stable_Core_Qualification_v1.md) | Superseded R1 evidence; its baseline hashes and counts do not qualify the current tree. |
+| **Historical Review** | [`docs/audits/EulerIntegrator_Contract_Review.md`](docs/audits/EulerIntegrator_Contract_Review.md) | Archived predecessor-source contract review; its original source SHA was not recorded and it does not describe current implementation status. |
+| **Historical Verification** | [`docs/audits/P0_Remediation_Closure.md`](docs/audits/P0_Remediation_Closure.md) | Superseded closure evidence for AML-CRIT-001 through 003 at the recorded historical baseline SHA. |
 | **Deprecated / Historical** | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Legacy pre-V1 architecture specification (superseded by Engineering Standard V1). |
 | **Deprecated / Historical** | [`docs/CODING_STANDARD.md`](docs/CODING_STANDARD.md) | Legacy pre-V1 coding standard (superseded by Engineering Standard V1). |
 | **Deprecated / Historical** | [`CHANGELOG.md`](CHANGELOG.md) | Legacy release notes from initial geometry development. |
 | **Deprecated / Historical** | [`TECHDEBT.md`](TECHDEBT.md) | Legacy technical debt tracking list (superseded by compliance audits). |
-| **Deprecated / Historical** | [`TODO.md`](TODO.md) | Legacy milestone tracking notes (superseded by stable-core qualification). |
+| **Deprecated / Historical** | [`TODO.md`](TODO.md) | Legacy milestone tracking notes; not a statement of current qualification or remediation status. |
 
 ---
 

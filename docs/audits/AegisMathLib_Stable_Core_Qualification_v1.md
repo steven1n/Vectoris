@@ -7,12 +7,20 @@
 > [!IMPORTANT]
 > **Document**: Stable-Core Qualification Rebaseline V1  
 > **Document Version**: 1.0  
-> **Status**: Formal Quality Qualification Report  
+> **Status**: Historical qualification evidence — SUPERSEDED; not current
 > **Code Baseline (Historical P2 Frozen Baseline)**: `bf31ad5326ca22ee51bf0ac4dd2debf8f2a74b3a`
 > **Last Updated**: 2026-09-17
 > **Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](../ENGINEERING_STANDARD_V1.md)
-> **Qualification Status**: **INTERNAL PROJECT QUALIFICATION: PASS** (All Section 124 DoD gates satisfied; 0 open blockers)
+> **Historical Qualification Status**: **PASS as recorded for the historical R1 snapshot only; superseded**
 > **Regulatory Notice**: This qualification represents internal engineering verification according to `ENGINEERING_STANDARD_V1.md`. This is an internal engineering qualification only. It is not DO-178C certification, ISO 26262 certification, MISRA certification, FAA/EASA approval, or flight-software certification.
+
+> [!WARNING]
+> This report does not qualify the current Vectoris tree. Its front matter records
+> `bf31ad5326ca22ee51bf0ac4dd2debf8f2a74b3a` as the frozen P2 baseline, while §1
+> records `8ca516e28efc9e94762c8f35acf5d162280aa76d` as the code baseline. This
+> historical SHA discrepancy is preserved rather than silently resolved. Its
+> PASS wording and counts are superseded by the current
+> **NOT REQUALIFIED / Experimental** status.
 
 ---
 
@@ -513,3 +521,12 @@ In internal structural coverage analysis inspired by safety-critical software ve
 `AML-DEVIATION-004` is formally **WITHDRAWN and REVOKED**. The normative $\ge 90.00\%$ branch coverage threshold is in full effect and satisfied under reachable branch qualification. Active registered deviations remain strictly:
 - `AML-DEVIATION-002`: Public Mutable Coordinate Data Members
 - `AML-DEVIATION-003`: PascalCase Root Namespace `AegisMath`
+
+## VRT-15 Governance Addendum (2026-09-23)
+
+The Benchmark Baseline row above records the state and triage disposition of that historical audit run. Its “NO / P2-H” non-blocking classification conflicted with the Engineering Standard Definition of Done and the performance-sensitive checklist. That triage is historical evidence, not normative policy, and is superseded by current Engineering Standard §§75, 104, 105, 106, 115, and 124.
+
+Current policy: benchmark evidence is required before declaring a performance-sensitive stable numerical kernel Stable. Correctness tests and timing evidence remain separate. A local benchmark establishes a machine/build-specific baseline; it is not a correctness pass, universal speed claim, or CI regression threshold. A regression threshold becomes a CI gate only after the runner, repeated baseline and noise/acceptance policy are qualified and registered.
+
+VRT-15 adds a local Release Matrix3 baseline and an optional standalone benchmark target. The current GitHub Actions workflow runs no benchmark job. Therefore no CI performance-regression gate is claimed as run or passed. The historical report's old P2-H disposition does not override the current standard or this qualification state.
+\n

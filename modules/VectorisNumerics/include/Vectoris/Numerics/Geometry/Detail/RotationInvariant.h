@@ -1,4 +1,5 @@
 #pragma once
+#include "../Namespace.h"
 #include "../../Core/MathFunctions.h"
 #include "../../Core/NumericTraits.h"
 #include "../Matrix3.h"

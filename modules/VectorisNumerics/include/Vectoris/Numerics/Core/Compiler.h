@@ -1,4 +1,5 @@
 #pragma once
+#include "Namespace.h"
 
 // 跨平台识别 C++20 标准 (兼容 MSVC 的特殊宏定义机制)
 #if defined(_MSVC_LANG)

@@ -2,7 +2,7 @@
   "version": 6,
   "cmakeMinimumRequired": {
     "major": 3,
-    "minor": 14,
+    "minor": 25,
     "patch": 0
   },
   "configurePresets": [
@@ -18,7 +18,8 @@
         "VECTORIS_ENABLE_UBSAN": "OFF",
         "VECTORIS_ENABLE_COVERAGE": "OFF",
         "VECTORIS_ENABLE_STATIC_ANALYSIS": "OFF",
-        "VECTORIS_BUILD_DYNAMICS": "ON"
+        "VECTORIS_BUILD_DYNAMICS": "ON",
+        "BUILD_TESTING": "ON"
       }
     },
     {

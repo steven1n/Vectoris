@@ -17,11 +17,26 @@ foreach(HEADER_PATH IN LISTS VECTORIS_NUMERICS_PUBLIC_HEADERS)
     string(REGEX REPLACE "[/.]" "_" SANITIZED_NAME "${REL_HEADER}")
     set(TU_FILE "${VECTORIS_ISOLATION_DIR}/iso_${SANITIZED_NAME}.cpp")
 
+    # VRT-12: every direct include must provide both documented namespace spellings.
+    string(REGEX MATCH "Vectoris/Numerics/([^/]+)/" NAMESPACE_PATH "${REL_HEADER}")
+    set(COMPAT_NAMESPACE "${CMAKE_MATCH_1}")
+    string(TOLOWER "${COMPAT_NAMESPACE}" PUBLIC_NAMESPACE)
+    set(NAMESPACE_CHECKS "namespace canonical = vectoris::numerics::${PUBLIC_NAMESPACE};\nnamespace compatibility = vectoris::numerics::${COMPAT_NAMESPACE};\n")
+    set(NAMESPACE_PROBE "${CMAKE_CURRENT_SOURCE_DIR}/tests/PublicApi/NamespaceProbes/${SANITIZED_NAME}.inc")
+    set(NAMESPACE_BODY "")
+    if(EXISTS "${NAMESPACE_PROBE}")
+        # Included inside main: no additional Vectoris headers may mask isolation.
+        set(NAMESPACE_BODY "#include \"${NAMESPACE_PROBE}\"")
+    endif()
+
     file(WRITE "${TU_FILE}"
 "// Standalone Translation-Unit Isolation Test for: <${REL_HEADER}>
 #include <${REL_HEADER}>
+#include <type_traits>
+${NAMESPACE_CHECKS}
 
 int main() {
+${NAMESPACE_BODY}
     return 0;
 }
 ")

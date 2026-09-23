@@ -286,7 +286,9 @@ TEST(GeometryComparisonTest, RotationMatrix3EqualityAndAlmostEqual) {
 
     // Mismatched rotation matrices
     auto q_rot90 = Quaternion<double, FrameA, FrameB>::TryCreate(0.7071067811865476, 0.7071067811865476, 0.0, 0.0).Value();
-    auto r_diff = RotationMatrix3<double, FrameA, FrameB>::FromQuaternion(q_rot90);
+    auto r_diff_result = RotationMatrix3<double, FrameA, FrameB>::FromQuaternion(q_rot90);
+    ASSERT_TRUE(r_diff_result.IsSuccess());
+    const auto& r_diff = r_diff_result.Value();
     EXPECT_FALSE(r1 == r_diff);
     EXPECT_TRUE(r1 != r_diff);
     EXPECT_FALSE(AlmostEqual(r1, r_diff));
@@ -469,10 +471,14 @@ TEST(GeometryComparisonTest, QuaternionEqualityAndRotationalEquivalence) {
 TEST(GeometryComparisonTest, QuaternionToRotationMatrixAgreement) {
     // 90-degree rotation about X-axis: q = [cos(pi/4), sin(pi/4), 0, 0]
     auto q = Quaternion<double, FrameA, FrameB>::TryCreate(0.7071067811865476, 0.7071067811865476, 0.0, 0.0).Value();
-    auto R = q.ToRotationMatrix();
+    auto R_result = q.ToRotationMatrix();
+    ASSERT_TRUE(R_result.IsSuccess());
+    const auto& R = R_result.Value();
 
     // Verify factory method also works
-    auto R_factory = RotationMatrix3<double, FrameA, FrameB>::FromQuaternion(q);
+    auto R_factory_result = RotationMatrix3<double, FrameA, FrameB>::FromQuaternion(q);
+    ASSERT_TRUE(R_factory_result.IsSuccess());
+    const auto& R_factory = R_factory_result.Value();
     EXPECT_TRUE(R == R_factory);
 
     // Test on multiple arbitrary vectors
@@ -505,11 +511,15 @@ TEST(GeometryComparisonTest, RotationCompositionProperty) {
 
     // R_AB: 90 deg about Z
     auto q_AB = Quaternion<double, FrameA, FrameB>::TryCreate(0.7071067811865476, 0.0, 0.0, 0.7071067811865476).Value();
-    auto R_AB = q_AB.ToRotationMatrix();
+    auto R_AB_result = q_AB.ToRotationMatrix();
+    ASSERT_TRUE(R_AB_result.IsSuccess());
+    const auto& R_AB = R_AB_result.Value();
 
     // R_BC: 90 deg about Y
     auto q_BC = Quaternion<double, FrameB, FrameC>::TryCreate(0.7071067811865476, 0.0, 0.7071067811865476, 0.0).Value();
-    auto R_BC = q_BC.ToRotationMatrix();
+    auto R_BC_result = q_BC.ToRotationMatrix();
+    ASSERT_TRUE(R_BC_result.IsSuccess());
+    const auto& R_BC = R_BC_result.Value();
 
     // Pipeline composition: R_AC = R_AB * R_BC
     auto R_AC = R_AB * R_BC;

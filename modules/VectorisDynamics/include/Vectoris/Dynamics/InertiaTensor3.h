@@ -141,6 +141,10 @@ namespace vectoris::dynamics {
         Solve(const Torque3<TorqueFrame, T>& tau) const noexcept {
             using ResultType = Core::Result<AngularAcceleration3<Frame, T>, Core::MathError>;
 
+            // Local scalar adapter for the dimensionless geometry solver. All
+            // matrix entries share MomentOfInertia units; the typed RHS and
+            // this method's return type explicitly reify I^-1 * torque as
+            // AngularAcceleration. This is not general unit-erasing algebra.
             Geometry::Matrix3<T> A(
                 ixx.value(), ixy.value(), ixz.value(),
                 iyx.value(), iyy.value(), iyz.value(),

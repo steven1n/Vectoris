@@ -2,22 +2,23 @@
   "version": "1.2",
   "scope_description": "VectorisNumerics Pure-Numerics Production Header Coverage Scope Manifest",
   "schema_specification": {
-    "tracked_production_headers": "All 55 ISO C++20 public pure-math production headers tracked in repository",
+    "tracked_production_headers": "All 58 ISO C++20 public pure-math production headers tracked in repository",
     "runtime_coverage_headers": "Headers expected to appear in llvm-cov export summary for qualified pure VectorisNumerics test binary",
     "template_definition_headers": "Headers containing executable public template/function bodies requiring explicit instantiation evidence",
-    "compile_time_only_headers": "Pure compile-time concepts, aliases, enums, constants, traits, and umbrella includes with zero executable bodies"
+    "compile_time_only_headers": "Pure compile-time namespace aliases, concepts, enums, constants, traits, and umbrella includes with zero executable bodies"
   },
-  "tracked_production_headers_count": 55,
+  "tracked_production_headers_count": 58,
   "runtime_coverage_headers_count": 22,
   "template_definition_headers_count": 3,
-  "compile_time_only_headers_count": 33,
+  "compile_time_only_headers_count": 36,
   "coverage_thresholds": {
     "functions": 100.0,
     "lines": 95.0,
     "branches": 90.0,
-    "rationale": "Normative branch coverage threshold restored to >=90.00% per ENGINEERING_STANDARD_V1.md Section 86 under DO-178C Level A and ISO 26262 ASIL D reachable branch qualification."
+    "rationale": "Normative raw branch coverage threshold per ENGINEERING_STANDARD_V1.md Section 86; report raw covered branches divided by raw total branches without denominator exclusions."
   },
   "branch_audit": {
+    "status": "Historical supplemental snapshot; date, SHA, and configuration provenance are unavailable. Its classification counts are not current metrics and are considered only when they exactly match the raw uncovered-branch count.",
     "nominal_total": 338,
     "covered_branches": 306,
     "uncovered_branches_classified": 32,
@@ -34,6 +35,7 @@
     "reachable_percent": 100.0
   },
   "tracked_production_headers": [
+    "modules/VectorisNumerics/include/Vectoris/Numerics/Core/Namespace.h",
     "modules/VectorisNumerics/include/Vectoris/Numerics/Core/BasicTypes.h",
     "modules/VectorisNumerics/include/Vectoris/Numerics/Core/Compiler.h",
     "modules/VectorisNumerics/include/Vectoris/Numerics/Core/Concepts.h",
@@ -49,6 +51,7 @@
     "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/CoordinateConvention.h",
     "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/Detail/ABI.h",
     "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/Detail/RotationInvariant.h",
+    "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/Namespace.h",
     "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/FrameTags.h",
     "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/Matrix3.h",
     "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/Point3.h",
@@ -59,6 +62,7 @@
     "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/Transform3.h",
     "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/UnitVector3.h",
     "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/Vector3.h",
+    "modules/VectorisNumerics/include/Vectoris/Numerics/Units/Namespace.h",
     "modules/VectorisNumerics/include/Vectoris/Numerics/Units/BaseUnits/Amount.h",
     "modules/VectorisNumerics/include/Vectoris/Numerics/Units/BaseUnits/Angle.h",
     "modules/VectorisNumerics/include/Vectoris/Numerics/Units/BaseUnits/Current.h",
@@ -120,6 +124,7 @@
     "modules/VectorisNumerics/include/Vectoris/Numerics/Units/UnitCast.h"
   ],
   "compile_time_only_headers": [
+    "modules/VectorisNumerics/include/Vectoris/Numerics/Core/Namespace.h",
     "modules/VectorisNumerics/include/Vectoris/Numerics/Core/BasicTypes.h",
     "modules/VectorisNumerics/include/Vectoris/Numerics/Core/Compiler.h",
     "modules/VectorisNumerics/include/Vectoris/Numerics/Core/Concepts.h",
@@ -130,7 +135,9 @@
     "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/CoordinateConvention.h",
     "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/Detail/ABI.h",
     "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/FrameTags.h",
+    "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/Namespace.h",
     "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/Traits.h",
+    "modules/VectorisNumerics/include/Vectoris/Numerics/Units/Namespace.h",
     "modules/VectorisNumerics/include/Vectoris/Numerics/Units/BaseUnits/Amount.h",
     "modules/VectorisNumerics/include/Vectoris/Numerics/Units/BaseUnits/Angle.h",
     "modules/VectorisNumerics/include/Vectoris/Numerics/Units/BaseUnits/Current.h",

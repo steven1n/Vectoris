@@ -1,4 +1,5 @@
 #pragma once
+#include "Namespace.h"
 #include <cstddef>
 #include "Concepts.h"
 #include "FrameTags.h"
@@ -70,7 +71,7 @@ namespace vectoris::numerics::Geometry {
     template<typename T, FrameTag Frame>
     struct PointABIContract {
         using P = Point3<T, Frame>;
-        static_assert(Detail::GeometryABIValidator<P>::value, "Point3 failed base ABI.");
+        static_assert(Detail::GeometryABIValidator<P>::value, "Point3 failed source layout constraints.");
 
         static_assert(offsetof(P, x) == 0, "Point3 x-offset mismatch");
         static_assert(offsetof(P, y) == sizeof(T), "Point3 y-offset mismatch");

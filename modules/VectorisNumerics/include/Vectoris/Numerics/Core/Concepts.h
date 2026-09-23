@@ -1,4 +1,5 @@
 #pragma once
+#include "Namespace.h"
 #include <concepts>
 #include <type_traits>
 
@@ -8,10 +9,9 @@ namespace vectoris::numerics::Concepts {
     template <typename T>
     concept FloatingPoint = std::floating_point<T>;
 
-    // 严格限制 Core::sqrt 支持的 IEEE-754 标量类型 (仅限单精度 float 与双精度 double)
+    // 公共 sqrt 标量域；float/double 保证 constexpr，long double 保留运行期支持。
     template <typename T>
-    concept SupportedSqrtScalar = std::same_as<std::remove_cvref_t<T>, float> ||
-                                  std::same_as<std::remove_cvref_t<T>, double>;
+    concept SupportedSqrtScalar = std::floating_point<std::remove_cvref_t<T>>;
 
     // 屏蔽字符与布尔类型的辅助概念
     template <typename T>

@@ -1,4 +1,5 @@
 #pragma once
+#include "Namespace.h"
 
 #include "Concepts.h"
 #include "FrameTags.h"

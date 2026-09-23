@@ -2,6 +2,7 @@
 
 #include "Vectoris/Numerics/Core/Result.h"
 #include "Vectoris/Numerics/Core/MathError.h"
+#include "Vectoris/Numerics/Core/NumericTraits.h"
 #include "Vectoris/Dynamics/Detail/StateTypes.h"
 #include "Vectoris/Dynamics/RigidBodyParameters.h"
 #include "Vectoris/Dynamics/Wrench6.h"
@@ -22,18 +23,57 @@ namespace vectoris::dynamics {
     struct RigidBodyDynamicsKernel {
 
         // 计算状态导数 / 驱动 Newton-Euler 动力学更新 (函数式强类型接口)
-        // 平动: m * dv = F - omega x (m * v) ==> dv = F / m - omega x v
-        // 转动: I * alpha + [omega, I * omega]_so(3) = tau ==> I * alpha = tau - LieBracket(omega, I * omega)
+        // 平动: m * dv = F - (omega x (m * v)) / (1 rad)
+        //       ==> dv = F / m - (omega x v) / (1 rad)
+        // 转动: I * alpha + LieBracket(omega, I * omega) = tau
+        //       LieBracket(omega, L) = (omega x L) / (1 rad)
         static constexpr Core::Result<DynamicsDerivative<T, BodyFrame>, Core::MathError>
         ComputeDerivative(
             const KinematicState<T, ReferenceFrame, BodyFrame>& state,
             const RigidBodyParameters<T, BodyFrame>& params,
             const Wrench6<T, BodyFrame>& wrench
         ) noexcept {
-            // 1. 平动加速度：a = F / m - omega x v
-            Acceleration3<BodyFrame, T> w_cross_v = Cross(state.angularVelocity, state.linearVelocity);
+            using ResType = Core::Result<DynamicsDerivative<T, BodyFrame>, Core::MathError>;
+
+            // 校验质量参数 (必须有限且严格正定)
+            if (!Traits::IsFinite(params.mass.value())) {
+                return ResType(Core::MathError::non_finite_input);
+            }
+            if (params.mass.value() <= static_cast<T>(0)) {
+                return ResType(Core::MathError::invalid_argument);
+            }
+
+            // 校验外力和力矩输入有限性
+            if (!Traits::IsFinite(wrench.force.x.value()) ||
+                !Traits::IsFinite(wrench.force.y.value()) ||
+                !Traits::IsFinite(wrench.force.z.value()) ||
+                !Traits::IsFinite(wrench.moment.x.value()) ||
+                !Traits::IsFinite(wrench.moment.y.value()) ||
+                !Traits::IsFinite(wrench.moment.z.value())) {
+                return ResType(Core::MathError::non_finite_input);
+            }
+
+            // 校验当前机体速度输入有限性
+            if (!Traits::IsFinite(state.linearVelocity.x.value()) ||
+                !Traits::IsFinite(state.linearVelocity.y.value()) ||
+                !Traits::IsFinite(state.linearVelocity.z.value()) ||
+                !Traits::IsFinite(state.angularVelocity.x.value()) ||
+                !Traits::IsFinite(state.angularVelocity.y.value()) ||
+                !Traits::IsFinite(state.angularVelocity.z.value())) {
+                return ResType(Core::MathError::non_finite_input);
+            }
+
+            // 1. 平动加速度：a = F / m - (omega x v) / (1 rad)
+            Acceleration3<BodyFrame, T> w_cross_v = RotationalCross(state.angularVelocity, state.linearVelocity);
             Acceleration3<BodyFrame, T> f_over_m = wrench.force / params.mass;
             Acceleration3<BodyFrame, T> linearAccel = f_over_m - w_cross_v;
+
+            // 校验计算出的平动加速度有限性 (防止数值溢出)
+            if (!Traits::IsFinite(linearAccel.x.value()) ||
+                !Traits::IsFinite(linearAccel.y.value()) ||
+                !Traits::IsFinite(linearAccel.z.value())) {
+                return ResType(Core::MathError::non_finite_input);
+            }
 
             // 2. 完整耦合旋转动力学方程 (Remediating AML-HIGH-003):
             // L = I * omega

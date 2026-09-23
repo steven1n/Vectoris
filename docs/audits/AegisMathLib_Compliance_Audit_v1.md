@@ -18,6 +18,13 @@
 > **Audit Classification**: Formal Compliance Baseline Audit (Audit Only — Zero Code Modifications)
 > **Repository Commit**: `b995029` (Branch: `main`)
 
+> [!WARNING]
+> This is historical audit evidence for its recorded 2026-09-14/15 baseline and
+> is superseded as a statement of current findings or qualification. Current
+> status is **NOT REQUALIFIED / Experimental**; use the incremental Vectoris
+> remediation ledger for later step-scoped evidence. The old counts and statuses
+> below are historical, not current metrics.
+
 ---
 
 ## 1. Executive Summary
@@ -210,7 +217,7 @@ expected_z evaluates to 4.9033249999999997, and
     - `RegressionFreeFall` discrete recurrence test
     - `RegressionFreeFall` first-order convergence test
     - Full test suite: 33/33 passed
-  - **Resolution**:
+- **Resolution**:
     - Body-frame linear velocity is transformed into the reference frame before position propagation.
     - Quaternion attitude kinematics are integrated.
     - Semi-Implicit Euler method remains unchanged.
@@ -418,6 +425,7 @@ expected_z evaluates to 4.9033249999999997, and
     - Defined dimension-safe $\mathfrak{so}(3)$ Lie bracket / rotational adjoint operator `RotationalCross(omega, momentum)` normalizing by $1\text{ rad}$, guaranteeing exact Torque dimension for gyroscopic cross terms.
     - Implemented `QuantityVector3<QuantityType, Frame>` in `include/AegisMath/Dynamics/QuantityVector3.h` to couple typed dimensional quantities with coordinate frame tags without polluting `Geometry::Vector3` or violating architectural layering.
     - Provided standard type aliases `Position3`, `Velocity3`, `Acceleration3`, `AngularVelocity3`, `AngularAcceleration3`, `AngularMomentum3`, `Force3`, `Torque3`.
+
     - Integrated Hamiltonian active rotation operator `operator*(const Quaternion<T>&, const QuantityVector3<Quantity<T, Unit>, Frame>&)` into `QuantityVector3.h`.
     - Migrated all Dynamics API boundaries to strong units:
       - `RigidBodyParameters`: `Units::Kilogram<T> mass`, `Position3<T, BodyFrame> centerOfMass`, `InertiaTensor3<T, BodyFrame> inertia` (holding `Units::KilogramMeterSquared<T>`).
@@ -973,3 +981,15 @@ grep -rn "static " include/
    - Audit builds and test executions were conducted exclusively on Apple Clang 17.0.0 (macOS arm64). GCC (Linux) and MSVC (Windows) were not locally available for validation.
 3. **Coverage Tooling**:
    - Coverage instrumentation (`gcov` / `llvm-cov`) was not configured in the CMake build; coverage percentages are estimated based on test suite inspection.
+
+## VRT-15 representation terminology correction (2026-09-23)
+
+This historical audit is retained for provenance. Its §12.4 statement that
+Matrix3's row-major contiguous storage “satisfies DMA alignment” was not
+supported by the cited evidence: row-major ordering and C++ array contiguity do
+not establish device-specific alignment, addressability, byte order, or a DMA
+transfer contract. Current Matrix3 guarantees and the scoped AML-DEVIATION-005
+are documented in `docs/geometry.md` and `docs/DEVIATIONS.md`. Historical uses
+of “ABI validated” in this audit refer to the listed C++ layout traits and
+target-specific size/alignment assertions only; they do not assert C ABI or
+cross-build binary compatibility.

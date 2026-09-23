@@ -23,6 +23,9 @@ jobs:
   gcc-linux:
     name: GCC / Linux (ubuntu-latest)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     env:
       CC: gcc
       CXX: g++
@@ -30,8 +33,14 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Verify CI Pipeline Gate Semantics (VRT-06 Self-Test)
+        run: |
+          set -euo pipefail
+          python3 tools/ci/verify_pipeline_gate.py
+
       - name: Capture Environment Identity (Phase 5)
         run: |
+          set -euo pipefail
           mkdir -p artifacts-gcc
           {
             echo "=== Host Environment ==="
@@ -48,6 +57,7 @@ jobs:
 
       - name: Phase 10 — GCC Debug Build & Test
         run: |
+          set -euo pipefail
           cmake \
             -S . \
             -B build-gcc-debug \
@@ -62,10 +72,12 @@ jobs:
 
       - name: Phase 11 — GCC Header Isolation
         run: |
+          set -euo pipefail
           cmake --build build-gcc-debug --target VectorisNumerics_HeaderIsolation VectorisDynamics_HeaderIsolation --parallel 2>&1 | tee artifacts-gcc/header-isolation.log
 
       - name: Phase 12 — GCC Release Build & Test
         run: |
+          set -euo pipefail
           cmake \
             -S . \
             -B build-gcc-release \
@@ -91,6 +103,9 @@ jobs:
   clang-linux:
     name: LLVM Clang / Linux (ubuntu-latest)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     env:
       CC: clang
       CXX: clang++
@@ -100,6 +115,7 @@ jobs:
 
       - name: Capture Environment Identity (Phase 5, Phase 13)
         run: |
+          set -euo pipefail
           mkdir -p artifacts-clang
           {
             echo "=== Host Environment ==="
@@ -116,6 +132,7 @@ jobs:
 
       - name: Phase 14 — LLVM Clang Debug Build & Test
         run: |
+          set -euo pipefail
           cmake \
             -S . \
             -B build-clang-debug \
@@ -130,10 +147,12 @@ jobs:
 
       - name: Phase 15 — LLVM Clang Header Isolation
         run: |
+          set -euo pipefail
           cmake --build build-clang-debug --target VectorisNumerics_HeaderIsolation VectorisDynamics_HeaderIsolation --parallel 2>&1 | tee artifacts-clang/header-isolation.log
 
       - name: Phase 16 — LLVM Clang Release Build & Test
         run: |
+          set -euo pipefail
           cmake \
             -S . \
             -B build-clang-release \
@@ -201,23 +220,29 @@ jobs:
             -DVECTORIS_ENABLE_COVERAGE=OFF `
             -DVECTORIS_ENABLE_STATIC_ANALYSIS=OFF `
             *>&1 | Tee-Object -FilePath artifacts-msvc/configure.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Phase 19 — MSVC Debug Build & Test
         shell: pwsh
         run: |
           & cmake.exe --build build-msvc --config Debug --parallel *>&1 | Tee-Object -FilePath artifacts-msvc/build-debug.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & ctest.exe --test-dir build-msvc -C Debug --output-on-failure *>&1 | Tee-Object -FilePath artifacts-msvc/test-debug.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Phase 20 — MSVC Header Isolation
         shell: pwsh
         run: |
           & cmake.exe --build build-msvc --config Debug --target VectorisNumerics_HeaderIsolation VectorisDynamics_HeaderIsolation --parallel *>&1 | Tee-Object -FilePath artifacts-msvc/header-isolation.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Phase 21 — MSVC Release Build & Test
         shell: pwsh
         run: |
           & cmake.exe --build build-msvc --config Release --parallel *>&1 | Tee-Object -FilePath artifacts-msvc/build-release.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & ctest.exe --test-dir build-msvc -C Release --output-on-failure *>&1 | Tee-Object -FilePath artifacts-msvc/test-release.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload MSVC Qualification Artifacts (Phase 34)
         if: always()
@@ -232,15 +257,26 @@ jobs:
   sanitizers-linux:
     name: Sanitizers / Linux (ASan, UBSan, ASan+UBSan)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     env:
       CC: clang
       CXX: clang++
+      ASAN_OPTIONS: "halt_on_error=1:abort_on_error=1"
+      UBSAN_OPTIONS: "halt_on_error=1:print_stacktrace=1"
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Verify Negative Sanitizer Gates (VRT-05 Gate Self-Test)
+        run: |
+          set -euo pipefail
+          python3 tools/sanitizers/verify_sanitizers_gate.py
+
       - name: ASan Build & Test
         run: |
+          set -euo pipefail
           cmake \
             -S . \
             -B build-asan \
@@ -254,6 +290,7 @@ jobs:
 
       - name: UBSan Build & Test
         run: |
+          set -euo pipefail
           cmake \
             -S . \
             -B build-ubsan \
@@ -267,6 +304,7 @@ jobs:
 
       - name: ASan+UBSan Build & Test
         run: |
+          set -euo pipefail
           cmake \
             -S . \
             -B build-asan-ubsan \
@@ -284,6 +322,9 @@ jobs:
   coverage-linux:
     name: Coverage Gate / Linux (LLVM Source Coverage >=90%)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     env:
       CC: clang
       CXX: clang++
@@ -293,11 +334,13 @@ jobs:
 
       - name: Install LLVM Tools
         run: |
+          set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y llvm
 
       - name: Configure Coverage Build
         run: |
+          set -euo pipefail
           cmake \
             -S . \
             -B build-coverage \
@@ -309,14 +352,18 @@ jobs:
 
       - name: Build & Run VectorisNumerics_Coverage Target
         run: |
+          set -euo pipefail
           cmake --build build-coverage --target VectorisNumerics_Coverage
 
   # ============================================================================
   # 6. Clang-Tidy Static Analysis / Linux (0 Production Diagnostics)
   # ============================================================================
   static-analysis-linux:
-    name: Clang-Tidy Static Analysis / Linux
+    name: Clang-Tidy Static Analysis / Linux (0 Production Diagnostics)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     env:
       CC: clang
       CXX: clang++
@@ -326,11 +373,13 @@ jobs:
 
       - name: Install Clang-Tidy
         run: |
+          set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y clang-tidy
 
       - name: Configure Static Analysis Build
         run: |
+          set -euo pipefail
           cmake \
             -S . \
             -B build-sta \
@@ -343,5 +392,6 @@ jobs:
 
       - name: Execute Clang-Tidy Target
         run: |
+          set -euo pipefail
           cmake --build build-sta --target VectorisNumerics_ClangTidy
 

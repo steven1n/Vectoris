@@ -20,6 +20,7 @@ set(VECTORIS_DYNAMICS_PUBLIC_HEADERS
 
 add_library(VectorisDynamics INTERFACE ${VECTORIS_DYNAMICS_PUBLIC_HEADERS})
 add_library(Vectoris::Dynamics ALIAS VectorisDynamics)
+target_compile_features(VectorisDynamics INTERFACE cxx_std_20)
 
 target_include_directories(VectorisDynamics INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -28,7 +29,7 @@ target_include_directories(VectorisDynamics INTERFACE
 
 target_link_libraries(VectorisDynamics INTERFACE Vectoris::Numerics)
 
-if(TARGET gtest)
+if(BUILD_TESTING)
     add_executable(VectorisDynamics_Tests
         tests/DynamicsABITest.cpp
         tests/DynamicsConceptTest.cpp

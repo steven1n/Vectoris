@@ -6,12 +6,63 @@
 #include "Vectoris/Dynamics/Twist6.h"
 #include "Vectoris/Dynamics/Wrench6.h"
 #include "Vectoris/Dynamics/EulerIntegrator.h"
+#include "Vectoris/Numerics/Units/DerivedUnits/Frequency.h"
 
 struct TestRefFrame {};
 struct TestBodyFrame {};
+struct TestOtherFrame {};
 
 using namespace vectoris::dynamics;
 using namespace vectoris::numerics::Units;
+
+template <typename A, typename B>
+concept CanRotationalCross = requires(const A& a, const B& b) {
+    RotationalCross(a, b);
+};
+
+template <typename A, typename B>
+concept CanGenericCross = requires(const A& a, const B& b) {
+    Cross(a, b);
+};
+
+// VRT-16 compile-time contract: ordinary vector algebra retains Angle, while
+// only the named physical rotational operation normalizes by one radian.
+using TestOmega = AngularVelocity3<TestBodyFrame>;
+using TestAngularAcceleration = AngularAcceleration3<TestBodyFrame>;
+using TestVelocity = Velocity3<TestBodyFrame>;
+using TestPosition = Position3<TestBodyFrame>;
+using GenericOmegaVelocityCross = decltype(Cross(std::declval<TestOmega>(), std::declval<TestVelocity>()));
+using GenericOmegaPositionCross = decltype(Cross(std::declval<TestOmega>(), std::declval<TestPosition>()));
+using GenericAlphaPositionCross = decltype(Cross(std::declval<TestAngularAcceleration>(), std::declval<TestPosition>()));
+using PhysicalOmegaVelocityCross = decltype(RotationalCross(std::declval<TestOmega>(), std::declval<TestVelocity>()));
+
+static_assert(std::is_same_v<Radian::DimensionType, AngleDimension>);
+static_assert(!std::is_same_v<AngularVelocity::DimensionType, Frequency::DimensionType>);
+static_assert(std::is_same_v<AngularVelocity::DimensionType, AngularVelocityDimension>);
+static_assert(std::is_same_v<AngularAcceleration::DimensionType, AngularAccelerationDimension>);
+static_assert(std::is_same_v<MomentOfInertia::DimensionType, MomentOfInertiaDimension>);
+static_assert(std::is_same_v<Torque::DimensionType, TorqueDimension>);
+static_assert(std::is_same_v<AngularMomentum::DimensionType, AngularMomentumDimension>);
+static_assert(DimensionEqual<typename GenericOmegaPositionCross::UnitType::Dimension,
+                             DimensionAdd_t<AngularVelocityDimension, LengthDimension>>);
+static_assert(DimensionEqual<typename GenericOmegaVelocityCross::UnitType::Dimension,
+                             Dimension<1, 0, -2, 0, 0, 0, 0, 1>>);
+static_assert(!std::is_same_v<GenericOmegaVelocityCross, Acceleration3<TestBodyFrame>>);
+static_assert(!std::is_constructible_v<Acceleration3<TestBodyFrame>, GenericOmegaVelocityCross>);
+static_assert(DimensionEqual<typename GenericAlphaPositionCross::UnitType::Dimension,
+                             DimensionAdd_t<AngularAccelerationDimension, LengthDimension>>);
+static_assert(std::is_same_v<PhysicalOmegaVelocityCross, Acceleration3<TestBodyFrame>>);
+static_assert(std::is_same_v<typename PhysicalOmegaVelocityCross::FrameType, TestBodyFrame>);
+
+// VRT-16 negative API probes: a physical rotational cross cannot mix Frames,
+// accept unrelated dimensions or untyped scalars. Position-based physical
+// cross identities are intentionally not exposed until a production equation needs them.
+static_assert(!CanGenericCross<TestOmega, Velocity3<TestOtherFrame>>);
+static_assert(!CanRotationalCross<TestOmega, Velocity3<TestOtherFrame>>);
+static_assert(!CanRotationalCross<TestVelocity, TestVelocity>);
+static_assert(!CanRotationalCross<double, TestVelocity>);
+static_assert(!CanRotationalCross<TestOmega, TestPosition>);
+static_assert(!CanRotationalCross<TestAngularAcceleration, TestPosition>);
 
 // ==============================================================================
 // 1. 编译期静态拒绝测试 (Compile-Time Negative Tests via Concepts & Requires)
@@ -103,6 +154,77 @@ concept CanSubtractRawCrossFromTorque = requires(T3 t, RC r) {
 };
 static_assert(!CanSubtractRawCrossFromTorque<Torque3<TestBodyFrame>, RawCrossType>,
     "Compile error expected: Torque3 cannot subtract ordinary cross(omega, L) without Radian normalization.");
+
+TEST(DynamicsUnitsTest, RotationalCrossPhysicalSemantics) {
+    TestOmega omega(AngularVelocity::Zero(), AngularVelocity::Zero(), AngularVelocity(2.0));
+    TestVelocity velocity(Velocity(3.0), Velocity::Zero(), Velocity::Zero());
+
+    const auto generic = Cross(omega, velocity);
+    const auto physical = RotationalCross(omega, velocity);
+    EXPECT_NEAR(generic.y.value(), 6.0, 1.0e-14);
+    EXPECT_NEAR(physical.x.value(), 0.0, 1.0e-14);
+    EXPECT_NEAR(physical.y.value(), 6.0, 1.0e-14);
+    EXPECT_NEAR(physical.z.value(), 0.0, 1.0e-14);
+}
+
+TEST(DynamicsUnitsTest, RotationalCrossZeroParallelOrthogonalAndSigns) {
+    const TestOmega omega(AngularVelocity(1.0), AngularVelocity(-2.0), AngularVelocity(3.0));
+    const TestVelocity velocity(Velocity(-4.0), Velocity(5.0), Velocity(-6.0));
+    const auto mixed = RotationalCross(omega, velocity);
+    EXPECT_NEAR(mixed.x.value(), -3.0, 1.0e-14);
+    EXPECT_NEAR(mixed.y.value(), -6.0, 1.0e-14);
+    EXPECT_NEAR(mixed.z.value(), -3.0, 1.0e-14);
+
+    const TestOmega zero_omega;
+    const TestVelocity nonzero_velocity(Velocity(4.0), Velocity(-5.0), Velocity(6.0));
+    const auto zero_rate = RotationalCross(zero_omega, nonzero_velocity);
+    EXPECT_NEAR(zero_rate.x.value(), 0.0, 1.0e-14);
+    EXPECT_NEAR(zero_rate.y.value(), 0.0, 1.0e-14);
+    EXPECT_NEAR(zero_rate.z.value(), 0.0, 1.0e-14);
+
+    const TestVelocity zero_velocity;
+    const auto zero_vector = RotationalCross(omega, zero_velocity);
+    EXPECT_NEAR(zero_vector.x.value(), 0.0, 1.0e-14);
+    EXPECT_NEAR(zero_vector.y.value(), 0.0, 1.0e-14);
+    EXPECT_NEAR(zero_vector.z.value(), 0.0, 1.0e-14);
+
+    const TestOmega x_axis(AngularVelocity(2.0), AngularVelocity::Zero(), AngularVelocity::Zero());
+    const TestOmega negative_z_axis(AngularVelocity::Zero(), AngularVelocity::Zero(), AngularVelocity(-2.0));
+    const TestVelocity parallel(Velocity(3.0), Velocity::Zero(), Velocity::Zero());
+    const TestVelocity anti_parallel(Velocity(-3.0), Velocity::Zero(), Velocity::Zero());
+    const auto parallel_result = RotationalCross(x_axis, parallel);
+    const auto antiparallel_result = RotationalCross(x_axis, anti_parallel);
+    const auto opposite_sign_result = RotationalCross(negative_z_axis, parallel);
+    EXPECT_NEAR(parallel_result.x.value(), 0.0, 1.0e-14);
+    EXPECT_NEAR(parallel_result.y.value(), 0.0, 1.0e-14);
+    EXPECT_NEAR(parallel_result.z.value(), 0.0, 1.0e-14);
+    EXPECT_NEAR(antiparallel_result.x.value(), 0.0, 1.0e-14);
+    EXPECT_NEAR(antiparallel_result.y.value(), 0.0, 1.0e-14);
+    EXPECT_NEAR(antiparallel_result.z.value(), 0.0, 1.0e-14);
+    EXPECT_NEAR(opposite_sign_result.y.value(), -6.0, 1.0e-14);
+}
+
+template <typename T>
+void ExpectRotationalCrossFiniteScaleProduct(T large, T small, T tolerance) {
+    using OmegaT = AngularVelocity3<TestBodyFrame, T>;
+    using VelocityT = Velocity3<TestBodyFrame, T>;
+    using OmegaQ = Quantity<T, RadianPerSecondUnit>;
+    using VelocityQ = Quantity<T, MeterPerSecondUnit>;
+    const OmegaT omega(OmegaQ(static_cast<T>(0)), OmegaQ(static_cast<T>(0)), OmegaQ(large));
+    const VelocityT velocity(VelocityQ(small), VelocityQ(static_cast<T>(0)), VelocityQ(static_cast<T>(0)));
+    const auto acceleration = RotationalCross(omega, velocity);
+    EXPECT_NEAR(acceleration.y.value(), static_cast<T>(1), tolerance);
+}
+
+TEST(DynamicsUnitsTest, RotationalCrossFiniteScaleCasesFloat) {
+    ExpectRotationalCrossFiniteScaleProduct<float>(1.0e18F, 1.0e-18F, 2.0e-6F);
+    ExpectRotationalCrossFiniteScaleProduct<float>(1.0e-18F, 1.0e18F, 2.0e-6F);
+}
+
+TEST(DynamicsUnitsTest, RotationalCrossFiniteScaleCasesDouble) {
+    ExpectRotationalCrossFiniteScaleProduct<double>(1.0e150, 1.0e-150, 2.0e-14);
+    ExpectRotationalCrossFiniteScaleProduct<double>(1.0e-150, 1.0e150, 2.0e-14);
+}
 
 // ==============================================================================
 // 2. 编译期转动量纲恒等式测试 (Model B Compile-Time Identities)

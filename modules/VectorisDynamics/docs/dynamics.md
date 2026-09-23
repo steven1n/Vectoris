@@ -4,9 +4,10 @@
 > **Document**: Dynamics Module Specification  
 > **Document Version**: 1.0  
 > **Status**: Authoritative Module Specification  
-> **Code Baseline**: `8ca516e28efc9e94762c8f35acf5d162280aa76d`  
-> **Last Updated**: 2026-09-15  
-> **Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](ENGINEERING_STANDARD_V1.md)
+> **Reviewed Starting HEAD**: `cfbecc6390fb30d857f10f2516f39bb2ef75f996` (working tree contains uncommitted remediations)
+> **Last Updated**: 2026-09-23
+> **Current Qualification**: NOT REQUALIFIED / Experimental
+> **Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](../../../docs/ENGINEERING_STANDARD_V1.md)
 
 ---
 
@@ -14,11 +15,22 @@
 
 The `Dynamics` module implements rigid-body dynamics, rotational mechanics, spatial wrench/twist abstractions, strong physical quantity vectors, and deterministic numerical integration for simulation and aerospace guidance applications.
 
+### Numerics namespace spelling (VRT-12)
+
+The Dynamics namespace remains `vectoris::dynamics`. New callers should use
+`vectoris::numerics::core`, `units`, and `geometry` for Numerics APIs. Historical
+`Core::`, `Units::`, and `Geometry::` references in the examples below denote
+the corresponding `vectoris::numerics` compatibility namespaces; they remain
+supported and are not deprecated. Numerics public headers provide their aliases
+independently of include order. No `vectoris::dynamics::geometry` (or equivalent
+core/units alias) is introduced. This naming clarification changes no Dynamics
+state, units, Frame, timestep or numerical contract.
+
 ---
 
 ## 2. Scope & Dependencies
 
-- **Layer Position**: Layer 3 (Highest Layer in Stable Core).
+- **Layer Position**: Layer 3 (highest active module layer; project status remains Experimental).
 - **Dependencies**: Depends strictly on `Core`, `Units`, and `Geometry`.
 - **Inbound Dependencies**: Consumed by simulation systems, flight dynamics engines, and tests.
 - **One-Way Chain**: `Core` $\to$ `Units` $\to$ `Geometry` $\to$ `Dynamics`. Lower layers never depend on `Dynamics`.
@@ -27,21 +39,21 @@ The `Dynamics` module implements rigid-body dynamics, rotational mechanics, spat
 
 ## 3. Public Headers
 
-The `VectorisDynamics` module exposes **11 public headers** under `include/VectorisDynamics/`:
+The `VectorisDynamics` module exposes 11 public headers under `include/Vectoris/Dynamics/`:
 
 | Header | Description |
 | :--- | :--- |
-| [`Concepts.h`](../include/VectorisDynamics/Concepts.h) | Dynamics concepts (`DynamicsScalar`, `DynamicsFrameTag`). |
-| [`Detail/DynamicsABI.h`](../include/VectorisDynamics/Detail/DynamicsABI.h) | ABI standard layout, trivial copyability, and memory padding validation. |
-| [`Detail/StateTypes.h`](../include/VectorisDynamics/Detail/StateTypes.h) | Kinematic state definition and spatial vector type bindings. |
-| [`DynamicsConvention.h`](../include/VectorisDynamics/DynamicsConvention.h) | Body frame, inertial frame, and gravitational acceleration conventions. |
-| [`EulerIntegrator.h`](../include/VectorisDynamics/EulerIntegrator.h) | Transactionally safe 1st-order semi-implicit Euler state integrator. |
-| [`InertiaTensor3.h`](../include/VectorisDynamics/InertiaTensor3.h) | Symmetric positive definite $3 \times 3$ rigid-body inertia tensor. |
-| [`QuantityVector3.h`](../include/VectorisDynamics/QuantityVector3.h) | 3D spatial vector whose components are strongly typed `Quantity` instances. |
-| [`RigidBodyParameters.h`](../include/VectorisDynamics/RigidBodyParameters.h) | Mass, center of mass offset, and inertia tensor parameters. |
-| [`RigidBodyState.h`](../include/VectorisDynamics/RigidBodyState.h) | Full 6-DOF rigid-body dynamics derivative kernel and coupling equations. |
-| [`Twist6.h`](../include/VectorisDynamics/Twist6.h) | 6-DOF spatial velocity (linear velocity + angular velocity). |
-| [`Wrench6.h`](../include/VectorisDynamics/Wrench6.h) | 6-DOF spatial force and torque (linear force + rotational moment). |
+| [`Concepts.h`](../include/Vectoris/Dynamics/Concepts.h) | Dynamics concepts (`DynamicsScalar`, `DynamicsFrameTag`). |
+| [`Detail/DynamicsABI.h`](../include/Vectoris/Dynamics/Detail/DynamicsABI.h) | C++ standard-layout, trivial-copyability, and size checks; not a cross-build ABI or wire-format guarantee. |
+| [`Detail/StateTypes.h`](../include/Vectoris/Dynamics/Detail/StateTypes.h) | Kinematic state definition and spatial vector type bindings. |
+| [`DynamicsConvention.h`](../include/Vectoris/Dynamics/DynamicsConvention.h) | Body frame, inertial frame, and gravitational acceleration conventions. |
+| [`EulerIntegrator.h`](../include/Vectoris/Dynamics/EulerIntegrator.h) | Transactionally safe 1st-order semi-implicit Euler state integrator. |
+| [`InertiaTensor3.h`](../include/Vectoris/Dynamics/InertiaTensor3.h) | Symmetric positive definite $3 \times 3$ rigid-body inertia tensor. |
+| [`QuantityVector3.h`](../include/Vectoris/Dynamics/QuantityVector3.h) | 3D spatial vector whose components are strongly typed `Quantity` instances. |
+| [`RigidBodyParameters.h`](../include/Vectoris/Dynamics/RigidBodyParameters.h) | Mass, center of mass offset, and inertia tensor parameters. |
+| [`RigidBodyState.h`](../include/Vectoris/Dynamics/RigidBodyState.h) | Full 6-DOF rigid-body dynamics derivative kernel and coupling equations. |
+| [`Twist6.h`](../include/Vectoris/Dynamics/Twist6.h) | 6-DOF spatial velocity (linear velocity + angular velocity). |
+| [`Wrench6.h`](../include/Vectoris/Dynamics/Wrench6.h) | 6-DOF spatial force and torque (linear force + rotational moment). |
 
 ---
 
@@ -81,20 +93,23 @@ Solves $I \boldsymbol{\alpha} = \boldsymbol{\tau}$ for angular acceleration $\bo
 ## 6. Rotational Lie Bracket & Gyroscopic Torque
 
 In the rotating body frame, the Newton-Euler rotational dynamics equation is:
-$$\mathbf{I} \dot{\boldsymbol{\omega}} + \boldsymbol{\omega} \times (\mathbf{I} \boldsymbol{\omega}) = \boldsymbol{\tau}_{\text{ext}}$$
+$$\mathbf{I} \dot{\boldsymbol{\omega}} + \frac{\boldsymbol{\omega} \times (\mathbf{I} \boldsymbol{\omega})}{1\text{ rad}} = \boldsymbol{\tau}_{\text{ext}}$$
 
 Under Vectoris's 8D Model B, $[\boldsymbol{\omega} \times \mathbf{L}]$ evaluates to Energy ($[M \cdot L^2 \cdot T^{-2}]$), not Torque ($[M \cdot L^2 \cdot T^{-2} \cdot A^{-1}]$).
 - The gyroscopic torque is computed via `LieBracket(omega, L)` or `RotationalCross(omega, L)`:
   $$\boldsymbol{\tau}_{\text{gyro}} \triangleq \frac{\boldsymbol{\omega} \times \mathbf{L}}{1\text{ rad}}$$
 - This explicitly incorporates the radian normalization factor $1/\text{rad}$, restoring dimensional closure to Torque without numerical distortion.
 
+Use generic `Cross` for ordinary dimensional algebra: it preserves the product dimensions and the shared `Frame`. Use `RotationalCross` only when the physical rotational equation interprets the angular coordinate in radians and therefore consumes one Angle dimension. In particular, generic `Cross(AngularVelocity3, Velocity3)` has dimension $A L T^{-2}$; it is not an acceleration. The transport term uses `RotationalCross(AngularVelocity3, Velocity3) = (\omega \times v)/(1\text{ rad})`, with result dimension $L T^{-2}$. Both APIs require matching Frames at compile time.
+
 ---
 
 ## 7. Full Rigid-Body Dynamics Kernel
 
-[`RigidBodyDynamicsKernel::ComputeDerivative`](../include/VectorisDynamics/RigidBodyState.h) evaluates the full Newton-Euler equations without diagonal-only simplifications:
+[`RigidBodyDynamicsKernel::ComputeDerivative`](../include/Vectoris/Dynamics/RigidBodyState.h) evaluates the full Newton-Euler equations without diagonal-only simplifications:
 1. Translational acceleration (resolved in `BodyFrame`, accounting for rotation transport / Coriolis coupling):
-   $$\mathbf{a}_{\text{body}} = \frac{\mathbf{F}_{\text{body}}}{m} - \boldsymbol{\omega}_{\text{body}} \times \mathbf{v}_{\text{body}}$$
+   $$\mathbf{a}_{\text{body}} = \frac{\mathbf{F}_{\text{body}}}{m} - \frac{\boldsymbol{\omega}_{\text{body}} \times \mathbf{v}_{\text{body}}}{1\text{ rad}}$$
+   The implementation calls `RotationalCross(angularVelocity, linearVelocity)`. Generic `Cross` continues to return the $A L T^{-2}$ dimensional product.
    where `linearVelocity` is stored and resolved in `BodyFrame` (`Velocity3<BodyFrame, T>`).
 2. Angular momentum:
    $$\mathbf{L} = \mathbf{I} \boldsymbol{\omega}$$
@@ -111,7 +126,7 @@ If the inertia tensor is singular, indefinite, or ill-conditioned, `ComputeDeriv
 
 ## 8. `EulerIntegrator` Contract
 
-[`EulerIntegrator::Step`](../include/VectorisDynamics/EulerIntegrator.h) implements a deterministic, 1st-order semi-implicit integration step:
+[`EulerIntegrator::Step`](../include/Vectoris/Dynamics/EulerIntegrator.h) implements a deterministic, 1st-order semi-implicit integration step:
 
 ```cpp
 template <DynamicsScalar T, Geometry::FrameTag RefFrame, Geometry::FrameTag BodyFrame>
@@ -124,20 +139,35 @@ static constexpr Core::Result<bool, Core::MathError> Step(
 ```
 
 ### 8.1 Input Preconditions
-- Timestep $dt$ must be finite and strictly positive ($dt > 0$).
-- $dt \le 0$ returns `Result::failure(MathError::invalid_argument)`.
-- Non-finite $dt$ returns `Result::failure(MathError::non_finite_input)`.
+- **Timestep ($dt$)**: Must be finite and strictly positive ($dt > 0$).
+  - $dt \le 0$ returns `Result::failure(MathError::invalid_argument)`.
+  - Non-finite $dt$ returns `Result::failure(MathError::non_finite_input)`.
+- **Rigid Body Mass ($m$)**: Must be finite and strictly positive ($m > 0$).
+  - $m \le 0$ returns `Result::failure(MathError::invalid_argument)`.
+  - Non-finite $m$ ($\text{NaN}$, $\pm\infty$) returns `Result::failure(MathError::non_finite_input)`.
+- **Wrench ($\mathbf{F}_{\text{body}}, \boldsymbol{\tau}_{\text{body}}$)**: All force and torque components must be finite.
+  - Any non-finite component returns `Result::failure(MathError::non_finite_input)`.
+- **Initial Kinematic State**: All components of position, linear velocity, angular velocity, and attitude quaternion must be finite.
+  - Any non-finite initial state component returns `Result::failure(MathError::non_finite_input)`.
 
-### 8.2 Transactional Safety Semantics
-- **Zero Partial State Commitment**: Integration operates on a local stack copy (`auto candidate = state;`).
-- All derivatives, body velocity increments ($\mathbf{v}_{\text{body}} += \mathbf{a}_{\text{body}} \Delta t$, $\boldsymbol{\omega} += \boldsymbol{\alpha} \Delta t$), reference position advance ($\mathbf{r}_{\text{ref}} += (\mathbf{q} * \mathbf{v}_{\text{body}}) \Delta t$), and quaternion attitude kinematics are calculated and verified.
-- The external caller state reference is mutated (`state = candidate;`) **if and only if all operations succeed**, returning `Result<bool, MathError>::success(true)`.
-- On any numerical or domain failure (e.g. singular inertia, invalid timestep, non-finite wrench), the function returns `Result::failure(err)` and the caller's state remains **100% untouched**.
+### 8.2 Candidate State Validation & Transactional Safety Semantics
+- **Zero Partial State Commitment**: Integration operates exclusively on a local candidate copy (`auto candidate = state;`).
+- **Translational Candidate Validation**:
+  - Candidate linear velocity $\mathbf{v}_{k+1} = \mathbf{v}_k + \mathbf{a}_k \Delta t$ is computed and verified finite.
+  - Projected reference velocity $\mathbf{v}_{\text{ref}} = \mathbf{q}_k * \mathbf{v}_{k+1}$ and candidate position $\mathbf{r}_{k+1} = \mathbf{r}_k + \mathbf{v}_{\text{ref}} \Delta t$ are computed and verified finite.
+  - If numerical overflow produces non-finite translation components, the step aborts with `Result::failure(MathError::non_finite_input)`.
+- **Rotational Candidate Validation**:
+  - Candidate angular velocity $\boldsymbol{\omega}_{k+1} = \boldsymbol{\omega}_k + \boldsymbol{\alpha}_k \Delta t$ is verified finite.
+  - Candidate quaternion attitude $\mathbf{q}_{k+1}$ is normalized via `Quaternion::TryCreate` and verified valid.
+- **Atomic Commit**:
+  - The external caller state reference is mutated (`state = candidate;`) **if and only if all operations and candidate validations succeed**, returning `Result<bool, MathError>::success(true)`.
+  - On any numerical, physical, or domain failure (singular inertia, invalid mass/timestep, non-finite wrench/state, or candidate overflow), the function returns `Result::failure(err)` and the caller's state remains **100% untouched** across all 13 kinematic state scalar fields.
 
 ### 8.3 Attitude Kinematics Boundary
-- Quaternion kinematics $\dot{\mathbf{q}} = \frac{1}{2} \mathbf{q} \otimes \boldsymbol{\omega}_{\text{body}}$ consume dimensionless quaternion coordinates.
-- Angular velocity components in $\text{rad}/\text{s}$ are extracted as explicit scalars at the local integration boundary:
-  $$\mathbf{q}_{k+1} = \operatorname{normalize}\left(\mathbf{q}_k + \frac{1}{2} \mathbf{q}_k \otimes \boldsymbol{\omega} \Delta t\right)$$
+- Quaternion coordinates are dimensionless. The angular increment is first formed as the typed quotient $\Delta\boldsymbol{\theta} = (\boldsymbol{\omega}\Delta t)/(1\text{ rad})$, whose dimension is zero.
+- Only after that explicit radian normalization is its scalar representation used in the quaternion update:
+  $$\mathbf{q}_{k+1} = \operatorname{normalize}\left(\mathbf{q}_k + \frac{1}{2} \mathbf{q}_k \otimes \Delta\boldsymbol{\theta}\right)$$
+- This conversion preserves the SI numeric value because one radian has scalar value one; extracting an unnormalized angular-velocity value and multiplying it by raw `dt` is not the dimensional contract.
 
 ---
 

@@ -1,0 +1,998 @@
+{
+  "version": "2.0",
+  "description": "Vectoris Numerics Public API and Template Instantiation Surface Manifest with declared Dynamics semantic contracts",
+  "scope": "All ISO C++20 pure-mathematics production headers for VectorisNumerics",
+  "guarantees": {
+    "claim": "Declared supported public API instantiation surface verified at compile-time and run-time.",
+    "disclaimer": "This manifest guarantees verification of the declared supported instantiation families (float, double, standard Frame tags, standard SI quantities). It does not claim mathematical exhaustiveness over arbitrary user-defined types or infinite template permutations."
+  },
+  "supported_types_matrix": {
+    "floating_point_scalars": [
+      "float",
+      "double"
+    ],
+    "representative_frames": [
+      "WorldFrame",
+      "BodyFrame",
+      "SensorFrame"
+    ],
+    "base_units": [
+      "Amount (Mole)",
+      "Angle (Radian)",
+      "Current (Ampere)",
+      "Length (Meter)",
+      "Luminosity (Candela)",
+      "Mass (Kilogram)",
+      "Temperature (Kelvin)",
+      "Time (Second)"
+    ],
+    "derived_units": [
+      "Acceleration",
+      "AngularAcceleration",
+      "AngularMomentum",
+      "AngularVelocity",
+      "Force",
+      "Frequency",
+      "MomentOfInertia",
+      "Power",
+      "Torque",
+      "Velocity"
+    ],
+    "result_payloads": {
+      "alternatives": "Distinct std::variant-compatible T/E with nonthrowing destructors; Result<T,T> rejected.",
+      "construction": "Selected payload constructible from forwarded arguments; throwing construction, move-only, non-default and immovable in-place payloads supported.",
+      "copy_assignment": "Both alternatives copy constructible and copy assignable; each has nothrow copy construction OR nothrow move construction.",
+      "move_assignment": "Both alternatives move constructible and move assignable; both have nothrow move construction.",
+      "exceptions": "Cross-state failed copy construction preserves destination; same-state throwing assignment retains alternative with payload guarantee. Unsafe assignments are deleted.",
+      "positive_probe": "PublicApiSurfaceTest.CoreResultTwoStatePayloadPolicy",
+      "detailed_tests": "modules/VectorisNumerics/tests/Core/ResultExceptionTest.cpp"
+    },
+    "sqrt": {
+      "canonical": "vectoris::numerics::core::sqrt",
+      "compatibility": "vectoris::numerics::core::Math::sqrt forwards; PascalCase Core retained; not deprecated",
+      "runtime": [
+        "float",
+        "double",
+        "long double"
+      ],
+      "portable_CXX20_constexpr": [
+        "float",
+        "double"
+      ],
+      "rejected_deduced_arguments": [
+        "integral",
+        "bool",
+        "user-defined conversion types"
+      ],
+      "special_values": "signed zero and +Inf preserved; negative nonzero and NaN inputs produce NaN",
+      "accuracy_validation": "<=1 ULP against independent std::sqrt in round-to-nearest; no cross-platform bit-identity or NaN-payload guarantee"
+    }
+  },
+  "historical_gaps_verified": [
+    {
+      "id": "GAP-01",
+      "symbol": "Matrix3::operator*(Vector3)",
+      "description": "Matrix3 x Vector3 public instantiation across float/double and World/Body frames without constraint recursion."
+    },
+    {
+      "id": "GAP-02",
+      "symbol": "UnitVector3::accessors",
+      "description": "UnitVector3 x(), y(), z(), getX(), getY(), getZ(), ToVector() instantiation across float/double."
+    },
+    {
+      "id": "GAP-03",
+      "symbol": "Result::named_factories",
+      "description": "Result::success and Result::failure explicit factory instantiation across float, double, and complex types."
+    },
+    {
+      "id": "GAP-04",
+      "symbol": "Core::AlmostEqual",
+      "description": "AlmostEqual tolerance-aware comparison instantiated for both float and double."
+    },
+    {
+      "id": "GAP-05",
+      "symbol": "SymmetricLinearSolver3::Solve",
+      "description": "LDLT linear system solver instantiated and executed for both float and double."
+    },
+    {
+      "id": "GAP-06",
+      "symbol": "Quaternion::ToRotationMatrix",
+      "description": "Checked quaternion-to-matrix conversion instantiated and executed for both float and double."
+    }
+  ],
+  "migrated_requires_assertions": [
+    {
+      "id": "REQ-01",
+      "description": "Cross-Frame Vector3 addition must be rejected by compiler constraint",
+      "verified_in": "PublicApiSurfaceTest.CompileTimeNegativeRejectionConstraints",
+      "expression": "!SupportsAddition<Vector3<double, WorldFrame>, Vector3<double, BodyFrame>>"
+    },
+    {
+      "id": "REQ-02",
+      "description": "Matrix3 multiplication by non-scalar types must be rejected by concept",
+      "verified_in": "PublicApiSurfaceTest.CompileTimeNegativeRejectionConstraints",
+      "expression": "!SupportsMultiplication<Matrix3<double>, std::string>"
+    },
+    {
+      "id": "REQ-03",
+      "description": "Adding quantities with different dimensions must be rejected at compile-time",
+      "verified_in": "PublicApiSurfaceTest.CompileTimeNegativeRejectionConstraints",
+      "expression": "!SupportsAddition<Meter, Second>"
+    }
+  ],
+  "negative_compile_probes": [
+    {
+      "id": "NEG-01",
+      "file": "tools/api_surface/negative_probes/result_same_type.cpp",
+      "control_file": "tools/api_surface/negative_probes/result_same_type_control.cpp",
+      "description": "Result<T, E> where T == E must fail class-level static_assert.",
+      "expected_failure_pattern": "cannot be the same type"
+    },
+    {
+      "id": "NEG-VRT12-ROOT",
+      "file": "tools/api_surface/negative_probes/namespace_wrong_root.cpp",
+      "control_file": "tools/api_surface/negative_probes/namespace_wrong_root_control.cpp",
+      "description": "Numerics namespace aliases must not be introduced under vectoris::dynamics.",
+      "expected_failure_pattern": "geometry"
+    },
+    {
+      "id": "NEG-03",
+      "file": "tools/api_surface/negative_probes/result_unsafe_copy_assignment.cpp",
+      "control_file": "tools/api_surface/negative_probes/result_unsafe_copy_assignment_control.cpp",
+      "description": "Result copy assignment rejects payloads without a nonthrowing construction route.",
+      "expected_failure_pattern": "deleted"
+    },
+    {
+      "id": "NEG-04",
+      "file": "tools/api_surface/negative_probes/result_unsafe_move_assignment.cpp",
+      "control_file": "tools/api_surface/negative_probes/result_unsafe_move_assignment_control.cpp",
+      "description": "Result move assignment rejects potentially throwing move construction, without copy fallback.",
+      "expected_failure_pattern": "deleted"
+    },
+    {
+      "id": "NEG-05",
+      "file": "tools/api_surface/negative_probes/result_throwing_value_destructor.cpp",
+      "control_file": "tools/api_surface/negative_probes/result_throwing_value_destructor_control.cpp",
+      "description": "Result requires nonthrowing value destruction.",
+      "expected_failure_pattern": "payload destructors must be noexcept"
+    },
+    {
+      "id": "NEG-06",
+      "file": "tools/api_surface/negative_probes/result_throwing_error_destructor.cpp",
+      "control_file": "tools/api_surface/negative_probes/result_throwing_error_destructor_control.cpp",
+      "description": "Result requires nonthrowing error destruction.",
+      "expected_failure_pattern": "payload destructors must be noexcept"
+    },
+    {
+      "id": "NEG-07",
+      "file": "tools/api_surface/negative_probes/sqrt_canonical_integral.cpp",
+      "control_file": "tools/api_surface/negative_probes/sqrt_canonical_integral_control.cpp",
+      "description": "canonical sqrt rejects deduced integral arguments.",
+      "expected_failure_pattern": "no matching function"
+    },
+    {
+      "id": "NEG-08",
+      "file": "tools/api_surface/negative_probes/sqrt_canonical_bool.cpp",
+      "control_file": "tools/api_surface/negative_probes/sqrt_canonical_bool_control.cpp",
+      "description": "canonical sqrt rejects deduced bool arguments.",
+      "expected_failure_pattern": "no matching function"
+    },
+    {
+      "id": "NEG-09",
+      "file": "tools/api_surface/negative_probes/sqrt_canonical_conversion.cpp",
+      "control_file": "tools/api_surface/negative_probes/sqrt_canonical_conversion_control.cpp",
+      "description": "canonical sqrt rejects deduced conversion arguments.",
+      "expected_failure_pattern": "no matching function"
+    },
+    {
+      "id": "NEG-10",
+      "file": "tools/api_surface/negative_probes/sqrt_compatibility_integral.cpp",
+      "control_file": "tools/api_surface/negative_probes/sqrt_compatibility_integral_control.cpp",
+      "description": "compatibility sqrt rejects deduced integral arguments.",
+      "expected_failure_pattern": "no matching function"
+    },
+    {
+      "id": "NEG-11",
+      "file": "tools/api_surface/negative_probes/sqrt_compatibility_bool.cpp",
+      "control_file": "tools/api_surface/negative_probes/sqrt_compatibility_bool_control.cpp",
+      "description": "compatibility sqrt rejects deduced bool arguments.",
+      "expected_failure_pattern": "no matching function"
+    },
+    {
+      "id": "NEG-12",
+      "file": "tools/api_surface/negative_probes/sqrt_compatibility_conversion.cpp",
+      "control_file": "tools/api_surface/negative_probes/sqrt_compatibility_conversion_control.cpp",
+      "description": "compatibility sqrt rejects deduced conversion arguments.",
+      "expected_failure_pattern": "no matching function"
+    }
+  ],
+  "public_headers_count": 58,
+  "public_headers": [
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Core/BasicTypes.h",
+      "family": "Core",
+      "classification": "declaration_only",
+      "canonical_namespace": "vectoris::numerics::core",
+      "compatibility_namespace": "vectoris::numerics::Core"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Core/Compiler.h",
+      "family": "Core",
+      "classification": "constant_or_metadata",
+      "canonical_namespace": "vectoris::numerics::core",
+      "compatibility_namespace": "vectoris::numerics::Core"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Core/Concepts.h",
+      "family": "Core",
+      "classification": "concept_or_trait",
+      "canonical_namespace": "vectoris::numerics::core",
+      "compatibility_namespace": "vectoris::numerics::Core"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Core/Constants.h",
+      "family": "Core",
+      "classification": "constant_or_metadata",
+      "canonical_namespace": "vectoris::numerics::core",
+      "compatibility_namespace": "vectoris::numerics::Core"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Core/Math.h",
+      "family": "Core",
+      "classification": "runtime_template_api",
+      "canonical_namespace": "vectoris::numerics::core",
+      "compatibility_namespace": "vectoris::numerics::Core",
+      "namespace_probe": "modules/VectorisNumerics/tests/PublicApi/NamespaceProbes/Vectoris_Numerics_Core_Math_h.inc",
+      "positive_probes": [
+        "CoreSqrtFloatRuntimeAndConstexpr",
+        "CoreSqrtDoubleRuntimeAndConstexpr",
+        "CoreSqrtLongDoubleRuntime"
+      ],
+      "supported_scalars": [
+        "float",
+        "double",
+        "long double"
+      ]
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Core/MathError.h",
+      "family": "Core",
+      "classification": "declaration_only",
+      "canonical_namespace": "vectoris::numerics::core",
+      "compatibility_namespace": "vectoris::numerics::Core"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Core/MathFunctions.h",
+      "family": "Core",
+      "classification": "runtime_template_api",
+      "canonical_namespace": "vectoris::numerics::core",
+      "compatibility_namespace": "vectoris::numerics::Core",
+      "positive_probes": [
+        "CoreSqrtFloatRuntimeAndConstexpr",
+        "CoreSqrtDoubleRuntimeAndConstexpr",
+        "CoreSqrtLongDoubleRuntime"
+      ],
+      "supported_scalars": [
+        "float",
+        "double",
+        "long double"
+      ],
+      "namespace_probe": "modules/VectorisNumerics/tests/PublicApi/NamespaceProbes/Vectoris_Numerics_Core_MathFunctions_h.inc"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Core/NumericTraits.h",
+      "family": "Core",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "CoreAlmostEqualFloatAndDouble",
+        "NamespaceQualifiedFloat",
+        "NamespaceQualifiedDouble"
+      ],
+      "supported_scalars": [
+        "float",
+        "double"
+      ],
+      "canonical_namespace": "vectoris::numerics::core",
+      "compatibility_namespace": "vectoris::numerics::Core",
+      "namespace_probe": "modules/VectorisNumerics/tests/PublicApi/NamespaceProbes/Vectoris_Numerics_Core_NumericTraits_h.inc"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Core/Precision.h",
+      "family": "Core",
+      "classification": "constant_or_metadata",
+      "canonical_namespace": "vectoris::numerics::core",
+      "compatibility_namespace": "vectoris::numerics::Core"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Core/Result.h",
+      "family": "Core",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "CoreResultNamedFactories",
+        "NamespaceQualifiedFloat",
+        "NamespaceQualifiedDouble",
+        "CoreResultTwoStatePayloadPolicy"
+      ],
+      "supported_scalars": [
+        "float",
+        "double"
+      ],
+      "canonical_namespace": "vectoris::numerics::core",
+      "compatibility_namespace": "vectoris::numerics::Core",
+      "namespace_probe": "modules/VectorisNumerics/tests/PublicApi/NamespaceProbes/Vectoris_Numerics_Core_Result_h.inc"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/AlmostEqual.h",
+      "family": "Geometry",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "CoreAlmostEqualFloatAndDouble",
+        "GeometryTransform3FloatAndDouble"
+      ],
+      "supported_scalars": [
+        "float",
+        "double"
+      ],
+      "canonical_namespace": "vectoris::numerics::geometry",
+      "compatibility_namespace": "vectoris::numerics::Geometry"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/Concepts.h",
+      "family": "Geometry",
+      "classification": "concept_or_trait",
+      "canonical_namespace": "vectoris::numerics::geometry",
+      "compatibility_namespace": "vectoris::numerics::Geometry"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/CoordinateConvention.h",
+      "family": "Geometry",
+      "classification": "declaration_only",
+      "canonical_namespace": "vectoris::numerics::geometry",
+      "compatibility_namespace": "vectoris::numerics::Geometry"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/Detail/ABI.h",
+      "family": "Geometry",
+      "classification": "internal_public_helper",
+      "canonical_namespace": "vectoris::numerics::geometry",
+      "compatibility_namespace": "vectoris::numerics::Geometry"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/Detail/RotationInvariant.h",
+      "family": "Geometry",
+      "classification": "internal_public_helper",
+      "canonical_namespace": "vectoris::numerics::geometry",
+      "compatibility_namespace": "vectoris::numerics::Geometry"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/FrameTags.h",
+      "family": "Geometry",
+      "classification": "declaration_only",
+      "canonical_namespace": "vectoris::numerics::geometry",
+      "compatibility_namespace": "vectoris::numerics::Geometry"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/Matrix3.h",
+      "family": "Geometry",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "GeometryMatrix3AndVectorMultiplication",
+        "NamespaceQualifiedFloat",
+        "NamespaceQualifiedDouble",
+        "GeometryMatrix3RepresentationContract"
+      ],
+      "supported_scalars": [
+        "float",
+        "double"
+      ],
+      "representative_frames": [
+        "WorldFrame",
+        "BodyFrame"
+      ],
+      "canonical_namespace": "vectoris::numerics::geometry",
+      "compatibility_namespace": "vectoris::numerics::Geometry",
+      "namespace_probe": "modules/VectorisNumerics/tests/PublicApi/NamespaceProbes/Vectoris_Numerics_Geometry_Matrix3_h.inc"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/Point3.h",
+      "family": "Geometry",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "GeometryTransform3FloatAndDouble"
+      ],
+      "supported_scalars": [
+        "float",
+        "double"
+      ],
+      "representative_frames": [
+        "WorldFrame",
+        "BodyFrame",
+        "SensorFrame"
+      ],
+      "canonical_namespace": "vectoris::numerics::geometry",
+      "compatibility_namespace": "vectoris::numerics::Geometry"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/Quaternion.h",
+      "family": "Geometry",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "GeometryQuaternionCheckedConversion",
+        "NamespaceQualifiedFloat",
+        "NamespaceQualifiedDouble",
+        "GeometryIdentityFactoriesRespectClassFrames"
+      ],
+      "supported_scalars": [
+        "float",
+        "double"
+      ],
+      "representative_frames": [
+        "WorldFrame",
+        "BodyFrame",
+        "SensorFrame"
+      ],
+      "canonical_namespace": "vectoris::numerics::geometry",
+      "compatibility_namespace": "vectoris::numerics::Geometry",
+      "namespace_probe": "modules/VectorisNumerics/tests/PublicApi/NamespaceProbes/Vectoris_Numerics_Geometry_Quaternion_h.inc"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/RotationMatrix3.h",
+      "family": "Geometry",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "GeometryQuaternionCheckedConversion",
+        "GeometryIdentityFactoriesRespectClassFrames"
+      ],
+      "supported_scalars": [
+        "float",
+        "double"
+      ],
+      "representative_frames": [
+        "WorldFrame",
+        "BodyFrame",
+        "SensorFrame"
+      ],
+      "canonical_namespace": "vectoris::numerics::geometry",
+      "compatibility_namespace": "vectoris::numerics::Geometry"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/SymmetricLinearSolver3.h",
+      "family": "Geometry",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "GeometrySymmetricLinearSolverFloatAndDouble",
+        "NamespaceQualifiedFloat",
+        "NamespaceQualifiedDouble"
+      ],
+      "supported_scalars": [
+        "float",
+        "double"
+      ],
+      "representative_frames": [
+        "WorldFrame",
+        "BodyFrame"
+      ],
+      "canonical_namespace": "vectoris::numerics::geometry",
+      "compatibility_namespace": "vectoris::numerics::Geometry",
+      "namespace_probe": "modules/VectorisNumerics/tests/PublicApi/NamespaceProbes/Vectoris_Numerics_Geometry_SymmetricLinearSolver3_h.inc"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/Traits.h",
+      "family": "Geometry",
+      "classification": "concept_or_trait",
+      "canonical_namespace": "vectoris::numerics::geometry",
+      "compatibility_namespace": "vectoris::numerics::Geometry"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/Transform3.h",
+      "family": "Geometry",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "GeometryTransform3FloatAndDouble",
+        "NamespaceQualifiedFloat",
+        "NamespaceQualifiedDouble",
+        "GeometryIdentityFactoriesRespectClassFrames"
+      ],
+      "supported_scalars": [
+        "float",
+        "double"
+      ],
+      "representative_frames": [
+        "WorldFrame",
+        "BodyFrame",
+        "SensorFrame"
+      ],
+      "canonical_namespace": "vectoris::numerics::geometry",
+      "compatibility_namespace": "vectoris::numerics::Geometry",
+      "namespace_probe": "modules/VectorisNumerics/tests/PublicApi/NamespaceProbes/Vectoris_Numerics_Geometry_Transform3_h.inc"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/UnitVector3.h",
+      "family": "Geometry",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "GeometryUnitVector3AccessorsFloatAndDouble",
+        "NamespaceQualifiedFloat",
+        "NamespaceQualifiedDouble"
+      ],
+      "supported_scalars": [
+        "float",
+        "double"
+      ],
+      "representative_frames": [
+        "WorldFrame",
+        "BodyFrame"
+      ],
+      "canonical_namespace": "vectoris::numerics::geometry",
+      "compatibility_namespace": "vectoris::numerics::Geometry",
+      "namespace_probe": "modules/VectorisNumerics/tests/PublicApi/NamespaceProbes/Vectoris_Numerics_Geometry_UnitVector3_h.inc"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/Vector3.h",
+      "family": "Geometry",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "GeometryVector3FloatAndDouble",
+        "NamespaceQualifiedFloat",
+        "NamespaceQualifiedDouble"
+      ],
+      "supported_scalars": [
+        "float",
+        "double"
+      ],
+      "representative_frames": [
+        "WorldFrame",
+        "BodyFrame",
+        "SensorFrame"
+      ],
+      "canonical_namespace": "vectoris::numerics::geometry",
+      "compatibility_namespace": "vectoris::numerics::Geometry",
+      "namespace_probe": "modules/VectorisNumerics/tests/PublicApi/NamespaceProbes/Vectoris_Numerics_Geometry_Vector3_h.inc"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/BaseUnits/Amount.h",
+      "family": "Units",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "UnitsBaseQuantitiesFloatAndDouble"
+      ],
+      "supported_scalars": [
+        "float",
+        "double"
+      ],
+      "dimension": "Amount",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/BaseUnits/Angle.h",
+      "family": "Units",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "UnitsBaseQuantitiesFloatAndDouble"
+      ],
+      "supported_scalars": [
+        "float",
+        "double"
+      ],
+      "dimension": "Angle",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/BaseUnits/Current.h",
+      "family": "Units",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "UnitsBaseQuantitiesFloatAndDouble"
+      ],
+      "supported_scalars": [
+        "float",
+        "double"
+      ],
+      "dimension": "Current",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/BaseUnits/Length.h",
+      "family": "Units",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "UnitsBaseQuantitiesFloatAndDouble",
+        "NamespaceQualifiedFloat",
+        "NamespaceQualifiedDouble"
+      ],
+      "supported_scalars": [
+        "float",
+        "double"
+      ],
+      "dimension": "Length",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units",
+      "namespace_probe": "modules/VectorisNumerics/tests/PublicApi/NamespaceProbes/Vectoris_Numerics_Units_BaseUnits_Length_h.inc"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/BaseUnits/Luminosity.h",
+      "family": "Units",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "UnitsBaseQuantitiesFloatAndDouble"
+      ],
+      "supported_scalars": [
+        "float",
+        "double"
+      ],
+      "dimension": "Luminosity",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/BaseUnits/Mass.h",
+      "family": "Units",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "UnitsBaseQuantitiesFloatAndDouble"
+      ],
+      "supported_scalars": [
+        "float",
+        "double"
+      ],
+      "dimension": "Mass",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/BaseUnits/Temperature.h",
+      "family": "Units",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "UnitsBaseQuantitiesFloatAndDouble"
+      ],
+      "supported_scalars": [
+        "float",
+        "double"
+      ],
+      "dimension": "Temperature",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/BaseUnits/Time.h",
+      "family": "Units",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "UnitsBaseQuantitiesFloatAndDouble"
+      ],
+      "supported_scalars": [
+        "float",
+        "double"
+      ],
+      "dimension": "Time",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/Common.h",
+      "family": "Units",
+      "classification": "declaration_only",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/Conversion.h",
+      "family": "Units",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "UnitsDerivedAndUnitCast"
+      ],
+      "supported_scalars": [
+        "float",
+        "double"
+      ],
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/Core.h",
+      "family": "Units",
+      "classification": "declaration_only",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/DerivedUnits/Acceleration.h",
+      "family": "Units",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "UnitsDerivedAndUnitCast"
+      ],
+      "supported_scalars": [
+        "double"
+      ],
+      "dimension": "Acceleration",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/DerivedUnits/AngularAcceleration.h",
+      "family": "Units",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "UnitsDerivedAndUnitCast"
+      ],
+      "supported_scalars": [
+        "double"
+      ],
+      "dimension": "AngularAcceleration",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/DerivedUnits/AngularMomentum.h",
+      "family": "Units",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "UnitsDerivedAndUnitCast"
+      ],
+      "supported_scalars": [
+        "double"
+      ],
+      "dimension": "AngularMomentum",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/DerivedUnits/AngularVelocity.h",
+      "family": "Units",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "UnitsDerivedAndUnitCast"
+      ],
+      "supported_scalars": [
+        "double"
+      ],
+      "dimension": "AngularVelocity",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/DerivedUnits/Force.h",
+      "family": "Units",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "UnitsDerivedAndUnitCast"
+      ],
+      "supported_scalars": [
+        "double"
+      ],
+      "dimension": "Force",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/DerivedUnits/Frequency.h",
+      "family": "Units",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "UnitsDerivedAndUnitCast"
+      ],
+      "supported_scalars": [
+        "double"
+      ],
+      "dimension": "Frequency",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/DerivedUnits/MomentOfInertia.h",
+      "family": "Units",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "UnitsDerivedAndUnitCast"
+      ],
+      "supported_scalars": [
+        "double"
+      ],
+      "dimension": "MomentOfInertia",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/DerivedUnits/Power.h",
+      "family": "Units",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "UnitsDerivedAndUnitCast"
+      ],
+      "supported_scalars": [
+        "double"
+      ],
+      "dimension": "Power",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/DerivedUnits/Torque.h",
+      "family": "Units",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "UnitsDerivedAndUnitCast"
+      ],
+      "supported_scalars": [
+        "double"
+      ],
+      "dimension": "Torque",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/DerivedUnits/Velocity.h",
+      "family": "Units",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "UnitsDerivedAndUnitCast",
+        "NamespaceQualifiedFloat",
+        "NamespaceQualifiedDouble"
+      ],
+      "supported_scalars": [
+        "double"
+      ],
+      "dimension": "Velocity",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units",
+      "namespace_probe": "modules/VectorisNumerics/tests/PublicApi/NamespaceProbes/Vectoris_Numerics_Units_DerivedUnits_Velocity_h.inc"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/Detail/ABI.h",
+      "family": "Units",
+      "classification": "internal_public_helper",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/Detail/Ratio.h",
+      "family": "Units",
+      "classification": "compile_time_api",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/Dimension.h",
+      "family": "Units",
+      "classification": "concept_or_trait",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/Literals.h",
+      "family": "Units",
+      "classification": "compile_time_api",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/Quantity.h",
+      "family": "Units",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "UnitsBaseQuantitiesFloatAndDouble",
+        "UnitsDerivedAndUnitCast",
+        "NamespaceQualifiedFloat",
+        "NamespaceQualifiedDouble"
+      ],
+      "supported_scalars": [
+        "float",
+        "double"
+      ],
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units",
+      "namespace_probe": "modules/VectorisNumerics/tests/PublicApi/NamespaceProbes/Vectoris_Numerics_Units_Quantity_h.inc"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/QuantityABI.h",
+      "family": "Units",
+      "classification": "internal_public_helper",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/UnitCast.h",
+      "family": "Units",
+      "classification": "runtime_template_api",
+      "positive_probes": [
+        "UnitsDerivedAndUnitCast",
+        "NamespaceQualifiedFloat",
+        "NamespaceQualifiedDouble"
+      ],
+      "supported_scalars": [
+        "float",
+        "double"
+      ],
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units",
+      "namespace_probe": "modules/VectorisNumerics/tests/PublicApi/NamespaceProbes/Vectoris_Numerics_Units_UnitCast_h.inc"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/UnitConcepts.h",
+      "family": "Units",
+      "classification": "concept_or_trait",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/UnitTraits.h",
+      "family": "Units",
+      "classification": "concept_or_trait",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Core/Namespace.h",
+      "family": "Core",
+      "classification": "declaration_only",
+      "canonical_namespace": "vectoris::numerics::core",
+      "compatibility_namespace": "vectoris::numerics::Core"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Units/Namespace.h",
+      "family": "Units",
+      "classification": "declaration_only",
+      "canonical_namespace": "vectoris::numerics::units",
+      "compatibility_namespace": "vectoris::numerics::Units"
+    },
+    {
+      "header_path": "modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/Namespace.h",
+      "family": "Geometry",
+      "classification": "declaration_only",
+      "canonical_namespace": "vectoris::numerics::geometry",
+      "compatibility_namespace": "vectoris::numerics::Geometry"
+    }
+  ],
+  "namespace_contract": {
+    "canonical": [
+      "vectoris::numerics::core",
+      "vectoris::numerics::units",
+      "vectoris::numerics::geometry"
+    ],
+    "compatibility": [
+      "vectoris::numerics::Core",
+      "vectoris::numerics::Units",
+      "vectoris::numerics::Geometry"
+    ],
+    "compatibility_deprecated": false,
+    "detail_is_public_api": false,
+    "header_self_sufficient": true,
+    "include_order_independent": true,
+    "verification": "Every HeaderIsolation TU checks namespace lookup; 13 direct-header symbol probes; six ordered pairs and six triple permutations in the test target; two fully-qualified runtime probes."
+  },
+  "dynamics_public_api_contracts": [
+    {
+      "module": "VectorisDynamics",
+      "header_path": "modules/VectorisDynamics/include/Vectoris/Dynamics/QuantityVector3.h",
+      "canonical_namespace": "vectoris::dynamics",
+      "api": "RotationalCross(AngularVelocity3<Frame>, Velocity3<Frame>) -> Acceleration3<Frame>",
+      "positive_test_source": "modules/VectorisDynamics/tests/DynamicsUnitsTest.cpp",
+      "positive_test": "DynamicsUnitsTest.RotationalCrossPhysicalSemantics",
+      "compile_time_contracts": [
+        "Generic Cross retains the independent Angle dimension",
+        "RotationalCross divides the typed generic cross by one radian",
+        "The result retains the shared Frame",
+        "Cross-frame, wrong-dimension, and scalar operands are rejected"
+      ]
+    }
+  ],
+  "frame_identity_factory_contract": {
+    "positive_probe": "GeometryIdentityFactoriesRespectClassFrames",
+    "scalar_types": [
+      "float",
+      "double"
+    ],
+    "namespace_spellings": [
+      "vectoris::numerics::geometry",
+      "vectoris::numerics::Geometry"
+    ],
+    "quaternion_and_transform": "Identity is available only when the class FrameFrom and FrameTo types match; legacy explicit function arguments may name any same-frame pair but cannot change the class frame mapping.",
+    "rotation_matrix": "Identity returns the identity matrix for its declared mapping; cross-frame use requires caller-established aligned coordinate bases."
+  }
+}

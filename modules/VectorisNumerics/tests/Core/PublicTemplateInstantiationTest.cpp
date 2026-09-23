@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <cmath>
 #include "Vectoris/Numerics/Core/Math.h"
 
 TEST(CorePublicTemplateTest, ConstexprMathSqrt) {
@@ -12,7 +13,7 @@ TEST(CorePublicTemplateTest, ConstexprMathSqrt) {
     EXPECT_DOUBLE_EQ(sq0, 0.0);
 
     constexpr double sq_neg = vectoris::numerics::Core::sqrt(-1.0);
-    EXPECT_DOUBLE_EQ(sq_neg, 0.0);
+    EXPECT_TRUE(std::isnan(sq_neg));
 }
 
 TEST(CorePublicTemplateTest, ConstexprMathAbs) {

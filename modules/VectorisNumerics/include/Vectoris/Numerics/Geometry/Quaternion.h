@@ -1,4 +1,6 @@
 #pragma once
+#include "Namespace.h"
+#include <algorithm>
 #include "Concepts.h"
 #include "FrameTags.h"
 #include "Vector3.h"
@@ -15,7 +17,7 @@ namespace vectoris::numerics::Geometry {
     template <ScalarArithmetic T, FrameTag FrameFrom, FrameTag FrameTo>
     struct Quaternion final {
     public:
-        // 组件采用公开成员以满足嵌入式 GNC 与遥测体系的 Standard Layout / Trivially Copyable ABI 约束。
+        // Public components follow AML-DEVIATION-002; their C++ layout traits do not promise a binary/telemetry wire format.
         // 符号规范化 (Canonicalization) 是构造期约定 (TryCreate 保证 w >= 0 when w != 0)，
         // 而非对象生命周期强制不变式 (Lifetime Invariant)。
         T w;
@@ -35,9 +37,11 @@ namespace vectoris::numerics::Geometry {
     public:
         Quaternion() = delete;
 
-        // 仅在起始系和目标系相同时，才允许调用 Identity()
+        // Keep the legacy same-frame arguments source-compatible. Availability
+        // depends independently on this class's actual frame map.
         template <FrameTag F1 = FrameFrom, FrameTag F2 = FrameTo>
-        requires std::same_as<F1, F2>
+        requires std::same_as<FrameFrom, FrameTo> &&
+                 std::same_as<F1, F2>
         static constexpr Quaternion Identity() noexcept {
             return Quaternion(T{1}, T{0}, T{0}, T{0}, ValidatedTag{});
         }
@@ -46,11 +50,18 @@ namespace vectoris::numerics::Geometry {
             if (!Traits::IsFinite(w) || !Traits::IsFinite(x) || !Traits::IsFinite(y) || !Traits::IsFinite(z)) {
                 return Core::Result<Quaternion>::failure(Core::MathError::non_finite_input);
             }
-            T sq_len = w*w + x*x + y*y + z*z;
-            if (Traits::IsZero(sq_len)) {
+            // Scale before squaring: the sum lies in [1, 4] for nonzero input.
+            const T scale = std::max({Core::Math::abs(w), Core::Math::abs(x),
+                                      Core::Math::abs(y), Core::Math::abs(z)});
+            // Exact input-zero classification, not a tolerance on a computed norm.
+            if (scale == T{0}) {
                 return Core::Result<Quaternion>::failure(Core::MathError::zero_norm);
             }
-            T inv_len = T{1} / Core::Math::sqrt(sq_len);
+            w /= scale;
+            x /= scale;
+            y /= scale;
+            z /= scale;
+            const T inv_len = T{1} / Core::Math::sqrt(w*w + x*x + y*y + z*z);
             return Core::Result<Quaternion>::success(
                 Quaternion(w * inv_len, x * inv_len, y * inv_len, z * inv_len, ValidatedTag{}).Canonicalized()
             );
@@ -114,7 +125,20 @@ namespace vectoris::numerics::Geometry {
         constexpr auto operator*(const Vector3<U, OtherFrame>&) const = delete;
 
         // 导出方向余弦旋转矩阵 (DCM)
-        [[nodiscard]] constexpr RotationMatrix3<T, FrameFrom, FrameTo> ToRotationMatrix() const noexcept {
+        [[nodiscard]] constexpr Core::Result<RotationMatrix3<T, FrameFrom, FrameTo>>
+        ToRotationMatrix() const noexcept {
+            // Public components and accumulated products may no longer be unit length.
+            // Validate before multiplication, including finite values whose square overflows.
+            if (!Traits::IsFinite(w) || !Traits::IsFinite(x) ||
+                !Traits::IsFinite(y) || !Traits::IsFinite(z)) {
+                return Core::Result<RotationMatrix3<T, FrameFrom, FrameTo>>::failure(
+                    Core::MathError::non_finite_input);
+            }
+            if (Core::Math::abs(w) > T{1} || Core::Math::abs(x) > T{1} ||
+                Core::Math::abs(y) > T{1} || Core::Math::abs(z) > T{1}) {
+                return Core::Result<RotationMatrix3<T, FrameFrom, FrameTo>>::failure(
+                    Core::MathError::invalid_state);
+            }
             const T w2 = w * w;
             const T x2 = x * x;
             const T y2 = y * y;
@@ -132,7 +156,7 @@ namespace vectoris::numerics::Geometry {
                 T{2} * (xy + wz),   w2 - x2 + y2 - z2,  T{2} * (yz - wx),
                 T{2} * (xz - wy),   T{2} * (yz + wx),   w2 - x2 - y2 + z2
             );
-            return RotationMatrix3<T, FrameFrom, FrameTo>::TryCreate(m).Value();
+            return RotationMatrix3<T, FrameFrom, FrameTo>::TryCreate(m);
         }
 
         constexpr Core::Result<Quaternion> Slerp(const Quaternion& target, T t) const noexcept {
@@ -217,7 +241,7 @@ namespace vectoris::numerics::Geometry {
         using ScalarType = T;
 
         static_assert(Detail::GeometryABIValidator<Quaternion<T, FrameFrom, FrameTo>>::value, 
-            "Quaternion failed base ABI constraints.");
+            "Quaternion failed source layout constraints.");
             
         static_assert(sizeof(Quaternion<T, FrameFrom, FrameTo>) == sizeof(T) * 4, 
             "Quaternion must be exactly 4 scalars with no padding.");

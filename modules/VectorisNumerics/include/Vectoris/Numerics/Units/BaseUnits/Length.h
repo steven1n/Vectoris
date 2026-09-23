@@ -1,4 +1,5 @@
 #pragma once
+#include "../Namespace.h"
 #include "../Quantity.h"
 #include "../Detail/ABI.h"
 
@@ -13,7 +14,7 @@ namespace vectoris::numerics::Units {
     using Meter  = Quantity<Scalar, MeterUnit>;
     using Length = Meter;
 
-    // 语义明确：Meter satisfies ABI Contract
+    // Meter satisfies the declared C++ object-representation checks.
     static_assert(Detail::QuantityABIContract<Meter>, "Meter ABI contract violation!");
 
 } // namespace vectoris::numerics::Units

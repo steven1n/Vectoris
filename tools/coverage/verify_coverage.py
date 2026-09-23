@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """
-AegisMathLib Stable-Core Test Coverage Qualification Gate (P2-COV)
+ VectorisNumerics LLVM Coverage Gate (P2-COV)
 
 Enforces normative coverage thresholds from docs/ENGINEERING_STANDARD_V1.md Section 86:
 - 100% Function coverage
 - >= 95.0% Line coverage
 - >= 90.0% Branch coverage
 
-Excludes tests, dependencies, and external headers. Validates export scope.
+Uses raw LLVM function, line, and branch totals. Excludes tests, dependencies,
+and external headers, and validates the declared export scope. The legacy
+supplemental branch classification never replaces the raw branch threshold.
 """
 
 import argparse
@@ -20,7 +22,7 @@ REQ_LINE_PERCENT = 95.0
 REQ_BRANCH_PERCENT = 90.0
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Verify AegisMathLib coverage thresholds.")
+    parser = argparse.ArgumentParser(description="Verify VectorisNumerics LLVM coverage thresholds.")
     parser.add_argument("summary_json", help="Path to llvm-cov export summary JSON file")
     parser.add_argument("--repo-root", default=".", help="Repository root directory")
     return parser.parse_args()
@@ -191,7 +193,8 @@ def main():
         sys.exit(1)
     branch_pct = branch_covered / branch_count * 100.0
 
-    # DO-178C Level A / ISO 26262 ASIL D Reachable Branch Evaluation
+    # Historical supplemental branch classification. Raw branches remain the
+    # normative metric; the supplemental check cannot make a raw failure pass.
     reachable_branch_count = branch_count
     reachable_branch_pct = branch_pct
     audit_applied = False
@@ -234,7 +237,7 @@ def main():
     reg_pct = (reg_covered / reg_count * 100.0) if reg_count > 0 else 0.0
 
     print("=" * 80)
-    print("VectorisNumerics Stable-Core Test Coverage Report (P2-COV)")
+    print("VectorisNumerics LLVM Coverage Report (P2-COV)")
     print("=" * 80)
     print(f"Production Scope: modules/VectorisNumerics/include/Vectoris/Numerics/** (Files reporting: {len(export_files)})")
     print("-" * 80)
@@ -251,21 +254,23 @@ def main():
     print(f"{'Lines':<18} | {line_covered:<10} | {line_count:<10} | {line_pct:>7.2f}%   | >={req_line:>5.2f}%    | {'PASS' if line_pass else 'FAIL'}")
     print(f"{'Raw Branches':<18} | {branch_covered:<10} | {branch_count:<10} | {branch_pct:>7.2f}%   | >={req_branch:>5.2f}%    | {'PASS' if raw_branch_pass else 'FAIL'}")
     if audit_applied:
-        print(f"{'Reachable Branches':<18} | {branch_covered:<10} | {reachable_branch_count:<10} | {reachable_branch_pct:>7.2f}%   | >={req_branch:>5.2f}%    | {'PASS' if reachable_branch_pass else 'FAIL'}")
+        print(f"{'Supplemental*':<18} | {branch_covered:<10} | {reachable_branch_count:<10} | {reachable_branch_pct:>7.2f}%   | >={req_branch:>5.2f}%    | {'PASS' if reachable_branch_pass else 'FAIL'}")
     print(f"{'Instantiations*':<18} | {inst_covered:<10} | {inst_count:<10} | {inst_pct:>7.2f}%   | (informational)| PASS")
     print(f"{'Regions*':<18} | {reg_covered:<10} | {reg_count:<10} | {reg_pct:>7.2f}%   | (informational)| PASS")
     print("-" * 80)
 
     if audit_applied:
-        print("\n--- DO-178C / ISO 26262 Unreachable Branch Classification Audit ---")
-        print(f"Total Uncovered: {unreached_classified} branches (100% analytically proven & classified)")
+        print("\n--- Historical Supplemental Branch Classification (not certification evidence) ---")
+        print(f"Snapshot-classified uncovered branches: {unreached_classified}")
         print(f"  - Category A (Dead Code):                         {categories.get('A_dead_code', 0)}")
         print(f"  - Category B (Compile-time / Folded Traits):      {categories.get('B_compile_time_folded', 0)}")
         print(f"  - Category C (Defensive Contract Assertions):     {categories.get('C_defensive_contract_assertions', 0)}")
         print(f"  - Category D (Mathematically Unreachable Guards): {categories.get('D_provably_unreachable_under_preconditions', 0)}")
         print(f"  - Category E (Untested Reachable Code):           {categories.get('E_reachable_untested', 0)}")
         print(f"  - Category F (Unknown / Unanalyzed):              {categories.get('F_unknown', 0)}")
-        print(f"Reachable Branch Conformance: {branch_covered}/{reachable_branch_count} = {reachable_branch_pct:.2f}% >= {req_branch:.2f}% (PASS)")
+        print(f"Supplemental ratio: {branch_covered}/{reachable_branch_count} = {reachable_branch_pct:.2f}% (informational alongside the raw gate)")
+    elif branch_audit:
+        print("\nHistorical supplemental branch classification not applied: snapshot uncovered count does not match this raw export.")
 
     print("\n--- Coverage by Module ---")
     print(f"{'Module':<12} | {'Functions':<16} | {'Lines':<16} | {'Branches':<16}")
@@ -278,6 +283,9 @@ def main():
         b_cov, b_tot = metrics["branches"]["covered"], metrics["branches"]["count"]
         b_p = (b_cov / b_tot * 100.0) if b_tot > 0 else 100.0
         print(f"{mod:<12} | {f_cov:>4}/{f_tot:<4} ({f_p:>5.1f}%) | {l_cov:>4}/{l_tot:<4} ({l_p:>5.1f}%) | {b_cov:>4}/{b_tot:<4} ({b_p:>5.1f}%)")
+    print("\n[NOTE] LLVM function coverage measures emitted-code execution only.")
+    print("       Public template API instantiation surface is separately checked via:")
+    print("       tools/api_surface/verify_api_surface.py")
     print("=" * 80)
 
     all_passed = func_pass and line_pass and branch_pass

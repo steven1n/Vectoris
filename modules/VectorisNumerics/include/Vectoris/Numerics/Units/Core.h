@@ -1,4 +1,5 @@
 #pragma once
+#include "Namespace.h"
 #include "Dimension.h"
 #include "UnitTraits.h"
 #include "UnitConcepts.h"

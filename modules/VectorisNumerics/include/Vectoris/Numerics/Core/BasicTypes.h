@@ -1,4 +1,5 @@
 #pragma once
+#include "Namespace.h"
 #include <cstdint>
 #include <cstddef>
 #include "Precision.h"

@@ -4,8 +4,9 @@
 > **Document**: Engineering & Design Standard  
 > **Document Version**: 1.1 (V1)  
 > **Status**: Normative Single Source of Truth (SSOT)  
-> **Code Baseline**: `f9ebd7783621d7150a2761e52f6bbeab46bc4a45`  
-> **Last Updated**: 2026-09-17  
+> **Reviewed Starting HEAD**: `cfbecc6390fb30d857f10f2516f39bb2ef75f996` (working tree contains uncommitted remediations)
+> **Last Updated**: 2026-09-23
+> **Current Project Qualification**: NOT REQUALIFIED / Experimental
 > **Authority**: Single Source of Truth (Top Priority)
 
 > [!NOTE]
@@ -112,8 +113,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 或：
 
 ```cmake
-target_compile_features(VectorisNumerics PUBLIC cxx_std_20)
+target_compile_features(VectorisNumerics INTERFACE cxx_std_20)
 ```
+
+For an `INTERFACE` library, publish its language requirement with the
+`INTERFACE` scope. A directory-wide `CMAKE_CXX_STANDARD` setting is a project
+default, not a transitive consumer contract.
 
 ---
 
@@ -129,6 +134,24 @@ experimental C++ features
 ```
 
 平台适配层除外。
+
+### CMake consumer and test contract (VRT-18)
+
+The root build requires CMake 3.14 because it uses
+`FetchContent_MakeAvailable`, introduced in that release. The checked-in
+`CMakePresets.json` uses preset schema version 6 and therefore requires CMake
+3.25 when presets are used; this does not raise the minimum for direct
+`cmake -S . -B build` configuration.
+
+The public `Vectoris::Numerics` and `Vectoris::Dynamics` interface targets each
+propagate `cxx_std_20`. Repository-owned targets use extensions-off mode.
+Consumers choose their own extension policy; strict consumers should set
+`CMAKE_CXX_EXTENSIONS OFF` (or `CXX_EXTENSIONS OFF` on their targets).
+
+The root uses `include(CTest)`. GoogleTest, test executables, header-isolation,
+coverage, and static-analysis test infrastructure are configured only when
+`BUILD_TESTING` is enabled. Test presets set `BUILD_TESTING=ON`; consumers using
+`-DBUILD_TESTING=OFF` do not fetch GoogleTest or create test targets.
 
 ---
 
@@ -303,6 +326,16 @@ namespace vectoris::numerics::geometry {}
 namespace vectoris::dynamics {}
 ```
 
+VRT-12 namespace contract: `vectoris::numerics::core`, `units`, and `geometry`
+are the canonical public spellings. Existing `Core`, `Units`, and `Geometry`
+definitions remain compatibility spellings for this release, without deprecation
+attributes. Each layer's `Namespace.h` declares its alias once; every public
+header in that layer includes this contract directly. Public namespace lookup
+must work from a standalone header and independently of include order.
+Definitions are not relocated. Existing `Detail` namespaces remain internal and
+unsupported under either spelling (§56); no alias is introduced under Dynamics.
+This naming contract does not change the Experimental qualification status.
+
 禁止在公共头文件：
 
 ```cpp
@@ -409,6 +442,8 @@ inline constexpr double standard_gravity = 9.80665;
 
 > Physical quantities shall not be represented by untyped raw floating-point values at public API boundaries.
 
+Vectoris 的 Units Model B 将平面角作为独立基本量纲 $A$。普通量纲代数必须保留 $A$；将角坐标映射到无量纲旋转坐标或平动旋转项时，必须通过类型化的一个弧度显式归一化。不得通过提取 `.value()` 静默消去角度量纲。
+
 例如：
 
 ```cpp
@@ -513,6 +548,26 @@ benchmark
 overflow 不会发生
 underflow 不重要
 ```
+
+
+VRT-14 scalar sqrt contract:
+
+- Canonical API 是 `vectoris::numerics::core::sqrt`（Math.h）；`Core` 保持 VRT-12
+  兼容别名。MathFunctions.h 的 `core::Math::sqrt` / `Core::Math::sqrt` 仅转发到
+  canonical 函数，不另定义语义，也不标记 deprecated。各头文件独立可用。
+- `SupportedSqrtScalar` 接受 float、double、long double；模板实参推导拒绝整型、
+  bool 和用户转换类型。float/double 保证 ISO C++20 constexpr；long double
+  保留 std::sqrt 运行期支持，不承诺其一般正有限输入可在 C++20 常量求值。
+- ±0 保留符号；正有限数（含 subnormal）返回非零正平方根；+Inf 保留；
+  负有限非零数、-Inf 返回 quiet NaN；NaN 输入结果为 NaN。不保证 NaN payload/sign、
+  errno、浮点异常标志或 signaling-NaN 行为跨路径一致。返回标量，保持 noexcept。
+- float/double constexpr 采用整数逐位开方，固定 24/53 次提取有效位，依据精确余数
+  舍入至最近值；无 Newton 收敛上限或失败后返回粗略结果。中间整数小于 2^55，
+  指数重建范围经过约束，不对原输入平方或求倒数。完整不变量与界限见 docs/core.md §10。
+- 正有限数的运行期路径委派 std::sqrt。验证条件为 round-to-nearest、gradual underflow、
+  无 fast-math；以独立 std::sqrt oracle 的 1 ULP 为验收上限，记录实际最大误差。
+  不把抽样测试称为穷举证明，也不承诺所有平台/舍入模式的两条路径 bitwise 相同。
+- 历史负数返回 +0 的策略被撤销；§16 的比较规则不构成吞掉负定义域错误的依据。
 
 ---
 
@@ -662,7 +717,11 @@ Row-major
 matrix(row, col)
 ```
 
-内部存储不得成为 Public API。
+内部存储默认不得成为 Public API。**唯一已登记例外**是
+`Geometry::Matrix3<T>::m[9]`，按 AML-DEVIATION-005 保留为九个连续、行主序标量的
+公开表示；该例外不扩展到其他矩阵或几何类型。标准布局/可平凡复制和大小检查
+不构成 C ABI、跨构建二进制、DMA、持久化或 wire-format 保证。所有依赖者仍须
+遵循 Matrix3 文档中的索引前置条件与通用矩阵语义。
 
 ---
 
@@ -721,6 +780,13 @@ destination frame
 
 不得不同模块使用不同约定。
 
+`Quaternion<T, From, To>::Identity()` is available only when the class's actual
+`From` and `To` types are identical. Retained legacy function-template arguments
+must name a same-frame pair, but do not select the class mapping or bypass this
+class-level condition. This preserves valid same-frame calls that explicitly
+named another same-frame pair. A cross-frame quaternion cannot represent an
+implicit identity rotation.
+
 ---
 
 # 24. Rotation Matrix
@@ -738,6 +804,12 @@ det(R) ≈ +1
 From Frame
 To Frame
 ```
+
+`RotationMatrix3<T, From, To>::Identity()` returns the numerical identity matrix
+for its declared frame mapping. For `From != To`, this is meaningful as a
+rotation only when the caller knows the coordinate bases are aligned; the frame
+tags do not prove alignment. `Transform3<T, From, To>::Identity()` is restricted
+to `From == To`.
 
 ---
 
@@ -1150,6 +1222,31 @@ class Result;
 ```cpp
 std::expected<T, E>
 ```
+
+
+VRT-13 two-state contract (ISO C++20):
+
+- `core::Result<T,E>` 始终恰有 VALUE (`T`, index 0) 或 ERROR (`E`, index 1)
+  之一；不提供第三状态。`T == E` 禁止。T/E 须满足 `std::variant` 的类型要求，
+  且析构必须 `noexcept`。不要求默认构造，也不一概要求可拷贝或可移动。
+- `success(...)` / `failure(...)` 通过显式 index 构造指定分支，实参源类型不决定状态。
+  工厂及转换/原位构造只要求目标载荷可从转发实参构造；`noexcept` 跟随该构造。
+  用户载荷构造异常直接传播，不转为 MathError。构造失败时目标 Result 尚未存在。
+- 拷贝/移动构造按底层 variant 默认生成；异常时源仍有原分支，移动源载荷可以已改变。
+- 拷贝赋值仅当 T/E 都可拷贝构造及赋值，且各自满足“不抛拷贝构造或不抛移动构造”
+  时可用。跨分支拷贝要么直接无异常构造，要么先构造临时对象再无异常移动提交；
+  构造异常不改变目标。移动赋值仅当 T/E 都可移动构造及赋值，且移动构造均不抛时可用。
+  不安全赋值显式删除（包括禁止不安全右值赋值回退为拷贝）。
+- 同分支拷贝/移动赋值可抛异常，但分支保持有效；载荷内容遵从其自身赋值保证，
+  不承诺自动回滚。已启用的特殊成员由默认实现推导真实异常规格，禁止用 `noexcept`
+  强制终止来掩盖状态丢失。不增加存储分配、哨兵或异常后修复分支。
+- `has_value()`、`IsSuccess()` 和 bool 转换完全一致且 `noexcept`。
+  `value_if()`/`error_if()` 恰有一个非空。`value()`/`Value()` 要求 VALUE；
+  `error()` 要求 ERROR。这些引用访问器保持 `noexcept`，误用在 Debug 断言失败，
+  Release 下违反前置条件；不存在内部空分支导致前置条件失效的合法操作路径。
+  `value_or` 仍可传播载荷或 fallback 构造异常，原 Result 分支保留。
+- 以上保证针对满足声明异常规格及正常 C++ 对象生命周期规则的载荷；
+  移动后载荷仍是对象，不要求其值不变。Numerical Core 的正常数学失败仍遵从 §44。
 
 ---
 
@@ -1703,6 +1800,13 @@ Regression Test
 
 禁止凭感觉优化。
 
+性能敏感的 Stable 数值核必须在声明 Stable 前留存代表性 Release benchmark
+证据；此要求与 §104、§115 和 §124 一致。Correctness 测试与 benchmark 是不同
+证据：benchmark 不能替代正确性门禁。单机 microbenchmark 是该实现/机器的
+性能基线，不自动建立 CI 回归阈值。只有受控 runner、重复样本和明确噪声带
+经过登记后，benchmark regression 才作为对应性能指标的 CI gate。当前 workflow
+没有 benchmark job；没有基线的性能门禁状态应标记 NOT RUN，不得记作已通过。
+
 ---
 
 # 76. SIMD
@@ -1879,6 +1983,21 @@ Stable Core 目标：
 >=95% line coverage
 >=90% branch coverage
 ```
+
+> [!IMPORTANT]
+> **四维验证语义分离 (Verification Dimensions Separation)**:
+> 验证体系明确区分以下四项独立指标，严禁混淆或代指：
+> - `LLVM function coverage = emitted-code coverage` (仅度量已生成目标代码的执行覆盖率)
+> - `HeaderIsolation = independent header inclusion` (验证头文件的独立包含与命名空间隔离)
+> - `Public API verification = declared instantiation surface` (验证声明支持的模板及公共 API 实例化矩阵)
+> - `clang-tidy = static analysis over an explicitly counted TU set` (在严格计数的 TU 集合上执行静态分析)
+>
+> 每一项证明完全不同的工程与数值属性。高 LLVM 函数覆盖率不代表模板公共 API 已全部实例化。
+
+The normative branch metric is the unadjusted LLVM value
+`raw covered branches / raw total branches`. Do not subtract branches from the
+denominator or substitute a reachable-only count. Report the raw numerator and
+denominator with each current coverage result.
 
 对特别关键的状态决策逻辑：
 
@@ -2266,7 +2385,7 @@ docs(filter): document EKF equations
 [ ] clang-tidy pass
 [ ] warnings = 0
 [ ] documentation complete
-[ ] benchmark if performance-sensitive
+[ ] benchmark evidence if performance-sensitive (required before Stable)
 ```
 
 ---
@@ -2296,8 +2415,12 @@ UBSan
  ↓
 Coverage
  ↓
-Benchmark Regression
+`Registered Benchmark Regression (only with a qualified baseline)`
 ```
+
+This diagram is a workflow pattern, not a statement that the current GitHub Actions
+workflow runs benchmarks. Timing noise and the absence of a registered runner keep
+microbenchmark execution separate from deterministic correctness tests.
 
 ---
 
@@ -2318,6 +2441,13 @@ FFT
 ```
 
 重大性能退化必须说明。
+
+For a performance-sensitive kernel, retain operation, scalar type, compiler, flags,
+build type, host, sample/iteration counts, statistic, correctness oracle, and algorithm
+version with its baseline (§115). A single local baseline is evidence, not a portable
+latency guarantee and not a regression threshold. A CI regression gate requires a
+stable runner, repeated reference measurements, and a registered noise/acceptance
+policy; absent these, report the gate as NOT RUN.
 
 ---
 
@@ -2479,6 +2609,10 @@ flags
 build type
 sample count
 algorithm version
+host architecture / operating system
+warm-up and timing method
+sample distribution statistic
+correctness oracle / result check
 ```
 
 ---
@@ -2663,7 +2797,8 @@ docs 完整
 10. Golden Test 完成
 11. Property Test 完成
 12. 必要时 Monte Carlo 完成
-13. Benchmark 完成
+13. 若模块含性能敏感 kernel，按 §§75、104、115 归档 benchmark 证据；否则记录
+    NOT APPLICABLE。缺少适用 benchmark 时不得将该 Stable 数值核标为已满足 DoD。
 14. clang-tidy 通过
 15. ASan 通过
 16. UBSan 通过

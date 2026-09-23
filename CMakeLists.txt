@@ -1,3 +1,4 @@
+# FetchContent_MakeAvailable, used only when tests are enabled, requires CMake 3.14.
 cmake_minimum_required(VERSION 3.14)
 project(Vectoris LANGUAGES CXX)
 
@@ -23,29 +24,32 @@ endif()
 set(AEGIS_STRICT_WARNINGS "${VECTORIS_STRICT_WARNINGS}")
 
 # ==============================================================================
-# 3. Third-Party Dependencies (GoogleTest)
+# 3. Test Dependency (GoogleTest)
 # ==============================================================================
-include(FetchContent)
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-if(NOT WIN32)
-    set(gtest_disable_pthreads OFF CACHE BOOL "" FORCE)
+include(CTest)
+if(BUILD_TESTING)
+    include(FetchContent)
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    if(NOT WIN32)
+        set(gtest_disable_pthreads OFF CACHE BOOL "" FORCE)
+    endif()
+
+    FetchContent_Declare(
+            googletest
+            GIT_REPOSITORY https://github.com/google/googletest.git
+            GIT_TAG        v1.14.0
+    )
+    FetchContent_MakeAvailable(googletest)
+    include(GoogleTest)
 endif()
-
-FetchContent_Declare(
-        googletest
-        GIT_REPOSITORY https://github.com/google/googletest.git
-        GIT_TAG        v1.14.0
-)
-FetchContent_MakeAvailable(googletest)
-
-enable_testing()
-include(GoogleTest)
 
 # ==============================================================================
 # 4. Shared CMake Infrastructure
 # ==============================================================================
-include(cmake/Sanitizers.cmake)
-include(cmake/Coverage.cmake)
+if(BUILD_TESTING)
+    include(cmake/Sanitizers.cmake)
+    include(cmake/Coverage.cmake)
+endif()
 
 # ==============================================================================
 # 5. Core Mathematics Library Module (VectorisNumerics)

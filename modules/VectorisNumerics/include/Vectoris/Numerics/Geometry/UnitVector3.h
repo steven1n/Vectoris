@@ -1,5 +1,10 @@
 #pragma once
+#include "Namespace.h"
+#include <algorithm>
+#include <cmath>
+#include <concepts>
 #include <cstddef>
+#include <type_traits>
 #include "Concepts.h"
 #include "FrameTags.h"
 #include "Vector3.h"
@@ -17,7 +22,7 @@ namespace vectoris::numerics::Geometry {
     struct UnitValidatedTag final {};
 
     // [Phase 2.2] UnitVector3 Core Engine
-    template <ScalarArithmetic T, FrameTag Frame = FrameUnknown>
+    template <std::floating_point T, FrameTag Frame = FrameUnknown>
     struct UnitVector3 final {
     private:
         T x_;
@@ -44,30 +49,36 @@ namespace vectoris::numerics::Geometry {
 
         // --- 核心工厂 ---
         // [GEO-UNIT-003] 泛化输入类型，允许 float32 的 Vector3 生成 double 的 UnitVector3
-        template <ScalarArithmetic U>
+        template <std::floating_point U>
         static Core::Result<UnitVector3> TryCreate(const Vector3<U, Frame>& input) noexcept {
             if (!Traits::IsFinite(input.x) || !Traits::IsFinite(input.y) || !Traits::IsFinite(input.z)) {
                 return Core::Result<UnitVector3>::failure(Core::MathError::non_finite_input);
             }
-            using CalcType = decltype(U{} / U{});
-            CalcType sq_len = input.dot(input);
-
-            if (Traits::IsZero(sq_len)) {
+            // Normalize before narrowing; promote float input for double storage.
+            using CalcType = std::common_type_t<T, U>;
+            const CalcType x = static_cast<CalcType>(input.x);
+            const CalcType y = static_cast<CalcType>(input.y);
+            const CalcType z = static_cast<CalcType>(input.z);
+            const CalcType scale = std::max({Core::Math::abs(x), Core::Math::abs(y), Core::Math::abs(z)});
+            // Exact input-zero classification, never an epsilon cutoff on magnitude.
+            if (scale == CalcType{0}) {
                 return Core::Result<UnitVector3>::failure(Core::MathError::zero_norm);
             }
-
-            CalcType inv_len = CalcType{1} / Core::Math::sqrt(sq_len);
-            return Core::Result<UnitVector3>::success(
-                UnitVector3(
-                    static_cast<T>(input.x * inv_len),
-                    static_cast<T>(input.y * inv_len),
-                    static_cast<T>(input.z * inv_len),
-                    UnitValidatedTag{}
-                )
-            );
+            // Finite input guarantees finite scale; squared scaled norm is in [1, 3].
+            const CalcType ux = x / scale;
+            const CalcType uy = y / scale;
+            const CalcType uz = z / scale;
+            const CalcType norm = Core::Math::sqrt(ux*ux + uy*uy + uz*uz);
+            const UnitVector3 candidate(static_cast<T>(ux / norm),
+                                        static_cast<T>(uy / norm),
+                                        static_cast<T>(uz / norm), UnitValidatedTag{});
+            if (!candidate.IsValid()) {
+                return Core::Result<UnitVector3>::failure(Core::MathError::normalization_failure);
+            }
+            return Core::Result<UnitVector3>::success(candidate);
         }
 
-        template <ScalarArithmetic U>
+        template <std::floating_point U>
         static bool TryCreate(const Vector3<U, Frame>& input, UnitVector3& out) noexcept {
             auto res = TryCreate(input);
             if (!res.IsSuccess()) {
@@ -84,8 +95,10 @@ namespace vectoris::numerics::Geometry {
 
         // [GEO-UNIT-006] Invariant 运行时/断言检查
         [[nodiscard]] constexpr bool IsValid() const noexcept {
-            T sq_len = x_*x_ + y_*y_ + z_*z_;
-            return Traits::AlmostEqual(sq_len, T{1},
+            // hypot remains safe even when inspecting non-unit magnitudes.
+            // A finite norm also excludes every NaN/Inf component combination.
+            const T norm = std::hypot(x_, y_, z_);
+            return Traits::IsFinite(norm) && Traits::AlmostEqual(norm, T{1},
                                        Traits::NumericTraits<T>::epsilon() * T{10},
                                        Traits::NumericTraits<T>::epsilon() * T{10});
         }
@@ -95,14 +108,9 @@ namespace vectoris::numerics::Geometry {
         // 方向乘长度：UnitVector3 * Scalar = Vector3
         template <ScalarArithmetic S>
         constexpr auto operator*(const S& scalar) const noexcept {
-            using ResT = decltype(x_ * scalar);
-            return Vector3<ResT, Frame>{x_ * scalar, y_ * scalar, z_ * scalar};
-        }
-
-        template <ScalarArithmetic S>
-        friend constexpr auto operator*(const S& scalar, const UnitVector3& v) noexcept {
-            using ResT = decltype(scalar * v.x_);
-            return Vector3<ResT, Frame>{scalar * v.x_, scalar * v.y_, scalar * v.z_};
+            // Pass component values to user-defined scalar operators, not storage references.
+            using ResT = decltype(x() * scalar);
+            return Vector3<ResT, Frame>{x() * scalar, y() * scalar, z() * scalar};
         }
 
         constexpr UnitVector3 operator-() const noexcept {
@@ -116,7 +124,7 @@ namespace vectoris::numerics::Geometry {
 
         template <ScalarArithmetic U>
         constexpr auto dot(const Vector3<U, Frame>& rhs) const noexcept {
-            return (x_ * rhs.x) + (y_ * rhs.y) + (z_ * rhs.z);
+            return (x() * rhs.x) + (y() * rhs.y) + (z() * rhs.z);
         }
 
         // [GEO-UNIT-002] 恢复方向相加减的能力，但在代数闭包上强制返回 Vector3
@@ -140,10 +148,14 @@ namespace vectoris::numerics::Geometry {
         constexpr bool operator!=(const UnitVector3& rhs) const noexcept {
             return !(*this == rhs);
         }
-
-        // Traits 友元授权访问 offsetof
-        friend struct GeometryTraits<UnitVector3<T, Frame>>;
     };
+
+    // Use only public value accessors; scalar multiplication needs no friendship.
+    template <ScalarArithmetic S, std::floating_point T, FrameTag Frame>
+    constexpr auto operator*(const S& scalar, const UnitVector3<T, Frame>& v) noexcept {
+        using ResT = decltype(scalar * v.x());
+        return Vector3<ResT, Frame>{scalar * v.x(), scalar * v.y(), scalar * v.z()};
+    }
 
     // 容差自适应近似相等 (Tolerance-Aware Numerical Comparison)
     template <ScalarArithmetic T, FrameTag Frame>
@@ -158,7 +170,7 @@ namespace vectoris::numerics::Geometry {
                Traits::AlmostEqual(a.z(), b.z(), absoluteTolerance, relativeTolerance);
     }
 
-    // --- Geometry Traits 与 ABI Contract 联合注册 ---
+    // --- Geometry traits and source layout checks ---
     template<typename T, FrameTag Frame>
     struct GeometryTraits<UnitVector3<T, Frame>> {
         static constexpr size_t Dimension = 3;
@@ -166,16 +178,14 @@ namespace vectoris::numerics::Geometry {
         using FrameType = Frame;
 
         static_assert(Detail::GeometryABIValidator<UnitVector3<T, Frame>>::value,
-            "UnitVector3 failed base ABI constraints.");
+            "UnitVector3 failed source layout constraints.");
 
-        // 精确的 offsetof 验证，防止私有继承或优化器带来的内存缝隙
+        // No friendship: user specializations of GeometryTraits must not gain
+        // mutable access to the private components. Retain observable layout checks.
         using UV = UnitVector3<T, Frame>;
-        static_assert(offsetof(UV, x_) == 0, "x_ offset mismatch");
-        static_assert(offsetof(UV, y_) == sizeof(T), "y_ offset mismatch");
-        static_assert(offsetof(UV, z_) == sizeof(T) * 2, "z_ offset mismatch");
 
         static_assert(sizeof(UnitVector3<T, Frame>) == sizeof(T) * 3, 
-            "UnitVector3 memory layout contains padding, which violates DMA alignment.");
+            "UnitVector3 source representation contains unexpected padding.");
     };
 
 } // namespace vectoris::numerics::Geometry
