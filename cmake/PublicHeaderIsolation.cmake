@@ -23,6 +23,12 @@ foreach(HEADER_PATH IN LISTS VECTORIS_NUMERICS_PUBLIC_HEADERS)
     string(TOLOWER "${COMPAT_NAMESPACE}" PUBLIC_NAMESPACE)
     set(NAMESPACE_CHECKS "namespace canonical = vectoris::numerics::${PUBLIC_NAMESPACE};\nnamespace compatibility = vectoris::numerics::${COMPAT_NAMESPACE};\n")
     set(NAMESPACE_PROBE "${CMAKE_CURRENT_SOURCE_DIR}/tests/PublicApi/NamespaceProbes/${SANITIZED_NAME}.inc")
+    set(NAMESPACE_DECLARATIONS "")
+    set(NAMESPACE_DECLARATION_PROBE "${CMAKE_CURRENT_SOURCE_DIR}/tests/PublicApi/NamespaceProbes/${SANITIZED_NAME}.decls.inc")
+    if(EXISTS "${NAMESPACE_DECLARATION_PROBE}")
+        # Test fixtures belong at namespace scope; no additional public headers.
+        set(NAMESPACE_DECLARATIONS "#include \"${NAMESPACE_DECLARATION_PROBE}\"\n")
+    endif()
     set(NAMESPACE_BODY "")
     if(EXISTS "${NAMESPACE_PROBE}")
         # Included inside main: no additional Vectoris headers may mask isolation.
@@ -33,7 +39,7 @@ foreach(HEADER_PATH IN LISTS VECTORIS_NUMERICS_PUBLIC_HEADERS)
 "// Standalone Translation-Unit Isolation Test for: <${REL_HEADER}>
 #include <${REL_HEADER}>
 #include <type_traits>
-${NAMESPACE_CHECKS}
+${NAMESPACE_CHECKS}${NAMESPACE_DECLARATIONS}
 
 int main() {
 ${NAMESPACE_BODY}
