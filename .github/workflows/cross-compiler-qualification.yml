@@ -176,7 +176,7 @@ jobs:
   # 3. MSVC / Windows Qualification
   # ============================================================================
   msvc-windows:
-    name: MSVC / Windows (Visual Studio 2022 x64)
+    name: Windows MSVC x64 (windows-latest)
     runs-on: windows-latest
     steps:
       - name: Checkout Code
@@ -194,6 +194,12 @@ jobs:
           $envLog = @"
           === Windows System Info ===
           $([System.Environment]::OSVersion.ToString())
+          === Runner Image ===
+          ImageOS=$env:ImageOS
+          ImageVersion=$env:ImageVersion
+          === Process Architecture ===
+          $env:PROCESSOR_ARCHITECTURE
+          Is64BitProcess=$([System.Environment]::Is64BitProcess)
           === MSVC Compiler ===
           $(& cl.exe 2>&1 | Out-String)
           === CMake ===
@@ -221,6 +227,23 @@ jobs:
             -DVECTORIS_ENABLE_STATIC_ANALYSIS=OFF `
             *>&1 | Tee-Object -FilePath artifacts-msvc/configure.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Record Selected CMake Generator
+        shell: pwsh
+        run: |
+          $cache = Get-Content build-msvc/CMakeCache.txt
+          $generatorLine = $cache | Where-Object { $_ -match '^CMAKE_GENERATOR:INTERNAL=' } | Select-Object -First 1
+          if ([string]::IsNullOrWhiteSpace($generatorLine)) { throw "CMake generator was not recorded in CMakeCache.txt" }
+          $platformLine = $cache | Where-Object { $_ -match '^CMAKE_GENERATOR_PLATFORM:INTERNAL=' } | Select-Object -First 1
+          $instanceLine = $cache | Where-Object { $_ -match '^CMAKE_GENERATOR_INSTANCE:INTERNAL=' } | Select-Object -First 1
+          $metadata = @"
+          === Selected CMake Generator ===
+          $($generatorLine -replace '^CMAKE_GENERATOR:INTERNAL=', '')
+          $($platformLine -replace '^CMAKE_GENERATOR_PLATFORM:INTERNAL=', 'Platform=')
+          $($instanceLine -replace '^CMAKE_GENERATOR_INSTANCE:INTERNAL=', 'Instance=')
+          "@
+          Add-Content -Path artifacts-msvc/environment.txt -Value $metadata -Encoding utf8
+          Write-Host $metadata
 
       - name: Phase 19 — MSVC Debug Build & Test
         shell: pwsh

@@ -37,11 +37,16 @@ void check_direction(const G::Vector3<U, UnitDirectionFrame>& input) {
     const long double rz = std::scalbn(static_cast<long double>(input.z), -exponent);
     const long double norm = std::hypot(rx, ry, rz);
     const long double tolerance = static_cast<long double>(std::numeric_limits<T>::epsilon()) * 8;
-    EXPECT_NEAR(static_cast<long double>(u.x()), rx / norm, tolerance);
-    EXPECT_NEAR(static_cast<long double>(u.y()), ry / norm, tolerance);
-    EXPECT_NEAR(static_cast<long double>(u.z()), rz / norm, tolerance);
-    EXPECT_NEAR(std::hypot(static_cast<long double>(u.x()),
-        static_cast<long double>(u.y()), static_cast<long double>(u.z())), 1.0L, tolerance);
+    const long double x_error = std::abs(static_cast<long double>(u.x()) - rx / norm);
+    const long double y_error = std::abs(static_cast<long double>(u.y()) - ry / norm);
+    const long double z_error = std::abs(static_cast<long double>(u.z()) - rz / norm);
+    EXPECT_TRUE(x_error <= tolerance) << "normalized x error=" << x_error;
+    EXPECT_TRUE(y_error <= tolerance) << "normalized y error=" << y_error;
+    EXPECT_TRUE(z_error <= tolerance) << "normalized z error=" << z_error;
+    const long double output_norm = std::hypot(static_cast<long double>(u.x()),
+        static_cast<long double>(u.y()), static_cast<long double>(u.z()));
+    EXPECT_TRUE(std::abs(output_norm - 1.0L) <= tolerance)
+        << "normalized length=" << output_norm;
 }
 
 TYPED_TEST(UnitVector3ScaleTest, SingleAxisAcrossExponentRange) {
@@ -105,9 +110,13 @@ TYPED_TEST(UnitVector3ScaleTest, PositiveScalePreservesDirection) {
         EXPECT_NEAR(result.Value().y(), baseline.Value().y(), tolerance);
         EXPECT_NEAR(result.Value().z(), baseline.Value().z(), tolerance);
         const long double root14 = std::sqrt(14.0L);
-        EXPECT_NEAR(static_cast<long double>(result.Value().x()), 1.0L/root14, tolerance);
-        EXPECT_NEAR(static_cast<long double>(result.Value().y()), -2.0L/root14, tolerance);
-        EXPECT_NEAR(static_cast<long double>(result.Value().z()), 3.0L/root14, tolerance);
+        const long double high_precision_tolerance = static_cast<long double>(tolerance);
+        const long double x_error = std::abs(static_cast<long double>(result.Value().x()) - 1.0L/root14);
+        const long double y_error = std::abs(static_cast<long double>(result.Value().y()) + 2.0L/root14);
+        const long double z_error = std::abs(static_cast<long double>(result.Value().z()) - 3.0L/root14);
+        EXPECT_TRUE(x_error <= high_precision_tolerance) << "analytic x error=" << x_error;
+        EXPECT_TRUE(y_error <= high_precision_tolerance) << "analytic y error=" << y_error;
+        EXPECT_TRUE(z_error <= high_precision_tolerance) << "analytic z error=" << z_error;
     }
 }
 
