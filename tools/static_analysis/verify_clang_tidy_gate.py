@@ -9,6 +9,8 @@ Deterministic self-test suite proving that run_clang_tidy.py is strictly fail-cl
 5. Rejects malformed compile command entries (missing 'file' or compile command)
 6. Rejects missing .clang-tidy configuration file
 7. Successfully analyzes a minimal valid controlled translation unit
+8-12. Preserves exact TU set and category fail-closed checks
+13-20. Parses and safely classifies complete, unknown, incomplete, repeated, and malformed diagnostics
 """
 
 import json
@@ -17,6 +19,14 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from run_clang_tidy import (
+    classify_diagnostic,
+    diagnostic_key,
+    diagnostic_check_is_known,
+    format_diagnostic,
+    parse_enabled_checks,
+    parse_clang_tidy_diagnostics,
+)
 
 def run_test(name, expected_code, cmd_args, expect_in_output=None):
     print(f"[TEST] {name} ... ", end="", flush=True)
@@ -39,6 +49,16 @@ def run_test(name, expected_code, cmd_args, expect_in_output=None):
 
     print("PASS")
     return True
+
+def run_inline_test(name, test):
+    print(f"[TEST] {name} ... ", end="", flush=True)
+    try:
+        passed = bool(test())
+    except Exception as exc:
+        print(f"FAILED ({type(exc).__name__}: {exc})")
+        return False
+    print("PASS" if passed else "FAILED")
+    return passed
 
 def main():
     repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -66,6 +86,60 @@ def main():
             cmd_args=[sys.executable, harness_script, "--build-dir", tmpdir, "--config-file", real_config],
             expect_in_output="Compilation database not found"
         )
+        all_passed = all_passed and passed
+
+    diagnostic_prefix = "/vectoris/modules/VectorisNumerics"
+    production_sample = (
+        f"{diagnostic_prefix}/include/Vectoris/Numerics/Core/Math.h:70:45: "
+        "warning: narrowing conversion [bugprone-narrowing-conversions]"
+    )
+    diagnostic_cases = [
+        ("13. Standard diagnostic preserves location and check", lambda: (
+            len(parse_clang_tidy_diagnostics(production_sample)) == 1
+            and parse_clang_tidy_diagnostics(production_sample)[0]["line"] == 70
+            and parse_clang_tidy_diagnostics(production_sample)[0]["col"] == 45
+            and parse_clang_tidy_diagnostics(production_sample)[0]["check"] == "bugprone-narrowing-conversions"
+        )),
+        ("14. Unknown check name is retained and rejected by the check contract", lambda: (
+            parse_clang_tidy_diagnostics("/tmp/a.cpp:1:2: warning: newer check [future-check]")[0]["check"] == "future-check"
+            and not diagnostic_check_is_known(
+                parse_clang_tidy_diagnostics("/tmp/a.cpp:1:2: warning: newer check [future-check]")[0],
+                parse_enabled_checks("Enabled checks:\n  known-check\n")
+            )
+        )),
+        ("15. Missing fields are recorded and safely formatted", lambda: (
+            parse_clang_tidy_diagnostics("warning: diagnostic without location or check")[0]["file"] is None
+            and parse_clang_tidy_diagnostics("warning: diagnostic without location or check")[0]["incomplete_location"]
+            and not diagnostic_check_is_known(
+                parse_clang_tidy_diagnostics("warning: diagnostic without location or check")[0], set()
+            )
+            and "<unknown-file>:?:?" in format_diagnostic(
+                parse_clang_tidy_diagnostics("warning: diagnostic without location or check")[0], "/vectoris"
+            )
+        )),
+        ("16. Duplicate diagnostics deduplicate without losing parse rows", lambda: (
+            len(parse_clang_tidy_diagnostics(production_sample + "\n" + production_sample)) == 2
+            and len({diagnostic_key(d) for d in parse_clang_tidy_diagnostics(production_sample + "\n" + production_sample)}) == 1
+        )),
+        ("17. System diagnostic classification", lambda: (
+            classify_diagnostic(parse_clang_tidy_diagnostics("/usr/include/vector:8:3: error: bad [tool-check]")[0], "/vectoris")
+            == "system_external"
+        )),
+        ("18. Production diagnostic classification", lambda: (
+            classify_diagnostic(parse_clang_tidy_diagnostics(production_sample)[0], "/vectoris") == "production"
+        )),
+        ("19. Test diagnostic classification", lambda: (
+            classify_diagnostic(parse_clang_tidy_diagnostics(
+                f"{diagnostic_prefix}/tests/Core/MathTest.cpp:5:2: warning: test [test-check]"
+            )[0], "/vectoris") == "test"
+        )),
+        ("20. Abnormal line/column fields do not crash and are retained", lambda: (
+            parse_clang_tidy_diagnostics("/vectoris/modules/VectorisNumerics/include/Vectoris/Numerics/Core/Math.h:no-line:no-column: error: odd [future-check]")[0]["invalid_position"]
+            and parse_clang_tidy_diagnostics("/vectoris/modules/VectorisNumerics/include/Vectoris/Core/Math.h:no-line:no-column: error: odd [future-check]")[0]["line_raw"] == "no-line"
+        )),
+    ]
+    for name, test in diagnostic_cases:
+        passed = run_inline_test(name, test)
         all_passed = all_passed and passed
 
     # 2. 0-byte compile database
@@ -246,7 +320,7 @@ def main():
 
     print("=" * 80)
     if all_passed:
-        print("ALL 12 VRT-11 GATE SELF-TESTS PASSED SUCCESSFULLY.")
+        print("ALL 20 VRT-11 GATE SELF-TESTS PASSED SUCCESSFULLY.")
         sys.exit(0)
     else:
         print("VRT-11 GATE SELF-TESTS FAILED.")

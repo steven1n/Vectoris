@@ -6,12 +6,13 @@ isolates production diagnostics, and enforces 0 unsuppressed warnings under expl
 """
 
 import argparse
-import glob
 import hashlib
 import json
 import os
 import platform
 import re
+import shlex
+import shutil
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -26,22 +27,13 @@ def find_clang_tidy(explicit_path=None):
         "/Applications/CLion.app/Contents/bin/clang/mac/x64/bin/clang-tidy",
         "/usr/local/opt/llvm/bin/clang-tidy",
         "/opt/homebrew/opt/llvm/bin/clang-tidy",
+        shutil.which("clang-tidy-22"),
+        shutil.which("clang-tidy"),
     ]
     for c in candidates:
         if c and os.path.isfile(c):
             return c
     return None
-
-def get_compiler_resource_include():
-    try:
-        out = subprocess.check_output(["clang++", "-print-resource-dir"], stderr=subprocess.DEVNULL).decode().strip()
-        inc = os.path.join(out, "include")
-        if os.path.isdir(inc):
-            return inc
-    except Exception:
-        pass
-    clang_incs = glob.glob("/Library/Developer/CommandLineTools/usr/lib/clang/*/include")
-    return clang_incs[0] if clang_incs else None
 
 def get_macos_sdk_args():
     if platform.system() != "Darwin":
@@ -59,10 +51,6 @@ def get_macos_sdk_args():
     args.append("--extra-arg=-nostdinc++")
     args.append(f"--extra-arg=-isystem{sdk_path}/usr/include/c++/v1")
     
-    resource_inc = get_compiler_resource_include()
-    if resource_inc:
-        args.append(f"--extra-arg=-isystem{resource_inc}")
-        
     args.append("--extra-arg=-isysroot")
     args.append(f"--extra-arg={sdk_path}")
     return args
@@ -76,6 +64,150 @@ def run_tu(clang_tidy_bin, build_dir, source_file, extra_args, warnings_as_error
     
     res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     return source_file, res.returncode, res.stdout, res.stderr
+
+def _as_int_or_none(value):
+    return int(value) if value is not None and value.isdecimal() else None
+
+def _diagnostic_record(raw, severity, message, location="", check=None):
+    file_path = None
+    line_raw = None
+    col_raw = None
+    if location:
+        parts = location.rsplit(":", 2)
+        if len(parts) == 3:
+            file_path, line_raw, col_raw = parts
+        elif len(parts) == 2:
+            file_path, line_raw = parts
+        else:
+            file_path = location
+
+    return {
+        "file": os.path.realpath(file_path) if file_path else None,
+        "line": _as_int_or_none(line_raw),
+        "line_raw": line_raw,
+        "col": _as_int_or_none(col_raw),
+        "col_raw": col_raw,
+        "severity": severity,
+        "message": message,
+        "check": check,
+        "check_raw": check,
+        "raw": raw,
+        "invalid_position": (line_raw is not None and _as_int_or_none(line_raw) is None)
+        or (col_raw is not None and _as_int_or_none(col_raw) is None),
+        "incomplete_location": not file_path or _as_int_or_none(line_raw) is None
+        or (col_raw is not None and _as_int_or_none(col_raw) is None),
+    }
+
+def parse_clang_tidy_diagnostics(output):
+    diagnostics = []
+    located_marker = re.compile(r":\s*(warning|error):\s*(.*)$")
+    check_suffix = re.compile(r"\s+\[([^\[\]]+)\]\s*$")
+    for raw in output.splitlines():
+        generic = re.match(r"^(warning|error):\s*(.*)$", raw)
+        if generic:
+            severity, body = generic.groups()
+            location = ""
+        else:
+            marker = located_marker.search(raw) if not raw[:1].isspace() else None
+            if not marker:
+                if not raw[:1].isspace() and re.search(r":\s*(?:warning|error):", raw):
+                    diagnostics.append(_diagnostic_record(raw, "unknown", raw, check=None))
+                continue
+            severity, body = marker.groups()
+            location = raw[:marker.start()]
+
+        check_match = check_suffix.search(body)
+        check_raw = check_match.group(1) if check_match else None
+        check = check_raw.split(",", 1)[0] if check_raw else None
+        message = body[:check_match.start()].rstrip() if check_match else body.rstrip()
+        diagnostic = _diagnostic_record(raw, severity, message, location, check)
+        diagnostic["check_raw"] = check_raw
+        diagnostics.append(diagnostic)
+    return diagnostics
+
+def parse_enabled_checks(list_output):
+    return set(re.findall(r"^\s+([A-Za-z][A-Za-z0-9_.-]*)\s*$", list_output, re.MULTILINE))
+
+def diagnostic_check_is_known(diagnostic, enabled_checks):
+    check = diagnostic["check"]
+    return bool(check) and (check in enabled_checks or check.startswith("clang-diagnostic-"))
+
+def is_contained_in(path, parent):
+    try:
+        return os.path.commonpath([parent, path]) == parent
+    except ValueError:
+        return False
+
+def classify_diagnostic(diagnostic, repo_root):
+    path = diagnostic["file"]
+    if not path:
+        return "unlocated"
+    repo = os.path.realpath(repo_root)
+    production_roots = [
+        os.path.join(repo, "modules", "VectorisNumerics", "include", "Vectoris", "Numerics"),
+        os.path.join(repo, "modules", "VectorisDynamics", "include", "Vectoris", "Dynamics"),
+    ]
+    test_roots = [
+        os.path.join(repo, "modules", "VectorisNumerics", "tests"),
+        os.path.join(repo, "modules", "VectorisDynamics", "tests"),
+    ]
+    for root in production_roots:
+        if is_contained_in(path, os.path.realpath(root)):
+            return "production"
+    for root in test_roots:
+        if is_contained_in(path, os.path.realpath(root)):
+            return "test"
+    return "system_external"
+
+def diagnostic_key(diagnostic):
+    return tuple(diagnostic.get(key) for key in (
+        "file", "line", "line_raw", "col", "col_raw", "severity", "check", "message"
+    ))
+
+def format_diagnostic(diagnostic, repo_root):
+    file_path = diagnostic["file"] or "<unknown-file>"
+    rel = os.path.relpath(file_path, os.path.realpath(repo_root)) if diagnostic["file"] else file_path
+    line = diagnostic["line"] if diagnostic["line"] is not None else diagnostic["line_raw"] or "?"
+    col = diagnostic["col"] if diagnostic["col"] is not None else diagnostic["col_raw"] or "?"
+    check = diagnostic["check"] or "<no-check>"
+    return f"{rel}:{line}:{col}: {diagnostic['severity']}: {diagnostic['message']} [{check}]"
+
+def compilation_database_compiler(compdb):
+    if not compdb:
+        return "unknown", ""
+    entry = compdb[0]
+    if isinstance(entry.get("arguments"), list) and entry["arguments"]:
+        argv = entry["arguments"]
+    else:
+        argv = shlex.split(entry.get("command", ""), posix=os.name != "nt")
+    if not argv:
+        return "unknown", ""
+    compiler = argv[0]
+    try:
+        version = subprocess.check_output(
+            [compiler, "--version"], cwd=entry.get("directory"),
+            stderr=subprocess.STDOUT, text=True
+        ).splitlines()
+        return compiler, version[0] if version else "unknown"
+    except (OSError, subprocess.CalledProcessError) as exc:
+        return compiler, f"unavailable ({exc})"
+
+def cmake_cache_metadata(build_dir):
+    cache_path = os.path.join(build_dir, "CMakeCache.txt")
+    wanted = {
+        "CMAKE_BUILD_TYPE", "CMAKE_CXX_COMPILER", "CMAKE_CXX_COMPILER_ID",
+        "CMAKE_CXX_COMPILER_VERSION", "CMAKE_GENERATOR", "CMAKE_EXPORT_COMPILE_COMMANDS",
+        "VECTORIS_ENABLE_STATIC_ANALYSIS", "VECTORIS_ENABLE_ASAN", "VECTORIS_ENABLE_UBSAN",
+        "VECTORIS_ENABLE_COVERAGE", "VECTORIS_CLANG_TIDY", "VECTORIS_CLANG_TIDY_MAJOR",
+    }
+    values = {}
+    if os.path.isfile(cache_path):
+        with open(cache_path, "r", encoding="utf-8") as cache:
+            for entry in cache:
+                match = re.match(r"([^:#]+):[^=]+=(.*)$", entry.rstrip())
+                if match and match.group(1) in wanted:
+                    values[match.group(1)] = match.group(2)
+    return values
 
 def classify_tu(sf):
     basename = os.path.basename(sf)
@@ -152,12 +284,15 @@ def main():
     parser.add_argument("--build-dir", default="cmake-build-p2sta", help="Build directory containing compile_commands.json")
     parser.add_argument("--clang-tidy", default=None, help="Path to clang-tidy binary")
     parser.add_argument("--config-file", default=None, help="Path to .clang-tidy configuration file")
+    parser.add_argument("--required-clang-tidy-major", type=int, default=None,
+                        help="Fail unless clang-tidy reports this major version")
     parser.add_argument("--warnings-as-errors", action="store_true", help="Treat warnings as errors")
     parser.add_argument("--skip-category-check", action="store_true", help="Skip project TU category audit (for isolated self-tests)")
     parser.add_argument("--skip-expected-set-check", action="store_true", help="Skip exact TU expected set comparison (for isolated self-tests)")
     parser.add_argument("--jobs", "-j", type=int, default=os.cpu_count() or 4, help="Number of concurrent workers")
     parser.add_argument("--repo-root", default=None, help="Path to repository root")
     parser.add_argument("--output", default=None, help="File to write raw clang-tidy output")
+    parser.add_argument("--diagnostics-json", default=None, help="File to write parsed diagnostics as JSON")
     parser.add_argument("--dump-checks", default=None, help="File to dump expanded effective checks list")
     args = parser.parse_args()
 
@@ -189,12 +324,24 @@ def main():
         first_ver_line = ver_out.splitlines()[0] if ver_out.splitlines() else ver_out
     except Exception as e:
         first_ver_line = f"Unknown ({e})"
+    version_match = re.search(r"\bversion\s+(\d+)(?:\.\d+)*", first_ver_line)
+    clang_tidy_major = int(version_match.group(1)) if version_match else None
+    if args.required_clang_tidy_major is not None and clang_tidy_major != args.required_clang_tidy_major:
+        print(f"ERROR: clang-tidy major version {clang_tidy_major} does not match required major "
+              f"{args.required_clang_tidy_major}: {first_ver_line}", file=sys.stderr)
+        sys.exit(1)
 
+    cmd_list = [clang_tidy_bin, "--list-checks", f"--config-file={config_path}"]
+    try:
+        checks_res = subprocess.run(cmd_list, capture_output=True, text=True, check=True)
+        checks_output = checks_res.stdout
+    except (OSError, subprocess.CalledProcessError) as exc:
+        print(f"ERROR: Failed to query configured clang-tidy checks: {exc}", file=sys.stderr)
+        sys.exit(1)
+    enabled_checks = parse_enabled_checks(checks_output)
     if args.dump_checks:
-        cmd_list = [clang_tidy_bin, "--list-checks", f"--config-file={config_path}"]
-        out = subprocess.check_output(cmd_list, text=True)
         with open(args.dump_checks, "w", encoding="utf-8") as f:
-            f.write(out)
+            f.write(checks_output)
         print(f"Effective checks dumped to: {args.dump_checks}")
 
     # 3. Compilation database checks (fail-closed)
@@ -240,6 +387,17 @@ def main():
         if norm_sf in seen_files:
             duplicate_tus.add(sf)
         seen_files.append(norm_sf)
+
+    compiler_path, compiler_version = compilation_database_compiler(compdb)
+    cache_values = cmake_cache_metadata(build_dir)
+    with open(compdb_path, "rb") as compdb_file:
+        compile_db_sha256 = hashlib.sha256(compdb_file.read()).hexdigest()
+    try:
+        candidate_head = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=repo_root, text=True, stderr=subprocess.DEVNULL
+        ).strip()
+    except (OSError, subprocess.CalledProcessError):
+        candidate_head = "unknown"
 
     if duplicate_tus:
         print(f"ERROR: Duplicate TU entries found in compilation database: {sorted(list(duplicate_tus))}", file=sys.stderr)
@@ -315,13 +473,23 @@ def main():
     print("=" * 80)
     print(f"Binary:           {clang_tidy_bin}")
     print(f"Version:          {first_ver_line}")
+    print(f"Compiler:         {compiler_path}")
+    print(f"Compiler Version: {compiler_version}")
+    print(f"Operating System: {platform.platform()}")
+    print(f"Architecture:     {platform.machine()}")
+    print(f"Repository HEAD:  {candidate_head}")
     print(f"Config File:      {config_path}")
     print(f"Config SHA-256:   {config_sha256}")
+    print(f"Enabled Checks:   {len(enabled_checks)}")
+    print(f"Checks SHA-256:   {hashlib.sha256(checks_output.encode('utf-8')).hexdigest()}")
+    print(f"Compile DB SHA-256: {compile_db_sha256}")
     print(f"Build Dir:        {build_dir}")
+    print("CMake Configuration:")
+    for name, value in sorted(cache_values.items()):
+        print(f"  - {name}={value}")
     print(f"Workers:          {args.jobs}")
     print(f"WarningsAsErrors: {args.warnings_as_errors}")
-    resource_inc = get_compiler_resource_include()
-    print(f"Resource Include: {resource_inc}")
+    print("Clang Resource Headers: selected clang-tidy defaults (no PATH compiler injection)")
     if not args.skip_expected_set_check:
         print(f"Expected TUs:     {expected_tu_count}")
     print(f"Eligible TUs:     {eligible_tu_count}")
@@ -362,55 +530,30 @@ def main():
             out_f.write("\n".join(all_stderr))
         print(f"Raw report saved to: {args.output}")
 
-    # Parse diagnostics from both stdout and stderr
-    diag_pattern = re.compile(r"^([^:\n]+):(\d+):(\d+):\s+(warning|error):\s+(.*?)\s+\[([^\]]+)\]", re.MULTILINE)
-    
-    real_repo_root = os.path.realpath(repo_root)
-    real_prod_root = os.path.realpath(os.path.join(real_repo_root, "modules", "VectorisNumerics", "include", "Vectoris", "Numerics"))
-    real_test_root = os.path.realpath(os.path.join(real_repo_root, "modules", "VectorisNumerics", "tests"))
+    # Parse and retain every warning/error before formatting any summary output.
+    diagnostics = parse_clang_tidy_diagnostics(combined_output)
+    categories = {"production": [], "test": [], "system_external": [], "unlocated": []}
+    unique_categories = {name: {} for name in categories}
+    for diagnostic in diagnostics:
+        category = classify_diagnostic(diagnostic, repo_root)
+        diagnostic["category"] = category
+        diagnostic["unknown_check"] = not diagnostic_check_is_known(diagnostic, enabled_checks)
+        categories[category].append(diagnostic)
+        unique_categories[category].setdefault(diagnostic_key(diagnostic), diagnostic)
 
-    def is_contained_in(path, parent):
-        try:
-            return os.path.commonpath([parent, path]) == parent
-        except ValueError:
-            return False
+    if args.diagnostics_json:
+        with open(args.diagnostics_json, "w", encoding="utf-8") as out_f:
+            json.dump(diagnostics, out_f, indent=2, ensure_ascii=False)
+            out_f.write("\n")
+        print(f"Parsed diagnostics JSON saved to: {args.diagnostics_json}")
 
-    raw_diag_count = 0
-    raw_production_diags = []
-    raw_test_diags = []
-    raw_system_diags = []
-
-    unique_production_diags = {}
-    unique_test_diags = {}
-    unique_system_diags = {}
-
-    for match in diag_pattern.finditer(combined_output):
-        fpath, line, col, severity, msg, check = match.groups()
-        candidate = os.path.realpath(fpath)
-        diag_item = {
-            "file": candidate,
-            "line": int(line),
-            "col": int(col),
-            "severity": severity,
-            "message": msg,
-            "check": check,
-            "raw": match.group(0)
-        }
-        key = (candidate, int(line), int(col), check, msg)
-        raw_diag_count += 1
-
-        if is_contained_in(candidate, real_prod_root):
-            raw_production_diags.append(diag_item)
-            if key not in unique_production_diags:
-                unique_production_diags[key] = diag_item
-        elif is_contained_in(candidate, real_test_root):
-            raw_test_diags.append(diag_item)
-            if key not in unique_test_diags:
-                unique_test_diags[key] = diag_item
-        else:
-            raw_system_diags.append(diag_item)
-            if key not in unique_system_diags:
-                unique_system_diags[key] = diag_item
+    unique_production_diags = unique_categories["production"]
+    unique_test_diags = unique_categories["test"]
+    unique_system_diags = unique_categories["system_external"]
+    unique_unlocated_diags = unique_categories["unlocated"]
+    parse_error_count = sum(1 for item in diagnostics if item["incomplete_location"])
+    unknown_check_count = sum(1 for item in diagnostics if item["unknown_check"])
+    error_diagnostic_count = sum(1 for item in diagnostics if item["severity"] == "error")
 
     print("\n" + "=" * 80)
     print("Clang-Tidy Diagnostics Summary")
@@ -420,18 +563,44 @@ def main():
     print(f"Eligible Translation Units:                    {eligible_tu_count}")
     print(f"Analyzed Translation Units:                    {completed_count}")
     print(f"Failed Translation Units (crashed/errored):    {len(failed_tus)}")
-    print(f"Production Diagnostics (modules/VectorisNumerics/**):  {len(unique_production_diags)} unique ({len(raw_production_diags)} raw)")
-    print(f"Test Diagnostics (modules/VectorisNumerics/tests/**):  {len(unique_test_diags)} unique ({len(raw_test_diags)} raw)")
-    print(f"System / External Diagnostics:                 {len(unique_system_diags)} unique ({len(raw_system_diags)} raw)")
-    print(f"Total Raw Diagnostic Occurrences:              {raw_diag_count}")
-    print(f"Total Unique Diagnostics:                      {len(unique_production_diags) + len(unique_test_diags) + len(unique_system_diags)}")
+    print(f"Production Diagnostics:                        {len(unique_production_diags)} unique ({len(categories['production'])} raw)")
+    print(f"Test Diagnostics:                              {len(unique_test_diags)} unique ({len(categories['test'])} raw)")
+    print(f"System / External Diagnostics:                 {len(unique_system_diags)} unique ({len(categories['system_external'])} raw)")
+    print(f"Unlocated Diagnostics:                         {len(unique_unlocated_diags)} unique ({len(categories['unlocated'])} raw)")
+    print(f"Incomplete / Invalid Diagnostic Locations:     {parse_error_count}")
+    print(f"Unknown / Missing Check Names:                  {unknown_check_count}")
+    print(f"Error Diagnostics:                              {error_diagnostic_count}")
+    print(f"Total Raw Diagnostic Occurrences:              {len(diagnostics)}")
+    print(f"Total Unique Diagnostics:                      {sum(len(items) for items in unique_categories.values())}")
     print("=" * 80)
 
     if unique_production_diags:
         print("\n--- Production Diagnostics Details ---")
         for d in unique_production_diags.values():
-            rel = os.path.relpath(d["file"], real_repo_root)
-            print(f"{rel}:{d[line]}:{d[col]}: {d[severity]}: {d[message]} [{d[check]}]")
+            print(format_diagnostic(d, repo_root))
+        print("=" * 80)
+
+    if unique_test_diags:
+        print("\n--- Test Diagnostics Details ---")
+        for d in unique_test_diags.values():
+            print(format_diagnostic(d, repo_root))
+        print("=" * 80)
+
+    if unique_unlocated_diags:
+        print("\n--- Unlocated Diagnostics Details ---")
+        for d in unique_unlocated_diags.values():
+            print(format_diagnostic(d, repo_root))
+        print("=" * 80)
+
+    unknown_check_diags = [item for item in diagnostics if item["unknown_check"]]
+    if unknown_check_diags:
+        print("\n--- Unknown / Missing Check Diagnostics ---")
+        seen_unknown = set()
+        for diagnostic in unknown_check_diags:
+            key = diagnostic_key(diagnostic)
+            if key not in seen_unknown:
+                print(format_diagnostic(diagnostic, repo_root))
+                seen_unknown.add(key)
         print("=" * 80)
 
     if failed_tus:
@@ -450,8 +619,14 @@ def main():
     elif len(failed_tus) > 0:
         print(f"RESULT: FAIL ({len(failed_tus)} translation units failed)")
         sys.exit(1)
-    elif len(unique_production_diags) > 0:
-        print(f"RESULT: FAIL ({len(unique_production_diags)} unresolved production diagnostics)")
+    elif parse_error_count or unique_unlocated_diags or unknown_check_count or error_diagnostic_count:
+        print(f"RESULT: FAIL ({parse_error_count} incomplete/invalid locations, "
+              f"{len(unique_unlocated_diags)} unlocated, {unknown_check_count} unknown/missing checks, "
+              f"{error_diagnostic_count} errors)")
+        sys.exit(1)
+    elif unique_production_diags or unique_test_diags:
+        print(f"RESULT: FAIL ({len(unique_production_diags)} production and "
+              f"{len(unique_test_diags)} test diagnostics)")
         sys.exit(1)
     else:
         print("RESULT: PASS (All eligible TUs analyzed, 0 failed TUs, 0 production diagnostics)")

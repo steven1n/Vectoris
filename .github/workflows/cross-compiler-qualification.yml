@@ -375,23 +375,48 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y clang-tidy
+          sudo apt-get install -y wget
+          wget -q https://apt.llvm.org/llvm.sh -O llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 22
+          sudo apt-get install -y clang-tidy-22
 
       - name: Configure Static Analysis Build
         run: |
           set -euo pipefail
-          cmake \
+          mkdir -p artifacts-static
+          {
+            echo "=== clang-22 ==="
+            clang-22 --version
+            echo "=== clang++-22 ==="
+            clang++-22 --version
+            echo "=== clang-tidy-22 ==="
+            clang-tidy-22 --version
+            echo "=== Git SHA ==="
+            git rev-parse HEAD
+          } | tee artifacts-static/environment.txt
+          CC=clang-22 CXX=clang++-22 cmake \
             -S . \
             -B build-sta \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DVECTORIS_CLANG_TIDY=/usr/bin/clang-tidy-22 \
+            -DVECTORIS_CLANG_TIDY_MAJOR=22 \
             -DVECTORIS_ENABLE_ASAN=OFF \
             -DVECTORIS_ENABLE_UBSAN=OFF \
             -DVECTORIS_ENABLE_COVERAGE=OFF \
-            -DVECTORIS_ENABLE_STATIC_ANALYSIS=ON
+            -DVECTORIS_ENABLE_STATIC_ANALYSIS=ON \
+            | tee artifacts-static/configure.log
 
       - name: Execute Clang-Tidy Target
         run: |
           set -euo pipefail
-          cmake --build build-sta --target VectorisNumerics_ClangTidy
+          mkdir -p artifacts-static
+          cmake --build build-sta --target VectorisNumerics_ClangTidy 2>&1 | tee artifacts-static/clang-tidy-gate.log
 
+      - name: Upload Clang-Tidy Qualification Evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clang-tidy-qualification-logs
+          path: artifacts-static/

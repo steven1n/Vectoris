@@ -11,6 +11,7 @@ endif()
 
 # Support explicit cache overrides
 set(VECTORIS_CLANG_TIDY "" CACHE FILEPATH "Path to clang-tidy executable override")
+set(VECTORIS_CLANG_TIDY_MAJOR "" CACHE STRING "Required clang-tidy major version for qualification")
 set(VECTORIS_CPPCHECK "" CACHE FILEPATH "Path to cppcheck executable override")
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
@@ -21,6 +22,7 @@ add_custom_target(VectorisNumerics_ClangTidy
             ${PROJECT_SOURCE_DIR}/tools/static_analysis/run_clang_tidy.py
             --build-dir ${CMAKE_BINARY_DIR}
             $<$<BOOL:${VECTORIS_CLANG_TIDY}>:--clang-tidy=${VECTORIS_CLANG_TIDY}>
+            $<$<BOOL:${VECTORIS_CLANG_TIDY_MAJOR}>:--required-clang-tidy-major=${VECTORIS_CLANG_TIDY_MAJOR}>
             --warnings-as-errors
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     COMMENT "Executing Clang-Tidy static analysis qualification gate..."

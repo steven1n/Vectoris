@@ -40,6 +40,11 @@ if(BUILD_TESTING)
             GIT_TAG        v1.14.0
     )
     FetchContent_MakeAvailable(googletest)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang" AND TARGET gtest)
+        # GoogleTest 1.14's char8_t printer triggers this Clang diagnostic in its own
+        # implementation TU. Keep the exception on the dependency target only.
+        target_compile_options(gtest PRIVATE -Wno-character-conversion)
+    endif()
     include(GoogleTest)
 endif()
 
