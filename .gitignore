@@ -14,3 +14,40 @@ cmake-build-*/
 __pycache__/
 *.pyc
 
+# ============================================================
+# Private AI agent / skill infrastructure
+# NEVER COMMIT
+# ============================================================
+
+AGENTS.md
+AGENT.md
+SKILL.md
+SKILLS.md
+SKILLS_LOCK.md
+
+agents/
+.agent/
+.agents/
+
+skills/
+.skill/
+.skills/
+
+.codex/
+.claude/
+.antigravity/
+
+**/AGENTS.md
+**/AGENT.md
+**/SKILL.md
+**/SKILLS.md
+**/SKILLS_LOCK.md
+
+**/agents/
+**/.agents/
+**/skills/
+**/.skills/
+
+**/.codex/
+**/.claude/
+**/.antigravity/
