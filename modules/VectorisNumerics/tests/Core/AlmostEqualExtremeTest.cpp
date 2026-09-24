@@ -110,7 +110,9 @@ TYPED_TEST(AlmostEqualExtremeTest, SpecialValuesReflexivityAndSymmetry) {
         for(T b:values) {
             for(T rel:{T{0},T{0.5},T{1},T{1.5},T{2}}) {
                 EXPECT_EQ(AlmostEqual(a,b,tiny,rel),AlmostEqual(b,a,tiny,rel));
-                if(std::isnan(a)||std::isnan(b)) EXPECT_FALSE(AlmostEqual(a,b,tiny,rel));
+                if(std::isnan(a)||std::isnan(b)) {
+                    EXPECT_FALSE(AlmostEqual(a,b,tiny,rel));
+                }
             }
         }
     }
