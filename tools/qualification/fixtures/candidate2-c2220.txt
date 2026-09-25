@@ -1,0 +1,1 @@
+D:\a\Vectoris\Vectoris\modules\VectorisNumerics\tests\Geometry\UnitVector3Test.cpp(40,5): error C2220: the following warning is treated as an error [D:\a\Vectoris\Vectoris\build-msvc\modules\VectorisNumerics\VectorisNumerics_Tests.vcxproj]

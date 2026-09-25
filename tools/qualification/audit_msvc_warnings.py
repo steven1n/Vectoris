@@ -6,6 +6,13 @@ check. This gate requires every build phase, retains each diagnostic verbatim,
 and rejects unknown formats/ownership, errors, and any first-party warning.
 Only the explicitly identified GoogleTest build is external. Project ownership
 takes precedence over a dependency mentioned in a diagnostic message.
+
+Recognition is syntactic: MSVC/MSBuild use origin : severity code : message;
+CMake has its own severity/location header. None means NOT_DIAGNOSTIC, not an
+ignored diagnostic. A location, tool, coded severity, annotation, or diagnostic
+summary can establish diagnostic shape even when the complete grammar fails.
+Such incomplete/unknown records still fail closed. Prose keywords alone cannot
+establish diagnostic shape; no prose exception list is used.
 """
 
 import argparse
@@ -35,12 +42,40 @@ CATEGORIES = (
 )
 DIAGNOSTIC = re.compile(
     r"^\s*(?:\d+>)?(?P<origin>.+?)\s*:\s*"
+    r"(?:Command line\s+)?"
     r"(?P<severity>fatal error|error|warning)\s+"
     r"(?P<code>C\d{4}|D\d{4}|LNK\d{4}|MSB\d{4})\s*:\s*"
     r"(?P<message>.+?)(?:\s+\[(?P<project>[^\]]+\.vcxproj)\])?\s*$",
     re.IGNORECASE,
 )
-SIGNAL = re.compile(r"\b(?:warnings?|errors?)\b|\b(?:LNK|MSB|C)\d{4}\s*:", re.I)
+CMAKE_DIAGNOSTIC = re.compile(
+    r"^\s*CMake (?P<severity>Error|(?:Deprecation )?Warning)"
+    r"(?:\s*\([^)]+\))?(?:\s+(?:at|in)\s+(?P<location>.+?))?"
+    r"\s*:(?=\s|$)\s*(?P<message>.*)$", re.I,
+)
+SUMMARY = re.compile(r"^\s*(\d+)\s+(?:warnings?|errors?)(?:\(s\))?"
+                     r"(?:\s+generated\.)?\s*$", re.I)
+PREFIX = r"^\s*(?:\d+>)?\s*"
+SEVERITY = r"(?:fatal\s+error|error|warning)"
+CODE = r"[A-Z]+[0-9][A-Z0-9]*"
+ORIGIN_SHAPE = (
+    r"(?:.+?\(\s*\d+(?:\s*,\s*\d+)*\s*\)"
+    r"|.+?\.(?:cpp|cc|cxx|c|hpp|hxx|h|obj|lib|exe|vcxproj|targets|props)\b"
+    r"|(?:cl|link|lib|msbuild)(?:\.exe)?)"
+)
+# These recognize structure, including damaged separators or unknown code
+# families. They do not search for unqualified words inside arbitrary prose.
+DIAGNOSTIC_SHAPES = tuple(re.compile(pattern, re.I) for pattern in (
+    rf"{PREFIX}.+?\s*:\s*(?:Command line\s+)?{SEVERITY}\s+{CODE}\b",
+    rf"{PREFIX}{ORIGIN_SHAPE}\s*:\s*(?:Command line\s+)?{SEVERITY}\b",
+    rf"{PREFIX}{ORIGIN_SHAPE}\s+(?:Command line\s+)?{SEVERITY}\s+{CODE}\b",
+    rf"{PREFIX}{ORIGIN_SHAPE}\s*:\s*{CODE}\b",
+    rf"{PREFIX}{SEVERITY}\s*(?::|\s+{CODE}\b)",
+    rf"{PREFIX}{CODE}\s*:",
+    r"^\s*CMake (?:Deprecation )?(?:Error|Warning)\b"
+    r"(?:\s*\([^)]+\))?(?:\s+(?:at|in)\b|\s*:|\s*$)",
+    r"^\s*(?:::(?:warning|error)(?: [^:]*)?::|##\[(?:warning|error)\])",
+))
 
 
 def normalized(path):
@@ -53,7 +88,7 @@ def beneath(path, root):
 
 def origin_path(origin, source_root):
     # Compiler coordinates and MSBuild project-number prefixes are not path parts.
-    path = re.sub(r"\(\d+(?:,\d+)*\)$", "", origin.strip())
+    path = re.sub(r"\(\s*\d+(?:\s*,\s*\d+)*\s*\)$", "", origin.strip()).strip().strip('"')
     path = normalized(path)
     if not path.startswith("/") and not re.match(r"^[a-z]:/", path):
         path = normalized(source_root + "/" + path)
@@ -64,8 +99,9 @@ def ownership(origin, project, source_root, build_root):
     """No classification may be inferred from the free-form message text."""
     source = origin_path(origin, source_root)
     project_path = normalized(project) if project else ""
-    first_source = any(beneath(source, source_root + "/" + part)
-                       for part in ("modules", "cmake", "tools", "benchmarks"))
+    first_source = source == source_root + "/cmakelists.txt" or any(
+        beneath(source, source_root + "/" + part)
+        for part in ("modules", "cmake", "tools", "benchmarks"))
     first_project = (
         beneath(project_path, build_root + "/modules/vectorisnumerics") or
         beneath(project_path, build_root + "/modules/vectorisdynamics")
@@ -94,17 +130,17 @@ def platform_annotation(line):
     )
 
 
-def classify(line, source_root, build_root):
-    if re.fullmatch(r"\s*0 (?:Warning|Error)\(s\)\s*", line, re.I):
-        return None
-    if platform_annotation(line):
-        return {"category": "PLATFORM_ANNOTATION", "severity": "annotation", "raw": line}
-    if not SIGNAL.search(line):
-        return None
-    match = DIAGNOSTIC.fullmatch(line)
-    if not match:
-        return {"category": "UNKNOWN_DIAGNOSTIC", "severity": "unknown", "raw": line}
-    data = match.groupdict()
+def linker_role(origin, project):
+    producer = posixpath.basename(origin.replace("\\", "/")).casefold().strip()
+    if producer in ("link", "link.exe"):
+        return "LINKER"
+    if producer in ("lib", "lib.exe"):
+        return "LIBRARIAN"
+    project_name = posixpath.basename((project or "").replace("\\", "/"))[:-8]
+    return PROJECT_TO_TOOL.get(project_name)
+
+
+def classify_msvc(data, line, source_root, build_root):
     owner = ownership(data["origin"], data["project"], source_root, build_root)
     code = data["code"].upper()
     category = "UNKNOWN_DIAGNOSTIC"
@@ -115,15 +151,43 @@ def classify(line, source_root, build_root):
             category = "FIRST_PARTY_COMPILER_WARNING"
         elif code.startswith("MSB"):
             category = "FIRST_PARTY_BUILD_SYSTEM_WARNING"
-        elif data["project"]:
-            project_name = posixpath.basename(data["project"].replace("\\", "/"))[:-8]
-            tool = PROJECT_TO_TOOL.get(project_name)
+        else:
+            tool = linker_role(data["origin"], data["project"])
             if tool:
                 category = "FIRST_PARTY_" + tool + "_WARNING"
     if "error" in data["severity"].lower():
         category = "BUILD_ERROR"
     return {"category": category, "severity": data["severity"].lower(),
             "code": code, "raw": line}
+
+
+def classify_cmake(data, line, source_root, build_root):
+    location = re.sub(r"\s+\([^)]*\)$", "", data["location"] or "")
+    location = re.sub(r":\d+$", "", location)
+    owner = ownership(location, None, source_root, build_root)
+    category = {"FIRST_PARTY": "FIRST_PARTY_BUILD_SYSTEM_WARNING",
+                "THIRD_PARTY": "THIRD_PARTY_WARNING"}.get(owner, "UNKNOWN_DIAGNOSTIC")
+    severity = "error" if data["severity"].casefold() == "error" else "warning"
+    if severity == "error":
+        category = "BUILD_ERROR"
+    return {"category": category, "severity": severity, "code": "CMAKE", "raw": line}
+
+
+def classify(line, source_root, build_root):
+    summary = SUMMARY.fullmatch(line)
+    if summary and int(summary[1]) == 0:
+        return None
+    if platform_annotation(line):
+        return {"category": "PLATFORM_ANNOTATION", "severity": "annotation", "raw": line}
+    match = DIAGNOSTIC.fullmatch(line)
+    if match:
+        return classify_msvc(match.groupdict(), line, source_root, build_root)
+    match = CMAKE_DIAGNOSTIC.fullmatch(line)
+    if match:
+        return classify_cmake(match.groupdict(), line, source_root, build_root)
+    if summary or any(shape.match(line) for shape in DIAGNOSTIC_SHAPES):
+        return {"category": "UNKNOWN_DIAGNOSTIC", "severity": "unknown", "raw": line}
+    return None
 
 
 def completed_target(text, target):
@@ -134,7 +198,7 @@ def completed_target(text, target):
 
 
 def validate_completion(filename, text):
-    if not text.strip() or "\0" in text:
+    if not text.strip() or re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", text):
         raise ValueError(f"{filename}: empty or malformed log")
     if filename == "configure.log":
         if "Build files have been written to:" not in text:

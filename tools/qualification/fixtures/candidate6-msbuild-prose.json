@@ -1,0 +1,112 @@
+{
+  "source_candidate": "91560d812ec8ecf50bd3494b97c64eab664dfdb5",
+  "source_run": 36076662701,
+  "context": "MSBuild PrepareForBuild explanatory output",
+  "records": [
+    {
+      "source_log": "build-debug.log",
+      "source_line": 9,
+      "raw_line": "    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details."
+    },
+    {
+      "source_log": "build-debug.log",
+      "source_line": 16,
+      "raw_line": "    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details."
+    },
+    {
+      "source_log": "build-debug.log",
+      "source_line": 20,
+      "raw_line": "    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details."
+    },
+    {
+      "source_log": "build-debug.log",
+      "source_line": 25,
+      "raw_line": "    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details."
+    },
+    {
+      "source_log": "build-debug.log",
+      "source_line": 46,
+      "raw_line": "    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details."
+    },
+    {
+      "source_log": "build-debug.log",
+      "source_line": 53,
+      "raw_line": "    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details."
+    },
+    {
+      "source_log": "build-debug.log",
+      "source_line": 57,
+      "raw_line": "    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details."
+    },
+    {
+      "source_log": "header-isolation.log",
+      "source_line": 7,
+      "raw_line": "    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details."
+    },
+    {
+      "source_log": "header-isolation.log",
+      "source_line": 12,
+      "raw_line": "    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details."
+    },
+    {
+      "source_log": "header-isolation.log",
+      "source_line": 16,
+      "raw_line": "    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details."
+    },
+    {
+      "source_log": "header-isolation.log",
+      "source_line": 38,
+      "raw_line": "    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details."
+    },
+    {
+      "source_log": "header-isolation.log",
+      "source_line": 43,
+      "raw_line": "    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details."
+    },
+    {
+      "source_log": "header-isolation.log",
+      "source_line": 47,
+      "raw_line": "    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details."
+    },
+    {
+      "source_log": "header-isolation.log",
+      "source_line": 51,
+      "raw_line": "    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details."
+    },
+    {
+      "source_log": "build-release.log",
+      "source_line": 9,
+      "raw_line": "    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details."
+    },
+    {
+      "source_log": "build-release.log",
+      "source_line": 16,
+      "raw_line": "    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details."
+    },
+    {
+      "source_log": "build-release.log",
+      "source_line": 20,
+      "raw_line": "    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details."
+    },
+    {
+      "source_log": "build-release.log",
+      "source_line": 110,
+      "raw_line": "    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details."
+    },
+    {
+      "source_log": "build-release.log",
+      "source_line": 117,
+      "raw_line": "    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details."
+    },
+    {
+      "source_log": "build-release.log",
+      "source_line": 122,
+      "raw_line": "    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details."
+    },
+    {
+      "source_log": "build-release.log",
+      "source_line": 127,
+      "raw_line": "    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details."
+    }
+  ]
+}

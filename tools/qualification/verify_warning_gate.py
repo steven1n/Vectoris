@@ -27,6 +27,9 @@ LINKER = (
     "[" + NUMERICS + "VectorisNumerics_Tests.vcxproj]"
 )
 LIBRARIAN = (Path(__file__).parent / "fixtures/candidate5-lnk4006.txt").read_text().strip()
+FIXTURES = Path(__file__).parent / "fixtures"
+C4244 = (FIXTURES / "candidate2-c4244.txt").read_text().strip()
+C2220 = (FIXTURES / "candidate2-c2220.txt").read_text().strip()
 EXTERNAL = (
     BUILD + "/_deps/googletest-src/googletest/src/gtest-all.cc(1): "
     "warning C4101: unused [" + DEPS + "googletest/gtest.vcxproj]"
@@ -217,6 +220,141 @@ class WarningGateTests(unittest.TestCase):
         self.audit(LINKER + "\n" + LIBRARIAN)
         self.assertNotEqual(self.cli(), 0)
 
+    def test_real_c4244_fixture(self):
+        self.expect_failure(C4244, "FIRST_PARTY_COMPILER_WARNING")
+
+    def test_real_c2220_fixture(self):
+        self.expect_failure(C2220, "BUILD_ERROR")
+
+    def test_lnk4006_linker_context(self):
+        # The historical archive remains LIBRARIAN; the same diagnostic from
+        # an executable link must retain the LINKER classification.
+        text = LIBRARIAN.replace("VectorisNumerics_HeaderIsolation.vcxproj",
+                                 "VectorisNumerics_Tests.vcxproj")
+        self.expect_failure(text, "FIRST_PARTY_LINKER_WARNING")
+
+    def test_unlisted_compiler_number_is_not_ignored(self):
+        self.expect_failure(COMPILER.replace("C4101", "C9999"),
+                            "FIRST_PARTY_COMPILER_WARNING")
+
+    def test_unlisted_linker_number_is_not_ignored(self):
+        self.expect_failure(LINKER.replace("LNK4075", "LNK4999"),
+                            "FIRST_PARTY_LINKER_WARNING")
+
+    def test_unknown_compiler_code_family_fails_closed(self):
+        self.expect_failure(COMPILER.replace("C4101", "CXX9999"), "UNKNOWN_DIAGNOSTIC")
+
+    def test_unknown_linker_code_family_fails_closed(self):
+        self.expect_failure(LINKER.replace("LNK4075", "XYZ4999"), "UNKNOWN_DIAGNOSTIC")
+
+    def test_unknown_dependency_code_fails_closed(self):
+        self.expect_failure(EXTERNAL.replace("C4101", "XYZ9000"), "UNKNOWN_DIAGNOSTIC")
+
+    def test_compiler_location_forms(self):
+        origins = [
+            SOURCE + "/modules/VectorisNumerics/tests/Probe.cpp(42)",
+            SOURCE + "/modules/VectorisNumerics/tests/Probe.cpp(42,13)",
+            SOURCE + "/modules/VectorisNumerics/tests/Probe.cpp(42,13,43,4)",
+            '"' + SOURCE + '/modules/VectorisNumerics/tests/Probe.cpp"(42, 13)',
+            "1>" + SOURCE + "/modules/VectorisNumerics/tests/Probe.cpp(42)",
+            "modules/VectorisNumerics/tests/Probe.cpp(42)",
+        ]
+        for origin in origins:
+            with self.subTest(origin=origin):
+                result = gate.classify(origin + ": warning C4244: conversion",
+                                       gate.normalized(SOURCE), gate.normalized(BUILD))
+                self.assertEqual(result["category"], "FIRST_PARTY_COMPILER_WARNING")
+
+    def test_command_line_compiler_diagnostic(self):
+        self.expect_failure(
+            "cl : Command line warning D9025 : overriding an option "
+            "[" + NUMERICS + "VectorisNumerics_Tests.vcxproj]",
+            "FIRST_PARTY_COMPILER_WARNING")
+
+    def test_fatal_linker_error(self):
+        self.expect_failure(LINKER.replace("warning LNK4075", "fatal error LNK1104"),
+                            "BUILD_ERROR")
+
+    def test_msbuild_tool_diagnostic(self):
+        self.expect_failure(
+            "MSBUILD : warning MSB3270: architecture mismatch "
+            "[" + NUMERICS + "VectorisNumerics_Tests.vcxproj]",
+            "FIRST_PARTY_BUILD_SYSTEM_WARNING")
+
+    def test_explicit_librarian_tool_identity(self):
+        self.expect_failure(LINKER.replace("LINK :", "lib.exe :"),
+                            "FIRST_PARTY_LIBRARIAN_WARNING")
+
+    def test_explicit_linker_tool_identity(self):
+        self.expect_failure(LIBRARIAN.replace("order_poison_forward.obj :", "LINK :"),
+                            "FIRST_PARTY_LINKER_WARNING")
+
+    def test_cmake_warning_at_first_party_location(self):
+        self.expect_failure("CMake Warning at " + SOURCE + "/CMakeLists.txt:42 (message):",
+                            "FIRST_PARTY_BUILD_SYSTEM_WARNING")
+
+    def test_cmake_developer_warning(self):
+        self.expect_failure("CMake Warning (dev) in modules/VectorisNumerics/CMakeLists.txt:",
+                            "FIRST_PARTY_BUILD_SYSTEM_WARNING")
+
+    def test_cmake_deprecation_warning(self):
+        self.expect_failure("CMake Deprecation Warning at cmake/Probe.cmake:2 (message):",
+                            "FIRST_PARTY_BUILD_SYSTEM_WARNING")
+
+    def test_cmake_error(self):
+        self.expect_failure("CMake Error at cmake/Probe.cmake:42 (message):", "BUILD_ERROR")
+
+    def test_cmake_dependency_warning(self):
+        result = self.audit("CMake Warning at " + BUILD +
+                            "/_deps/googletest-src/CMakeLists.txt:42 (message):")
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["counts"]["THIRD_PARTY_WARNING"], 1)
+
+    def test_cmake_warning_without_ownership_fails_closed(self):
+        self.expect_failure("CMake Warning:", "UNKNOWN_DIAGNOSTIC")
+
+    def test_malformed_cmake_diagnostic_fails_closed(self):
+        self.expect_failure("CMake Warning at cmake/Probe.cmake:42 (message)",
+                            "UNKNOWN_DIAGNOSTIC")
+
+    def test_missing_diagnostic_separators_fails_closed(self):
+        self.expect_failure("modules/VectorisNumerics/tests/Probe.cpp(12) warning C4244 conversion",
+                            "UNKNOWN_DIAGNOSTIC")
+
+    def test_missing_diagnostic_code_fails_closed(self):
+        self.expect_failure("modules/VectorisNumerics/tests/Probe.cpp(12): warning: conversion",
+                            "UNKNOWN_DIAGNOSTIC")
+
+    def test_bare_code_with_colon_fails_closed(self):
+        self.expect_failure("C4244: conversion", "UNKNOWN_DIAGNOSTIC")
+
+    def test_unlocated_coded_warning_fails_closed(self):
+        self.expect_failure("warning C4244: conversion", "UNKNOWN_DIAGNOSTIC")
+
+    def test_prose_cannot_hide_following_diagnostic(self):
+        result = self.audit("The error model describes warning policy.\n" + COMPILER)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertEqual(result["counts"]["FIRST_PARTY_COMPILER_WARNING"], 1)
+        self.assertEqual(result["counts"]["UNKNOWN_DIAGNOSTIC"], 0)
+        self.assertEqual(result["diagnostics"][0]["raw"], COMPILER)
+
+    def test_unreadable_log_fails_cli(self):
+        with patch.object(Path, "read_text", side_effect=PermissionError("controlled unreadable log")):
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertNotEqual(gate.main([
+                    "--log-dir", str(self.logs), "--source-root", SOURCE,
+                    "--build-root", BUILD]), 0)
+
+    def test_directory_instead_of_log_fails_cli(self):
+        path = self.logs / "configure.log"
+        path.unlink()
+        path.mkdir()
+        self.assertNotEqual(self.cli(), 0)
+
+    def test_control_character_cannot_hide_diagnostic(self):
+        with self.assertRaises(ValueError):
+            self.audit("\x1b[31m" + COMPILER)
+
 
 class GeneratedProjectPolicyTests(unittest.TestCase):
     def setUp(self):
@@ -278,6 +416,30 @@ class GeneratedProjectPolicyTests(unittest.TestCase):
         (self.root / "VectorisNumerics_HeaderIsolation_Objects.lib").touch()
         with self.assertRaises(RuntimeError):
             native.inspect_projects(self.root, self.output)
+
+
+def prose_case(text):
+    def test(self):
+        self.assertIsNone(gate.classify(text, gate.normalized(SOURCE), gate.normalized(BUILD)))
+        self.assertEqual(self.audit(text)["status"], "PASS")
+    return test
+
+
+candidate6 = json.loads((FIXTURES / "candidate6-msbuild-prose.json").read_text())
+assert len(candidate6["records"]) == 21, "Every original false-positive occurrence is required"
+for index, record in enumerate(candidate6["records"], 1):
+    case = prose_case(record["raw_line"])
+    case.__doc__ = record["source_log"] + ":" + str(record["source_line"])
+    setattr(WarningGateTests, f"test_candidate6_prose_{index:02d}", case)
+
+for index, prose in enumerate((
+    "error hierarchy", "error handling", "error category", "error model",
+    "warning policy", "warning classification", "warning gate",
+    "no errors detected", "zero warnings required",
+    "Description: error handling", "Contract: warning policy",
+    "This guide explains warning C4244: conversion diagnostics.",
+), 1):
+    setattr(WarningGateTests, f"test_ordinary_prose_{index:02d}", prose_case(prose))
 
 
 if __name__ == "__main__":
