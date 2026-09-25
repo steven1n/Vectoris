@@ -84,10 +84,7 @@ if(BUILD_TESTING)
         file(WRITE "${TU_FILE}"
 "// Standalone Translation-Unit Isolation Test for: <${REL_HEADER}>
 #include <${REL_HEADER}>
-
-int main() {
-    return 0;
-}
+namespace dynamics_contract = vectoris::dynamics;
 ")
         list(APPEND DYNAMICS_ISOLATION_SOURCES "${TU_FILE}")
         list(APPEND DYNAMICS_FORWARD_INCLUDES "#include <${REL_HEADER}>\n")
@@ -99,9 +96,7 @@ int main() {
     file(WRITE "${FORWARD_TU}"
 "// Include-Order Poisoning Verification (Forward Order)
 ${FORWARD_CONTENT}
-int main() {
-    return 0;
-}
+namespace dynamics_contract = vectoris::dynamics;
 ")
     list(APPEND DYNAMICS_ISOLATION_SOURCES "${FORWARD_TU}")
 
@@ -112,19 +107,12 @@ int main() {
     file(WRITE "${REVERSE_TU}"
 "// Include-Order Poisoning Verification (Reverse Order)
 ${REVERSE_CONTENT}
-int main() {
-    return 0;
-}
+namespace dynamics_contract = vectoris::dynamics;
 ")
     list(APPEND DYNAMICS_ISOLATION_SOURCES "${REVERSE_TU}")
 
-    add_library(VectorisDynamics_HeaderIsolation OBJECT ${DYNAMICS_ISOLATION_SOURCES})
-    target_compile_options(VectorisDynamics_HeaderIsolation PRIVATE ${VECTORIS_STRICT_WARNINGS})
-    target_link_libraries(VectorisDynamics_HeaderIsolation PRIVATE VectorisDynamics VectorisNumerics)
-
-    if(COMMAND vectoris_apply_sanitizers)
-        vectoris_apply_sanitizers(VectorisDynamics_HeaderIsolation)
-    elseif(COMMAND aegismath_apply_sanitizers)
-        aegismath_apply_sanitizers(VectorisDynamics_HeaderIsolation)
-    endif()
+    include(${PROJECT_SOURCE_DIR}/cmake/HeaderIsolationTarget.cmake)
+    vectoris_add_header_isolation_target(VectorisDynamics_HeaderIsolation
+        SOURCES ${DYNAMICS_ISOLATION_SOURCES}
+        LIBRARIES VectorisDynamics VectorisNumerics)
 endif()

@@ -31,8 +31,15 @@ foreach(HEADER_PATH IN LISTS VECTORIS_NUMERICS_PUBLIC_HEADERS)
     endif()
     set(NAMESPACE_BODY "")
     if(EXISTS "${NAMESPACE_PROBE}")
-        # Included inside main: no additional Vectoris headers may mask isolation.
-        set(NAMESPACE_BODY "#include \"${NAMESPACE_PROBE}\"")
+        # Compile every expression without exporting an entry point or probe symbol.
+        # The body still includes no additional Vectoris headers that mask isolation.
+        string(TOLOWER "${SANITIZED_NAME}" PROBE_SYMBOL)
+        set(NAMESPACE_BODY
+"namespace {
+[[maybe_unused]] void header_probe_${PROBE_SYMBOL}() {
+#include \"${NAMESPACE_PROBE}\"
+}
+}")
     endif()
 
     file(WRITE "${TU_FILE}"
@@ -40,11 +47,7 @@ foreach(HEADER_PATH IN LISTS VECTORIS_NUMERICS_PUBLIC_HEADERS)
 #include <${REL_HEADER}>
 #include <type_traits>
 ${NAMESPACE_CHECKS}${NAMESPACE_DECLARATIONS}
-
-int main() {
 ${NAMESPACE_BODY}
-    return 0;
-}
 ")
     list(APPEND VECTORIS_ISOLATION_SOURCES "${TU_FILE}")
     list(APPEND VECTORIS_FORWARD_INCLUDES "#include <${REL_HEADER}>\n")
@@ -60,9 +63,9 @@ set(FORWARD_TU "${VECTORIS_ISOLATION_DIR}/order_poison_forward.cpp")
 file(WRITE "${FORWARD_TU}"
 "// Include-Order Poisoning Verification (Forward Order)
 ${FORWARD_CONTENT}
-int main() {
-    return 0;
-}
+namespace core_contract = vectoris::numerics::core;
+namespace units_contract = vectoris::numerics::units;
+namespace geometry_contract = vectoris::numerics::geometry;
 ")
     list(APPEND VECTORIS_ISOLATION_SOURCES "${FORWARD_TU}")
 
@@ -74,25 +77,16 @@ set(REVERSE_TU "${VECTORIS_ISOLATION_DIR}/order_poison_reverse.cpp")
 file(WRITE "${REVERSE_TU}"
 "// Include-Order Poisoning Verification (Reverse Order)
 ${REVERSE_CONTENT}
-int main() {
-    return 0;
-}
+namespace core_contract = vectoris::numerics::core;
+namespace units_contract = vectoris::numerics::units;
+namespace geometry_contract = vectoris::numerics::geometry;
 ")
 list(APPEND VECTORIS_ISOLATION_SOURCES "${REVERSE_TU}")
 
 # ==============================================================================
-# OBJECT Library target to build all isolation TUs in parallel
+# Compile-only target; the Visual Studio backend must not archive these objects.
 # ==============================================================================
-add_library(VectorisNumerics_HeaderIsolation OBJECT ${VECTORIS_ISOLATION_SOURCES})
-target_link_libraries(VectorisNumerics_HeaderIsolation PRIVATE VectorisNumerics)
-target_compile_options(VectorisNumerics_HeaderIsolation PRIVATE ${VECTORIS_STRICT_WARNINGS})
-set_target_properties(VectorisNumerics_HeaderIsolation PROPERTIES
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
-if(COMMAND vectoris_apply_sanitizers)
-    vectoris_apply_sanitizers(VectorisNumerics_HeaderIsolation)
-elseif(COMMAND aegismath_apply_sanitizers)
-    aegismath_apply_sanitizers(VectorisNumerics_HeaderIsolation)
-endif()
+include(${PROJECT_SOURCE_DIR}/cmake/HeaderIsolationTarget.cmake)
+vectoris_add_header_isolation_target(VectorisNumerics_HeaderIsolation
+    SOURCES ${VECTORIS_ISOLATION_SOURCES}
+    LIBRARIES VectorisNumerics)

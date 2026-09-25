@@ -178,6 +178,9 @@ jobs:
   msvc-windows:
     name: Windows MSVC x64 (windows-latest)
     runs-on: windows-latest
+    env:
+      VSLANG: "1033"
+      PYTHONUTF8: "1"
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -210,6 +213,18 @@ jobs:
           $envLog | Out-File -FilePath artifacts-msvc/environment.txt -Encoding utf8
           Write-Host $envLog
 
+      - name: Verify Fail-Closed Warning Gate Controls
+        shell: pwsh
+        run: |
+          & python.exe tools/qualification/verify_warning_gate.py *>&1 | Tee-Object -FilePath artifacts-msvc/warning-gate-selftests.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify Native MSVC Warning-As-Error Behavior
+        shell: pwsh
+        run: |
+          & python.exe tools/qualification/verify_msvc_warning_policy.py --output-dir artifacts-msvc/native-warning-experiments *>&1 | Tee-Object -FilePath artifacts-msvc/native-warning-policy.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Phase 18 — Configure MSVC
         shell: pwsh
         run: |
@@ -221,6 +236,8 @@ jobs:
           & cmake.exe `
             -S . `
             -B build-msvc `
+            -DCMAKE_EXE_LINKER_FLAGS=/WX `
+            -DCMAKE_STATIC_LINKER_FLAGS=/WX `
             -DVECTORIS_ENABLE_ASAN=OFF `
             -DVECTORIS_ENABLE_UBSAN=OFF `
             -DVECTORIS_ENABLE_COVERAGE=OFF `
@@ -265,6 +282,18 @@ jobs:
           & cmake.exe --build build-msvc --config Release --parallel *>&1 | Tee-Object -FilePath artifacts-msvc/build-release.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & ctest.exe --test-dir build-msvc -C Release --output-on-failure *>&1 | Tee-Object -FilePath artifacts-msvc/test-release.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify Generated MSVC Warning Policy
+        shell: pwsh
+        run: |
+          & python.exe tools/qualification/verify_msvc_warning_policy.py --inspect-build build-msvc --output-dir artifacts-msvc/generated-project-policy *>&1 | Tee-Object -FilePath artifacts-msvc/generated-project-policy.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Enforce First-Party Zero-Warning Qualification
+        shell: pwsh
+        run: |
+          & python.exe tools/qualification/audit_msvc_warnings.py --log-dir artifacts-msvc --source-root "$env:GITHUB_WORKSPACE" --build-root "$env:GITHUB_WORKSPACE/build-msvc" --output artifacts-msvc/zero-warning-report.json *>&1 | Tee-Object -FilePath artifacts-msvc/zero-warning-gate.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload MSVC Qualification Artifacts (Phase 34)

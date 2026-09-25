@@ -1,0 +1,1 @@
+order_poison_forward.obj : warning LNK4006: main already defined in order_poison_reverse.obj; second definition ignored [D:\a\Vectoris\Vectoris\build-msvc\modules\VectorisNumerics\VectorisNumerics_HeaderIsolation.vcxproj]
