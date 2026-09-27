@@ -1,0 +1,7 @@
+jobs:
+  bad:
+    steps:
+      - name: unsafe
+        shell: bash
+        run: |
+          false | tee /dev/null

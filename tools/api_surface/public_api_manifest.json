@@ -994,5 +994,26 @@
     ],
     "quaternion_and_transform": "Identity is available only when the class FrameFrom and FrameTo types match; legacy explicit function arguments may name any same-frame pair but cannot change the class frame mapping.",
     "rotation_matrix": "Identity returns the identity matrix for its declared mapping; cross-frame use requires caller-established aligned coordinate bases."
-  }
+  },
+  "required_positive_tests": [
+    "PublicApiSurfaceTest.CoreResultNamedFactories",
+    "PublicApiSurfaceTest.CoreAlmostEqualFloatAndDouble",
+    "PublicApiSurfaceTest.UnitsBaseQuantitiesFloatAndDouble",
+    "PublicApiSurfaceTest.UnitsDerivedAndUnitCast",
+    "PublicApiSurfaceTest.GeometryVector3FloatAndDouble",
+    "PublicApiSurfaceTest.GeometryIdentityFactoriesRespectClassFrames",
+    "PublicApiSurfaceTest.GeometryUnitVector3AccessorsFloatAndDouble",
+    "PublicApiSurfaceTest.GeometryMatrix3AndVectorMultiplication",
+    "PublicApiSurfaceTest.GeometryMatrix3RepresentationContract",
+    "PublicApiSurfaceTest.GeometryQuaternionCheckedConversion",
+    "PublicApiSurfaceTest.GeometryTransform3FloatAndDouble",
+    "PublicApiSurfaceTest.GeometrySymmetricLinearSolverFloatAndDouble",
+    "PublicApiSurfaceTest.CompileTimeNegativeRejectionConstraints",
+    "PublicApiSurfaceTest.NamespaceQualifiedFloat",
+    "PublicApiSurfaceTest.NamespaceQualifiedDouble",
+    "PublicApiSurfaceTest.CoreResultTwoStatePayloadPolicy",
+    "PublicApiSurfaceTest.CoreSqrtFloatRuntimeAndConstexpr",
+    "PublicApiSurfaceTest.CoreSqrtDoubleRuntimeAndConstexpr",
+    "PublicApiSurfaceTest.CoreSqrtLongDoubleRuntime"
+  ]
 }

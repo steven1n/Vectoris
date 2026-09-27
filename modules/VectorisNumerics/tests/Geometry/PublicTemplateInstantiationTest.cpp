@@ -123,3 +123,102 @@ TEST(GeometryPublicTemplateTest, Transform3Identity) {
     EXPECT_DOUBLE_EQ(v_trans.y, 5.0);
     EXPECT_DOUBLE_EQ(v_trans.z, 6.0);
 }
+
+// AFA-002: operations accepted by ScalarArithmetic may throw; their callers can catch.
+namespace {
+enum class AFA002Fault { None, Default, Copy, Move, Add, Subtract, Negate, Multiply, Equal };
+struct AFA002Exception {};
+struct AFA002Scalar {
+    inline static AFA002Fault fault = AFA002Fault::None;
+    int value{};
+    static void check(AFA002Fault operation) { if (fault == operation) { throw AFA002Exception{}; } }
+    AFA002Scalar() { check(AFA002Fault::Default); }
+    explicit AFA002Scalar(int v) noexcept : value(v) {}
+    AFA002Scalar(const AFA002Scalar& rhs) : value(rhs.value) { check(AFA002Fault::Copy); }
+    AFA002Scalar(AFA002Scalar&& rhs) noexcept(false) : value(rhs.value) { check(AFA002Fault::Move); }
+    ~AFA002Scalar() = default;
+    AFA002Scalar& operator=(const AFA002Scalar&) = default;
+    AFA002Scalar& operator=(AFA002Scalar&&) = default;
+    friend AFA002Scalar operator+(const AFA002Scalar& a, const AFA002Scalar& b) {
+        check(AFA002Fault::Add); return AFA002Scalar{a.value+b.value};
+    }
+    friend AFA002Scalar operator-(const AFA002Scalar& a, const AFA002Scalar& b) {
+        check(AFA002Fault::Subtract); return AFA002Scalar{a.value-b.value};
+    }
+    friend AFA002Scalar operator-(const AFA002Scalar& a) {
+        check(AFA002Fault::Negate); return AFA002Scalar{-a.value};
+    }
+    friend AFA002Scalar operator*(const AFA002Scalar& a, const AFA002Scalar& b) {
+        check(AFA002Fault::Multiply); return AFA002Scalar{a.value*b.value};
+    }
+    friend AFA002Scalar operator/(const AFA002Scalar& a, const AFA002Scalar& b) {
+        return AFA002Scalar{a.value/b.value};
+    }
+    friend bool operator==(const AFA002Scalar& a, const AFA002Scalar& b) {
+        check(AFA002Fault::Equal); return a.value==b.value;
+    }
+};
+using AFA002Vector = vectoris::numerics::geometry::Vector3<AFA002Scalar, TestFrameA>;
+static_assert(vectoris::numerics::geometry::ScalarArithmetic<AFA002Scalar>);
+static_assert(!std::is_nothrow_default_constructible_v<AFA002Vector>);
+static_assert(!std::is_nothrow_copy_constructible_v<AFA002Vector>);
+static_assert(!std::is_nothrow_move_constructible_v<AFA002Vector>);
+static_assert(!noexcept(std::declval<const AFA002Vector&>() + std::declval<const AFA002Vector&>()));
+static_assert(!noexcept(-std::declval<const AFA002Vector&>()));
+static_assert(!noexcept(std::declval<const AFA002Vector&>() * std::declval<const AFA002Scalar&>()));
+static_assert(!noexcept(std::declval<const AFA002Vector&>().dot(std::declval<const AFA002Vector&>())));
+}
+TEST(AFA002Noexcept, BuiltinScalarContract) {
+    using V = vectoris::numerics::geometry::Vector3<double, TestFrameA>;
+    using F = vectoris::numerics::geometry::Vector3<float, TestFrameA>;
+    constexpr V v{1.,2.,3.}; constexpr F f{1.F,2.F,3.F};
+    static_assert(noexcept(V{}) && noexcept(V{1.,2.,3.}) && noexcept(F{}));
+    static_assert(noexcept(v+v) && noexcept(v-f) && noexcept(-v));
+    static_assert(noexcept(v*2.) && noexcept(2.*v) && noexcept(v.dot(f)));
+    static_assert(noexcept(v==v) && noexcept(v!=v));
+    static_assert(std::is_nothrow_copy_constructible_v<V> && std::is_nothrow_move_constructible_v<F>);
+    EXPECT_DOUBLE_EQ(v.dot(v), 14.);
+}
+TEST(AFA002Noexcept, ThrowingArithmeticIsCatchable) {
+    const AFA002Vector a{AFA002Scalar{1}, AFA002Scalar{2}, AFA002Scalar{3}};
+    const AFA002Scalar scalar{2};
+    AFA002Scalar::fault=AFA002Fault::Add;
+    EXPECT_THROW((void)(a+a), AFA002Exception);
+    AFA002Scalar::fault=AFA002Fault::Subtract;
+    EXPECT_THROW((void)(a-a), AFA002Exception);
+    AFA002Scalar::fault=AFA002Fault::Negate;
+    EXPECT_THROW((void)(-a), AFA002Exception);
+    AFA002Scalar::fault=AFA002Fault::Multiply;
+    EXPECT_THROW((void)(a*scalar), AFA002Exception);
+    EXPECT_THROW((void)(scalar*a), AFA002Exception);
+    EXPECT_THROW((void)(a.dot(a)), AFA002Exception);
+    AFA002Scalar::fault=AFA002Fault::Equal;
+    EXPECT_THROW((void)(a==a), AFA002Exception);
+    EXPECT_THROW((void)(a!=a), AFA002Exception);
+    AFA002Scalar::fault=AFA002Fault::None;
+    EXPECT_EQ((a+a).x.value,2);
+    EXPECT_EQ((scalar/scalar).value,1);
+}
+TEST(AFA002Noexcept, ThrowingConstructionIsCatchable) {
+    AFA002Scalar::fault=AFA002Fault::Default;
+    EXPECT_THROW((void)AFA002Vector{}, AFA002Exception);
+    AFA002Scalar::fault=AFA002Fault::None;
+    AFA002Vector a{AFA002Scalar{1},AFA002Scalar{2},AFA002Scalar{3}};
+    AFA002Scalar::fault=AFA002Fault::Copy;
+    EXPECT_THROW((void)AFA002Vector(a), AFA002Exception);
+    EXPECT_THROW((void)(a+a), AFA002Exception); // copying operation results into components
+    AFA002Scalar::fault=AFA002Fault::Move;
+    EXPECT_THROW((void)AFA002Vector(std::move(a)), AFA002Exception);
+    AFA002Scalar::fault=AFA002Fault::None;
+}
+
+TEST(AFA002Noexcept, ReferenceScalarConstructionRemainsCompatible) {
+    double x=1., y=2., z=3.;
+    using V = vectoris::numerics::geometry::Vector3<double&, TestFrameA>;
+    static_assert(vectoris::numerics::geometry::ScalarArithmetic<double&>);
+    static_assert(noexcept(V{x,y,z}));
+    V references{x,y,z};
+    EXPECT_EQ(&references.x, &x);
+    EXPECT_EQ(&references.y, &y);
+    EXPECT_EQ(&references.z, &z);
+}

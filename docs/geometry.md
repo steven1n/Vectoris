@@ -451,3 +451,44 @@ NaN/Inf, subnormal, type, accuracy and compatibility semantics.
 The normalization formula itself is unchanged. Its earlier no-iteration description
 refers to the runtime normalization path; float/double sqrt constant evaluation
 now uses the fixed 24/53-step digit algorithm described in core.md.
+
+## Candidate #8: rotation evaluation and generic scalar exceptions
+
+AFA-001 preserves Quaternion's public signatures and frame mappings. For built-in
+floating scalars, rotating a finite vector by a valid unit quaternion derives
+bounded rotation coefficients from the homogeneous quadratic coefficients divided
+by the stored squared norm. Bounding coefficient roundoff to the mathematical
+interval [-1,1] prevents an individual product from overflowing. Each row adds its
+minimum and maximum products before the median, so cancelling signs meet before
+an intermediate overflow. A conservative addition bound detects rows approaching
+the representable limit **before** evaluating an overflowing sum. Those rows are
+re-evaluated with two-component compensated products/sums, a corrected quotient,
+and power-of-two input/output scaling. This prevents rounded matrix coefficients
+from producing a false infinity even when the exact rotated component rounds to
+max(). The extra precision works when MSVC long double equals double. Only these
+boundary rows are scaled; ordinary rows retain isolated subnormal components.
+This avoids scaling a mixed max/subnormal vector into one common exponent range
+and losing its independent tiny components. It does not rely on FMA or compiler
+contraction. No result is saturated to a finite sentinel. All-zero vectors preserve input zero signs;
+other zero signs follow ordinary floating arithmetic. Final unrepresentable sums
+may overflow; input finiteness and the existing valid-unit precondition still
+apply. Ordinary rounding error remains; no exact rounding/bitwise cross-compiler
+claim is made. The supported numerical environment is round-to-nearest, gradual
+underflow and no fast-math. The operations remain constexpr for the supported float/double
+constant-evaluation surface.
+
+AFA-002 retains ScalarArithmetic support for user-defined arithmetic. Vector3's
+value/default constructors, unary/binary arithmetic, scalar multiplication on both
+sides, dot, equality/inequality and AlmostEqual now derive noexcept from their
+actual construction/evaluation expressions. Implicit copy/move/assignment keep the
+compiler-derived conditional exception specifications. The by-value constructor
+preserves lvalue reference component bindings and otherwise consumes its local
+parameters with std::move_if_noexcept, preserving copy-only
+payload support and selecting a nonthrowing move when available; its specification
+reflects that exact construction. Vector3 currently has no
+public division, compound assignment, or cross member. Built-in float/double retain
+nothrow behavior; exceptions thrown by supported custom scalar operations propagate
+to the caller. This is an exception-specification correction, not a new mathematical
+error channel. It changes noexcept type/trait observations for throwing scalars;
+consumers must rebuild affected template instantiations. Layout is unchanged; no
+binary ABI stability is promised.

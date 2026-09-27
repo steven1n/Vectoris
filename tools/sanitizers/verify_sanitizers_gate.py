@@ -1,207 +1,86 @@
 #!/usr/bin/env python3
-"""
-verify_sanitizers_gate.py
-
-Dedicated negative sanitizer gate verification script for Vectoris.
-Validates that runtime violations under AddressSanitizer and UndefinedBehaviorSanitizer
-reliably trigger fail-fast behavior with non-zero exit codes.
-
-Complies with VRT-05 requirements:
-- Isolated self-test (does not contaminate production sources or test targets).
-- Proves runtime violation -> non-zero exit.
-- Records raw exit codes and diagnostic output.
-"""
-
+"""VRT-05 / AFA006: a real fail-fast diagnostic, not any nonzero exit, is required."""
+import argparse
 import os
-import sys
+from pathlib import Path
+import re
+import shutil
 import subprocess
+import sys
 import tempfile
 
-def find_cxx_compiler():
-    candidates = ["clang++", "c++", "g++"]
-    for c in candidates:
-        res = subprocess.run(["which", c], capture_output=True, text=True)
-        if res.returncode == 0:
-            return res.stdout.strip()
-    return "clang++"
+MARKERS = {'ASan':'VECTORIS_ASAN_PROBE_BEGIN', 'UBSan':'VECTORIS_UBSAN_PROBE_BEGIN', 'clean':'VECTORIS_CLEAN_PROBE_BEGIN'}
+PATTERNS = {'ASan':r'AddressSanitizer:\s*heap-use-after-free',
+            'UBSan':r'runtime error:\s*signed integer overflow'}
 
-def test_ubsan_gate(cxx):
-    print("=" * 60)
-    print("Testing UndefinedBehaviorSanitizer (UBSan) Fail-Fast Gate")
-    print("=" * 60)
+def classify_negative(result, family):
+    text = result.stdout + '\n' + result.stderr
+    if re.search(r'(?i)(library not loaded|cannot open shared object file|loader failure|command not found)',text):
+        return 'INFRASTRUCTURE_FAILURE'
+    diagnostic = re.search(PATTERNS[family], text) is not None
+    if result.returncode == 0:
+        return 'FAIL_FAST_VIOLATION' if diagnostic else 'NO_DIAGNOSTIC'
+    if MARKERS[family] not in text:
+        return 'INFRASTRUCTURE_FAILURE'
+    if diagnostic:
+        return 'EXPECTED_SANITIZER_FAILURE'
+    if re.search(r'AddressSanitizer|UndefinedBehaviorSanitizer|runtime error:',text):
+        return 'UNEXPECTED_NONZERO'
+    return 'NO_DIAGNOSTIC'
 
-    source = """#include <climits>
-#include <iostream>
+def classify_clean(result):
+    text = result.stdout + '\n' + result.stderr
+    if result.returncode == 0 and MARKERS['clean'] in text and not re.search(
+            r'AddressSanitizer|UndefinedBehaviorSanitizer|runtime error:',text):
+        return 'CLEAN_SUCCESS'
+    return 'INFRASTRUCTURE_FAILURE' if MARKERS['clean'] not in text else 'UNEXPECTED_NONZERO'
 
-int main() {
-    volatile int a = INT_MAX;
-    int b = a + 1;
-    (void)b;
-    return 0;
-}
-"""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        src_path = os.path.join(tmpdir, "ubsan_probe.cpp")
-        exe_path = os.path.join(tmpdir, "ubsan_probe")
-        with open(src_path, "w") as f:
-            f.write(source)
-
-        compile_cmd = [
-            cxx, "-std=c++20",
-            "-fsanitize=undefined",
-            "-fno-sanitize-recover=undefined",
-            "-fno-omit-frame-pointer",
-            src_path, "-o", exe_path
-        ]
-
-        comp_res = subprocess.run(compile_cmd, capture_output=True, text=True)
-        if comp_res.returncode != 0:
-            print(f"FAILED: Compilation of UBSan probe failed:\n{comp_res.stderr}")
-            return False
-
-        # Test 1: Run with default environment (no explicit UBSAN_OPTIONS)
-        clean_env = {k: v for k, v in os.environ.items() if not k.startswith("UBSAN_")}
-        run_res1 = subprocess.run([exe_path], capture_output=True, text=True, env=clean_env)
-
-        diag_emitted1 = ("runtime error" in run_res1.stderr) or ("UndefinedBehaviorSanitizer" in run_res1.stderr)
-        non_zero_exit1 = (run_res1.returncode != 0)
-
-        print(f"  [Default Env] Diagnostic Emitted: {"YES" if diag_emitted1 else "NO"}")
-        print(f"  [Default Env] Raw Exit Code:     {run_res1.returncode}")
-        print(f"  [Default Env] Fail-Fast Result:  {"PASS" if non_zero_exit1 else "FAIL"}")
-
-        # Test 2: Run with explicit UBSAN_OPTIONS=halt_on_error=1
-        halt_env = dict(clean_env)
-        halt_env["UBSAN_OPTIONS"] = "halt_on_error=1:print_stacktrace=1"
-        run_res2 = subprocess.run([exe_path], capture_output=True, text=True, env=halt_env)
-
-        diag_emitted2 = ("runtime error" in run_res2.stderr) or ("UndefinedBehaviorSanitizer" in run_res2.stderr)
-        non_zero_exit2 = (run_res2.returncode != 0)
-
-        print(f"  [halt_on_error] Diagnostic Emitted: {"YES" if diag_emitted2 else "NO"}")
-        print(f"  [halt_on_error] Raw Exit Code:     {run_res2.returncode}")
-        print(f"  [halt_on_error] Fail-Fast Result:  {"PASS" if non_zero_exit2 else "FAIL"}")
-
-        if not (non_zero_exit1 and non_zero_exit2):
-            print("ERROR: UBSan violation failed to cause a non-zero exit code!")
-            return False
-
-    print("UBSan Fail-Fast Gate: PASS\n")
-    return True
-
-def test_asan_gate(cxx):
-    print("=" * 60)
-    print("Testing AddressSanitizer (ASan) Fail-Fast Gate")
-    print("=" * 60)
-
-    source = """#include <iostream>
-
-int main() {
-    volatile int* ptr = new int[10];
-    delete[] ptr;
-    int val = ptr[0];
-    (void)val;
-    return 0;
-}
-"""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        src_path = os.path.join(tmpdir, "asan_probe.cpp")
-        exe_path = os.path.join(tmpdir, "asan_probe")
-        with open(src_path, "w") as f:
-            f.write(source)
-
-        compile_cmd = [
-            cxx, "-std=c++20",
-            "-fsanitize=address",
-            "-fno-omit-frame-pointer",
-            src_path, "-o", exe_path
-        ]
-
-        comp_res = subprocess.run(compile_cmd, capture_output=True, text=True)
-        if comp_res.returncode != 0:
-            print(f"FAILED: Compilation of ASan probe failed:\n{comp_res.stderr}")
-            return False
-
-        clean_env = {k: v for k, v in os.environ.items() if not k.startswith("ASAN_")}
-        run_res = subprocess.run([exe_path], capture_output=True, text=True, env=clean_env)
-
-        diag_emitted = "AddressSanitizer" in run_res.stderr
-        non_zero_exit = (run_res.returncode != 0)
-
-        print(f"  Diagnostic Emitted: {"YES" if diag_emitted else "NO"}")
-        print(f"  Raw Exit Code:     {run_res.returncode}")
-        print(f"  Fail-Fast Result:  {"PASS" if non_zero_exit else "FAIL"}")
-
-        if not non_zero_exit:
-            print("ERROR: ASan violation failed to cause a non-zero exit code!")
-            return False
-
-    print("ASan Fail-Fast Gate: PASS\n")
-    return True
-
-def test_clean_execution(cxx):
-    print("=" * 60)
-    print("Testing Clean Program Execution Under Combined Sanitizers")
-    print("=" * 60)
-
-    source = """#include <iostream>
-
-int main() {
-    int sum = 0;
-    for (int i = 0; i < 100; ++i) {
-        sum += i;
+def run_probe(cxx, family):
+    bodies = {
+        'ASan': 'volatile int* p = new int[10]; delete[] p; int value = p[0]; (void)value; return 0;',
+        'UBSan': 'volatile int a = INT_MAX; int b = a + 1; (void)b; return 0;',
+        'clean': 'int sum = 0; for (int i=0; i<100; ++i) { sum += i; } return sum == 4950 ? 0 : 1;',
     }
-    return (sum == 4950) ? 0 : 1;
-}
-"""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        src_path = os.path.join(tmpdir, "clean_probe.cpp")
-        exe_path = os.path.join(tmpdir, "clean_probe")
-        with open(src_path, "w") as f:
-            f.write(source)
-
-        compile_cmd = [
-            cxx, "-std=c++20",
-            "-fsanitize=address,undefined",
-            "-fno-sanitize-recover=undefined",
-            "-fno-omit-frame-pointer",
-            src_path, "-o", exe_path
-        ]
-
-        comp_res = subprocess.run(compile_cmd, capture_output=True, text=True)
-        if comp_res.returncode != 0:
-            print(f"FAILED: Compilation of clean probe failed:\n{comp_res.stderr}")
+    flag = {'ASan':'address','UBSan':'undefined','clean':'address,undefined'}[family]
+    with tempfile.TemporaryDirectory(prefix='vectoris-sanitizer-') as tmp:
+        source=Path(tmp)/f'{family.lower()}_probe.cpp'; exe=Path(tmp)/f'{family.lower()}_probe'
+        source.write_text('#include <climits>\n#include <cstdio>\nint main() {\n'
+                          f'  std::fputs("{MARKERS[family]}\\n", stderr);\n  '+bodies[family]+'\n}\n')
+        command=[cxx,'-std=c++20','-O0',f'-fsanitize={flag}','-fno-sanitize-recover=all',
+                 '-fno-omit-frame-pointer',str(source),'-o',str(exe)]
+        try:
+            compile_result=subprocess.run(command,capture_output=True,text=True)
+            if compile_result.returncode:
+                print('INFRASTRUCTURE_FAILURE: probe compilation failed\n'+compile_result.stderr)
+                return False
+            base={k:v for k,v in os.environ.items() if not k.startswith(('ASAN_','UBSAN_'))}
+            explicit={**base,'ASAN_OPTIONS':'halt_on_error=1:abort_on_error=1',
+                      'UBSAN_OPTIONS':'halt_on_error=1:print_stacktrace=1'}
+            environments=[('default',base),('fail-fast',explicit)] if family!='clean' else [('fail-fast',explicit)]
+            outcomes=[]
+            for label,env in environments:
+                run=subprocess.run([str(exe)],capture_output=True,text=True,env=env)
+                category=classify_clean(run) if family=='clean' else classify_negative(run,family)
+                print(f'{family} {label}: exit={run.returncode}; classification={category}')
+                print(run.stdout+run.stderr)
+                outcomes.append(category==('CLEAN_SUCCESS' if family=='clean' else 'EXPECTED_SANITIZER_FAILURE'))
+            return all(outcomes)
+        except OSError as exc:
+            print(f'INFRASTRUCTURE_FAILURE: {exc}')
             return False
 
-        run_res = subprocess.run([exe_path], capture_output=True, text=True)
-        print(f"  Raw Exit Code:     {run_res.returncode}")
-        print(f"  Stderr empty:      {"YES" if len(run_res.stderr.strip()) == 0 else "NO"}")
-
-        if run_res.returncode != 0:
-            print("ERROR: Clean program unexpectedly returned non-zero exit code!")
-            return False
-
-    print("Clean Execution Gate: PASS\n")
-    return True
+def test_asan_gate(cxx): return run_probe(cxx,'ASan')
+def test_ubsan_gate(cxx): return run_probe(cxx,'UBSan')
+def test_clean_execution(cxx): return run_probe(cxx,'clean')
 
 def main():
-    cxx = find_cxx_compiler()
-    print(f"Using C++ Compiler: {cxx}")
-
-    ubsan_ok = test_ubsan_gate(cxx)
-    asan_ok = test_asan_gate(cxx)
-    clean_ok = test_clean_execution(cxx)
-
-    if ubsan_ok and asan_ok and clean_ok:
-        print("=" * 60)
-        print("ALL SANITIZER GATES VERIFIED: PASS")
-        print("=" * 60)
-        sys.exit(0)
-    else:
-        print("=" * 60)
-        print("SANITIZER GATE VERIFICATION: FAIL")
-        print("=" * 60)
-        sys.exit(1)
-
-if __name__ == "__main__":
-    main()
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--cxx',default=os.environ.get('CXX') or shutil.which('clang++'))
+    args=parser.parse_args()
+    if not args.cxx: parser.exit(1,'INFRASTRUCTURE_FAILURE: no compiler\n')
+    tests=subprocess.run([sys.executable,str(Path(__file__).with_name('test_sanitizer_contract.py'))])
+    outcomes=[test_ubsan_gate(args.cxx),test_asan_gate(args.cxx),test_clean_execution(args.cxx)]
+    passed=tests.returncode==0 and all(outcomes)
+    print('SANITIZER GATE VERIFICATION: '+('PASS' if passed else 'FAIL'))
+    return 0 if passed else 1
+if __name__=='__main__': sys.exit(main())

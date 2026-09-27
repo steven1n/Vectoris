@@ -1,0 +1,2 @@
+# Structured GitHub Actions workflow parsing (AFA-004).
+PyYAML==6.0.2

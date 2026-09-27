@@ -1,0 +1,12 @@
+jobs:
+  bad:
+    steps:
+      - name: unsafe
+        shell: pwsh
+        run: |
+          & cmake.exe --build invalid
+          & cmd.exe /c exit 0
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  next:
+    runs-on: ubuntu-latest

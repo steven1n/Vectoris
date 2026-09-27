@@ -36,7 +36,9 @@ jobs:
       - name: Verify CI Pipeline Gate Semantics (VRT-06 Self-Test)
         run: |
           set -euo pipefail
-          python3 tools/ci/verify_pipeline_gate.py
+          python3 -m venv "$RUNNER_TEMP/vectoris-ci-tools"
+          "$RUNNER_TEMP/vectoris-ci-tools/bin/python" -m pip install -r tools/ci/requirements.txt
+          "$RUNNER_TEMP/vectoris-ci-tools/bin/python" tools/ci/verify_pipeline_gate.py
 
       - name: Capture Environment Identity (Phase 5)
         run: |
@@ -150,6 +152,12 @@ jobs:
           set -euo pipefail
           cmake --build build-clang-debug --target VectorisNumerics_HeaderIsolation VectorisDynamics_HeaderIsolation --parallel 2>&1 | tee artifacts-clang/header-isolation.log
 
+      - name: AFA-003 Public API Identity Gate and Controls
+        run: |
+          set -euo pipefail
+          python3 tools/api_surface/verify_api_surface.py --build-dir build-clang-debug
+          python3 tools/api_surface/verify_api_surface_gate.py --build-dir build-clang-debug
+
       - name: Phase 16 — LLVM Clang Release Build & Test
         run: |
           set -euo pipefail
@@ -204,14 +212,14 @@ jobs:
           $env:PROCESSOR_ARCHITECTURE
           Is64BitProcess=$([System.Environment]::Is64BitProcess)
           === MSVC Compiler ===
-          $(& cl.exe 2>&1 | Out-String)
-          === CMake ===
-          $(& cmake.exe --version | Out-String)
-          === Git SHA ===
-          $(& git.exe rev-parse HEAD | Out-String)
+          $((Get-Item (Get-Command cl.exe).Source).VersionInfo.FileVersion)
           "@
           $envLog | Out-File -FilePath artifacts-msvc/environment.txt -Encoding utf8
           Write-Host $envLog
+          & cmake.exe --version *>&1 | Tee-Object -FilePath artifacts-msvc/environment.txt -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & git.exe rev-parse HEAD | Tee-Object -FilePath artifacts-msvc/environment.txt -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Verify Fail-Closed Warning Gate Controls
         shell: pwsh
@@ -230,8 +238,10 @@ jobs:
         run: |
           Write-Host "=== Available Generators ==="
           & cmake.exe --help
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Write-Host "=== Installed VS Instances ==="
           & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -all -products *
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           # Try default or detected generator
           & cmake.exe `
             -S . `
@@ -465,6 +475,11 @@ jobs:
           set -euo pipefail
           mkdir -p artifacts-static
           cmake --build build-sta --target VectorisNumerics_ClangTidy 2>&1 | tee artifacts-static/clang-tidy-gate.log
+
+      - name: AFA-005 Mandatory Exact-TU Self-Tests
+        run: |
+          set -euo pipefail
+          python3 tools/static_analysis/verify_clang_tidy_gate.py --build-dir build-sta --clang-tidy /usr/bin/clang-tidy-22 2>&1 | tee artifacts-static/clang-tidy-selftests.log
 
       - name: Upload Clang-Tidy Qualification Evidence
         if: always()

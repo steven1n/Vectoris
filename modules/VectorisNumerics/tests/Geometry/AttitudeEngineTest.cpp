@@ -220,3 +220,131 @@ TEST(QuaternionTest, AccumulatedDriftIsCheckedAndCanBeRenormalized) {
     EXPECT_NEAR(mapped.z, 0.0, 1e-14);
 }
 } // namespace
+
+// AFA-001: analytic rotations exercise representable answers at exponent limits.
+namespace {
+template <typename T>
+void CheckAFA001Axes() {
+    using Q = Quaternion<T, FrameA, FrameB>;
+    using V = Vector3<T, FrameA>;
+    const T hi = std::numeric_limits<T>::max();
+    const T tiny = std::numeric_limits<T>::denorm_min();
+    const std::array<T, 7> scales{hi, hi / T{2}, hi * T{0.75}, T{1},
+                                 std::numeric_limits<T>::min(), tiny, -hi};
+    for (const T s : scales) {
+        const V v{s, -s, tiny};
+        const auto rx = Q::TryCreate(T{0}, T{1}, T{0}, T{0}).value() * v;
+        const auto ry = Q::TryCreate(T{0}, T{0}, T{1}, T{0}).value() * v;
+        const auto rz = Q::TryCreate(T{0}, T{0}, T{0}, T{1}).value() * v;
+        // Exact analytic sign/permutation operations, not computed-value heuristics.
+        EXPECT_EQ(rx.x, s); EXPECT_EQ(rx.y, s); EXPECT_EQ(rx.z, -tiny);
+        EXPECT_EQ(ry.x, -s); EXPECT_EQ(ry.y, -s); EXPECT_EQ(ry.z, -tiny);
+        EXPECT_EQ(rz.x, -s); EXPECT_EQ(rz.y, s); EXPECT_EQ(rz.z, tiny);
+        const auto cyclic = Q::TryCreate(T{1}, T{1}, T{1}, T{1}).value() * v;
+        EXPECT_EQ(cyclic.x, tiny); EXPECT_EQ(cyclic.y, s); EXPECT_EQ(cyclic.z, -s);
+    }
+    const auto q = Q::TryCreate(T{0}, T{1}, T{0}, T{0}).value();
+    const auto zero = q * V{-T{0}, T{0}, -T{0}};
+    EXPECT_TRUE(std::signbit(zero.x)); EXPECT_FALSE(std::signbit(zero.y));
+    EXPECT_TRUE(std::signbit(zero.z));
+    const auto original = q * V{T{0}, hi, T{0}};
+    EXPECT_EQ(original.y, -hi);
+    const auto inverse_sign = q * V{T{0}, -hi, T{0}};
+    EXPECT_EQ(inverse_sign.y, hi);
+}
+
+template <typename T>
+void CheckAFA001General() {
+    using Q = Quaternion<T, FrameA, FrameB>;
+    const auto q = Q::TryCreate(T{1}, T{2}, T{3}, T{4}).value();
+    // Independent Rodrigues oracle from the original axis/angle, in long double.
+    const long double axis_norm = std::sqrt(29.L);
+    const std::array<long double, 3> axis{2.L / axis_norm, 3.L / axis_norm, 4.L / axis_norm};
+    const long double angle = 2.L * std::atan2(axis_norm, 1.L);
+    const long double sine = std::sin(angle), cosine = std::cos(angle);
+    const std::array<long double, 3> direction{0.125L, -0.25L, 0.375L};
+    const long double dot = axis[0]*direction[0] + axis[1]*direction[1] + axis[2]*direction[2];
+    const std::array<long double, 3> cross{axis[1]*direction[2]-axis[2]*direction[1],
+        axis[2]*direction[0]-axis[0]*direction[2], axis[0]*direction[1]-axis[1]*direction[0]};
+    for (const T scale : {T{1}, std::numeric_limits<T>::max(), std::numeric_limits<T>::min()}) {
+        const auto v = Vector3<T, FrameA>{scale*T{0.125}, -scale*T{0.25}, scale*T{0.375}};
+        const auto actual = q * v;
+        const std::array<T, 3> parts{actual.x, actual.y, actual.z};
+        for (std::size_t i=0; i<3; ++i) {
+            const long double expected = direction[i]*cosine + cross[i]*sine + axis[i]*dot*(1.L-cosine);
+            EXPECT_TRUE(std::isfinite(parts[i]));
+            const long double error = std::abs(
+                static_cast<long double>(parts[i])/static_cast<long double>(scale) - expected);
+            EXPECT_LE(error, 16.L*static_cast<long double>(std::numeric_limits<T>::epsilon()));
+        }
+    }
+}
+}
+TEST(AFA001Rotation, FloatAnalyticExtremes) { CheckAFA001Axes<float>(); }
+TEST(AFA001Rotation, DoubleAnalyticExtremes) { CheckAFA001Axes<double>(); }
+TEST(AFA001Rotation, FloatIndependentRodrigues) { CheckAFA001General<float>(); }
+TEST(AFA001Rotation, DoubleIndependentRodrigues) { CheckAFA001General<double>(); }
+TEST(AFA001Rotation, ConstexprAndMixedPrecision) {
+    constexpr auto identity = Quaternion<double, FrameA, FrameA>::Identity();
+    constexpr auto out = identity * Vector3<float, FrameA>{1.F, 2.F, 3.F};
+    static_assert(out.x == 1. && out.y == 2. && out.z == 3.);
+    static_assert(std::same_as<std::remove_cv_t<decltype(out)>, Vector3<double, FrameA>>);
+    EXPECT_DOUBLE_EQ(out.z, 3.);
+    const auto tiny = std::numeric_limits<double>::denorm_min();
+    const auto mixed = identity * Vector3<double, FrameA>{std::numeric_limits<double>::max(), tiny, -tiny};
+    EXPECT_EQ(mixed.y, tiny); EXPECT_EQ(mixed.z, -tiny);
+}
+
+namespace {
+template <typename T>
+void CheckAFA001RoundedBoundary() {
+    using Q = Quaternion<T, FrameA, FrameA>;
+    using V = Vector3<T, FrameA>;
+    auto q = Q::Identity();
+    V v;
+    // Frozen binary inputs, independently evaluated with 120-digit Decimal
+    // arithmetic on the exact stored values. Both x outputs round to max():
+    // float: exact/max=0.99999999999999990890...
+    // double: exact/max=0.99999999999999997885...
+    if constexpr (std::same_as<T, float>) {
+        q.w = 0x1.47f146p-3F; q.x = q.w; q.y = q.w; q.z = 0x1.ebe9e8p-1F;
+        v = V{-0x1.cb7cb6p+127F, -0x1.069068p+126F, 0x1.6f96f8p+126F};
+    } else {
+        q.w = 0x1.3c03650e00e02p-3; q.x = q.w;
+        q.y = 0x1.3c03650e00e02p-2; q.z = 0x1.da05179501504p-1;
+        v = V{-0x1.cf3cf3cf3cf3cp+1023, -0x1.8618618618617p+1021, 0x1.8618618618617p+1022};
+    }
+    ASSERT_TRUE(q.ToRotationMatrix().has_value());
+    const T maximum = std::numeric_limits<T>::max();
+    V unrepresentable{-maximum, -maximum, maximum};
+    for (std::size_t axis = 0; axis < 3; ++axis) {
+        const auto positive = q * v, negative = q * (-v);
+        const std::array<T, 3> p{positive.x, positive.y, positive.z};
+        const std::array<T, 3> n{negative.x, negative.y, negative.z};
+        EXPECT_EQ(p[axis], maximum); EXPECT_EQ(n[axis], -maximum);
+        // A true >max result is not silently saturated to a finite sentinel.
+        const auto overflow = q * unrepresentable;
+        const auto negative_overflow = q * (-unrepresentable);
+        const std::array<T, 3> o{overflow.x, overflow.y, overflow.z};
+        const std::array<T, 3> no{negative_overflow.x, negative_overflow.y, negative_overflow.z};
+        EXPECT_EQ(o[axis], std::numeric_limits<T>::infinity());
+        EXPECT_EQ(no[axis], -std::numeric_limits<T>::infinity());
+        const T old_x = q.x; q.x = q.z; q.z = q.y; q.y = old_x;
+        v = V{v.z, v.x, v.y};
+        unrepresentable = V{unrepresentable.z, unrepresentable.x, unrepresentable.y};
+    }
+}
+}
+TEST(AFA001Rotation, FloatRoundedOverflowBoundary) { CheckAFA001RoundedBoundary<float>(); }
+TEST(AFA001Rotation, DoubleRoundedOverflowBoundary) { CheckAFA001RoundedBoundary<double>(); }
+TEST(AFA001Rotation, ConstexprRoundedOverflowBoundary) {
+    constexpr auto actual = [] {
+        auto q = Quaternion<double, FrameA, FrameA>::Identity();
+        q.w = 0x1.3c03650e00e02p-3; q.x = q.w;
+        q.y = 0x1.3c03650e00e02p-2; q.z = 0x1.da05179501504p-1;
+        return q * Vector3<double, FrameA>{-0x1.cf3cf3cf3cf3cp+1023,
+            -0x1.8618618618617p+1021, 0x1.8618618618617p+1022};
+    }();
+    static_assert(actual.x == std::numeric_limits<double>::max());
+    EXPECT_EQ(actual.x, std::numeric_limits<double>::max());
+}

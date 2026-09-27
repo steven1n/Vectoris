@@ -1,6 +1,7 @@
 #pragma once
 #include "Namespace.h"
 #include <algorithm>
+#include <limits>
 #include "Concepts.h"
 #include "FrameTags.h"
 #include "Vector3.h"
@@ -95,28 +96,160 @@ namespace vectoris::numerics::Geometry {
             ).Canonicalized();
         }
 
-        // [修复 2] 向量旋转：内联叉乘展开，榨干性能且摆脱 Vector3 的 API 依赖
+    private:
+        // For finite products, opposite signs are added before the remaining term.
+        // If all signs agree, a partial sum cannot exceed the final magnitude.
+        // Unlike scaling the whole vector, this preserves isolated subnormal terms.
+        template <std::floating_point R>
+        static constexpr bool RotationSumNeedsWide(R a, R b) noexcept {
+            // Equality takes the wide path too: max-b itself can round upward.
+            return b > R{0} ? a >= std::numeric_limits<R>::max() - b
+                            : a <= -std::numeric_limits<R>::max() - b;
+        }
+
+        template <std::floating_point R>
+        static constexpr bool SumRotationProducts(R a, R b, R c, R& result) noexcept {
+            const R lo = std::min({a, b, c});
+            const R hi = std::max({a, b, c});
+            const R mid = std::clamp(b, std::min(a, c), std::max(a, c));
+            if (RotationSumNeedsWide(lo, hi)) return false;
+            const R partial = lo + hi;
+            if (RotationSumNeedsWide(partial, mid)) return false;
+            result = partial + mid;
+            return true;
+        }
+
+        // Two-component arithmetic is used only at the overflow boundary. Extra
+        // precision must not depend on long double being wider (it is not on MSVC).
+        template <std::floating_point R>
+        struct RotationWide final { R hi; R lo; };
+
+        template <std::floating_point R>
+        static constexpr RotationWide<R> AddWide(RotationWide<R> a, RotationWide<R> b) noexcept {
+            const R sum = a.hi + b.hi;
+            const R b_virtual = sum - a.hi;
+            const R error = ((a.hi - (sum - b_virtual)) + (b.hi - b_virtual)) + (a.lo + b.lo);
+            const R hi = sum + error;
+            return {hi, error - (hi - sum)};
+        }
+
+        template <std::floating_point R>
+        static constexpr RotationWide<R> ProductWide(R a, R b) noexcept {
+            constexpr R splitter = [] {
+                R power = R{1};
+                for (int i = 0; i < (std::numeric_limits<R>::digits + 1) / 2; ++i) power *= R{2};
+                return power + R{1};
+            }();
+            const R a_split = splitter * a, b_split = splitter * b;
+            const R a_hi = a_split - (a_split - a), b_hi = b_split - (b_split - b);
+            const R a_lo = a - a_hi, b_lo = b - b_hi;
+            const R product = a * b;
+            const R error = ((a_hi * b_hi - product) + a_hi * b_lo + a_lo * b_hi) + a_lo * b_lo;
+            return {product, error};
+        }
+
+        template <std::floating_point R>
+        static constexpr RotationWide<R> MultiplyWide(RotationWide<R> a, R b) noexcept {
+            const auto product = ProductWide(a.hi, b);
+            return AddWide(product, RotationWide<R>{a.lo * b, R{0}});
+        }
+
+        template <std::floating_point R>
+        static constexpr RotationWide<R> NegateWide(RotationWide<R> a) noexcept {
+            return {-a.hi, -a.lo};
+        }
+
+        template <std::floating_point R>
+        static constexpr R BoundaryRotationComponent(R qw, R qx, R qy, R qz,
+                                                       R vx, R vy, R vz) noexcept {
+            // Power-of-two scaling is exact for the large terms. Underflow of tiny
+            // terms here is insignificant to an output already near overflow;
+            // finite ordinary outputs never take this path (including denormals).
+            constexpr R down = std::numeric_limits<R>::min() / R{2};
+            constexpr R up = std::numeric_limits<R>::max() /
+                (R{2} - std::numeric_limits<R>::epsilon());
+            const auto a = AddWide(ProductWide(qw, qw), ProductWide(qx, qx));
+            const auto b = AddWide(ProductWide(qy, qy), ProductWide(qz, qz));
+            const auto norm = AddWide(a, b);
+            const auto diagonal = AddWide(a, NegateWide(b));
+            const auto off_y = AddWide(ProductWide(qx, qy), NegateWide(ProductWide(qw, qz)));
+            const auto off_z = AddWide(ProductWide(qx, qz), ProductWide(qw, qy));
+            const auto numerator = AddWide(MultiplyWide(diagonal, vx * down),
+                AddWide(MultiplyWide(off_y, R{2} * (vy * down)),
+                        MultiplyWide(off_z, R{2} * (vz * down))));
+            const R quotient = numerator.hi / norm.hi;
+            const auto residual = AddWide(numerator, NegateWide(MultiplyWide(norm, quotient)));
+            const auto corrected = AddWide(RotationWide<R>{quotient, R{0}},
+                RotationWide<R>{(residual.hi + residual.lo) / norm.hi, R{0}});
+            // Round once near magnitude 2, before exact power-of-two rescaling.
+            // No clamp or fallback sentinel: genuinely overflowing results may be Inf.
+            return (corrected.hi + corrected.lo) * up;
+        }
+
+    public:
+        // AFA-001: valid unit quaternion + finite vector. No FP contraction is
+        // required. Coefficients are bounded before multiplying unscaled inputs.
         template <ScalarArithmetic U>
         constexpr auto operator*(const Vector3<U, FrameFrom>& v) const noexcept {
             using ResT = decltype(T{} * U{});
+            if constexpr (std::floating_point<T> && std::floating_point<U>) {
+                // Exact zero classification; preserve the input zero signs.
+                if (v.x == U{0} && v.y == U{0} && v.z == U{0}) {
+                    return Vector3<ResT, FrameTo>{v.x, v.y, v.z};
+                }
+                const ResT qw = w, qx = x, qy = y, qz = z;
+                const ResT ww = qw * qw, xx = qx * qx, yy = qy * qy, zz = qz * qz;
+                const ResT norm2 = (ww + xx) + (yy + zz);
+                // Divide by the unit quaternion's stored squared norm to avoid
+                // amplification of normalization rounding. Exact rotation entries
+                // lie in [-1,1]; clamping only bounds coefficient round-off.
+                const auto coefficient = [norm2](ResT value) constexpr noexcept {
+                    return std::clamp(value / norm2, ResT{-1}, ResT{1});
+                };
+                const ResT r00 = coefficient((ww + xx) - (yy + zz));
+                const ResT r11 = coefficient((ww + yy) - (xx + zz));
+                const ResT r22 = coefficient((ww + zz) - (xx + yy));
+                const ResT r01 = coefficient(ResT{2} * (qx * qy - qw * qz));
+                const ResT r02 = coefficient(ResT{2} * (qx * qz + qw * qy));
+                const ResT r10 = coefficient(ResT{2} * (qx * qy + qw * qz));
+                const ResT r12 = coefficient(ResT{2} * (qy * qz - qw * qx));
+                const ResT r20 = coefficient(ResT{2} * (qx * qz - qw * qy));
+                const ResT r21 = coefficient(ResT{2} * (qy * qz + qw * qx));
+                auto result = Vector3<ResT, FrameTo>{};
+                // Rounded coefficients can otherwise cause a false Inf at max().
+                // Re-evaluate that component with compensated, bounded arithmetic.
+                if (!SumRotationProducts(r00 * v.x, r01 * v.y, r02 * v.z, result.x)) {
+                    result.x = BoundaryRotationComponent(qw, qx, qy, qz,
+                        static_cast<ResT>(v.x), static_cast<ResT>(v.y), static_cast<ResT>(v.z));
+                }
+                if (!SumRotationProducts(r10 * v.x, r11 * v.y, r12 * v.z, result.y)) {
+                    result.y = BoundaryRotationComponent(qw, qy, qz, qx,
+                        static_cast<ResT>(v.y), static_cast<ResT>(v.z), static_cast<ResT>(v.x));
+                }
+                if (!SumRotationProducts(r20 * v.x, r21 * v.y, r22 * v.z, result.z)) {
+                    result.z = BoundaryRotationComponent(qw, qz, qx, qy,
+                        static_cast<ResT>(v.z), static_cast<ResT>(v.x), static_cast<ResT>(v.y));
+                }
+                return result;
+            } else {
+                // 第一次叉乘: uv = q_vec x v
+                ResT uv_x = static_cast<ResT>(y) * v.z - static_cast<ResT>(z) * v.y;
+                ResT uv_y = static_cast<ResT>(z) * v.x - static_cast<ResT>(x) * v.z;
+                ResT uv_z = static_cast<ResT>(x) * v.y - static_cast<ResT>(y) * v.x;
 
-            // 第一次叉乘: uv = q_vec x v
-            ResT uv_x = static_cast<ResT>(y) * v.z - static_cast<ResT>(z) * v.y;
-            ResT uv_y = static_cast<ResT>(z) * v.x - static_cast<ResT>(x) * v.z;
-            ResT uv_z = static_cast<ResT>(x) * v.y - static_cast<ResT>(y) * v.x;
+                // 第二次叉乘: uuv = q_vec x uv
+                ResT uuv_x = static_cast<ResT>(y) * uv_z - static_cast<ResT>(z) * uv_y;
+                ResT uuv_y = static_cast<ResT>(z) * uv_x - static_cast<ResT>(x) * uv_z;
+                ResT uuv_z = static_cast<ResT>(x) * uv_y - static_cast<ResT>(y) * uv_x;
 
-            // 第二次叉乘: uuv = q_vec x uv
-            ResT uuv_x = static_cast<ResT>(y) * uv_z - static_cast<ResT>(z) * uv_y;
-            ResT uuv_y = static_cast<ResT>(z) * uv_x - static_cast<ResT>(x) * uv_z;
-            ResT uuv_z = static_cast<ResT>(x) * uv_y - static_cast<ResT>(y) * uv_x;
+                ResT w2 = static_cast<ResT>(w) * T{2};
 
-            ResT w2 = static_cast<ResT>(w) * T{2};
-
-            return Vector3<ResT, FrameTo>(
-                v.x + uv_x * w2 + uuv_x * T{2},
-                v.y + uv_y * w2 + uuv_y * T{2},
-                v.z + uv_z * w2 + uuv_z * T{2}
-            );
+                return Vector3<ResT, FrameTo>(
+                    v.x + uv_x * w2 + uuv_x * T{2},
+                    v.y + uv_y * w2 + uuv_y * T{2},
+                    v.z + uv_z * w2 + uuv_z * T{2}
+                );
+            }
         }
 
         // 拦截跨坐标系非法向量乘法

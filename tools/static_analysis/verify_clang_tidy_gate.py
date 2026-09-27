@@ -14,6 +14,8 @@ Deterministic self-test suite proving that run_clang_tidy.py is strictly fail-cl
 """
 
 import json
+import argparse
+import re
 import os
 import shutil
 import subprocess
@@ -28,7 +30,7 @@ from run_clang_tidy import (
     parse_clang_tidy_diagnostics,
 )
 
-def run_test(name, expected_code, cmd_args, expect_in_output=None):
+def _run_test(name, expected_code, cmd_args, expect_in_output=None):
     print(f"[TEST] {name} ... ", end="", flush=True)
     res = subprocess.run(cmd_args, capture_output=True, text=True)
     combined = res.stdout + "\n" + res.stderr
@@ -50,7 +52,7 @@ def run_test(name, expected_code, cmd_args, expect_in_output=None):
     print("PASS")
     return True
 
-def run_inline_test(name, test):
+def _run_inline_test(name, test):
     print(f"[TEST] {name} ... ", end="", flush=True)
     try:
         passed = bool(test())
@@ -60,7 +62,41 @@ def run_inline_test(name, test):
     print("PASS" if passed else "FAILED")
     return passed
 
+RESULTS = []
+
+def run_test(name, **kwargs):
+    try:
+        passed = _run_test(name, **kwargs)
+    except Exception as exc:
+        print(f"FAILED ({type(exc).__name__}: {exc})")
+        passed = False
+    RESULTS.append((name, passed))
+    return passed
+
+def run_inline_test(name, test):
+    passed = _run_inline_test(name, test)
+    RESULTS.append((name, passed))
+    return passed
+
 def main():
+    parser = argparse.ArgumentParser(description="AFA005 mandatory exact-TU self-tests")
+    parser.add_argument("--build-dir", required=True)
+    parser.add_argument("--clang-tidy", required=True)
+    args = parser.parse_args()
+    real_build_dir = os.path.abspath(args.build_dir)
+    real_compdb_path = os.path.join(real_build_dir, "compile_commands.json")
+    if not os.path.isfile(real_compdb_path):
+        parser.exit(1, "ERROR: mandatory compile_commands.json fixture missing; executed=0 passed=0 failed=0 skipped=0 preflight_failures=1\n")
+    binary = shutil.which(args.clang_tidy)
+    if binary is None:
+        parser.exit(1, "ERROR: mandatory clang-tidy binary missing; executed=0 passed=0 failed=0 skipped=0 preflight_failures=1\n")
+    try:
+        version = subprocess.check_output([binary, "--version"], text=True)
+    except (OSError, subprocess.CalledProcessError) as exc:
+        parser.exit(1, f"ERROR: mandatory clang-tidy cannot execute: {exc}\n")
+    if not re.search(r"\bversion 22\.", version):
+        parser.exit(1, "ERROR: mandatory clang-tidy major 22 required\n")
+    os.environ["VECTORIS_CLANG_TIDY"] = binary
     repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     harness_script = os.path.join(repo_root, "tools", "static_analysis", "run_clang_tidy.py")
     real_config = os.path.join(repo_root, ".clang-tidy")
@@ -232,60 +268,57 @@ def main():
         )
         all_passed = all_passed and passed
 
-    real_build_dir = os.path.join(repo_root, ".build", "static-analysis")
-    real_compdb_path = os.path.join(real_build_dir, "compile_commands.json")
-    if os.path.isfile(real_compdb_path):
-        with open(real_compdb_path, "r", encoding="utf-8") as f:
-            raw_compdb_text = f.read()
+    with open(real_compdb_path, "r", encoding="utf-8") as f:
+        raw_compdb_text = f.read()
 
-        # 8. Compile DB missing one expected project TU
-        with tempfile.TemporaryDirectory() as tmpdir:
-            adapted_text = raw_compdb_text.replace(real_build_dir, tmpdir)
-            compdb = json.loads(adapted_text)
-            modified = [e for e in compdb if "PublicApiSurfaceTest.cpp" not in e.get("file", "")]
-            with open(os.path.join(tmpdir, "compile_commands.json"), "w") as f:
-                json.dump(modified, f)
-            passed = run_test(
-                "8. Compile DB missing one expected project TU",
-                expected_code=1,
-                cmd_args=[sys.executable, harness_script, "--build-dir", tmpdir, "--config-file", real_config],
-                expect_in_output="missing 1 expected project TUs"
-            )
-            all_passed = all_passed and passed
+    # 8. Compile DB missing one expected project TU
+    with tempfile.TemporaryDirectory() as tmpdir:
+        adapted_text = raw_compdb_text.replace(real_build_dir, tmpdir)
+        compdb = json.loads(adapted_text)
+        modified = [e for e in compdb if "PublicApiSurfaceTest.cpp" not in e.get("file", "")]
+        with open(os.path.join(tmpdir, "compile_commands.json"), "w") as f:
+            json.dump(modified, f)
+        passed = run_test(
+            "8. Compile DB missing one expected project TU",
+            expected_code=1,
+            cmd_args=[sys.executable, harness_script, "--build-dir", tmpdir, "--config-file", real_config],
+            expect_in_output="missing 1 expected project TUs"
+        )
+        all_passed = all_passed and passed
 
-        # 9. Compile DB containing unexpected project TU
-        with tempfile.TemporaryDirectory() as tmpdir:
-            adapted_text = raw_compdb_text.replace(real_build_dir, tmpdir)
-            compdb = json.loads(adapted_text)
-            compdb.append({
-                "directory": tmpdir,
-                "file": os.path.join(repo_root, "unexpected_tu.cpp"),
-                "command": "clang++ -c unexpected_tu.cpp"
-            })
-            with open(os.path.join(tmpdir, "compile_commands.json"), "w") as f:
-                json.dump(compdb, f)
-            passed = run_test(
-                "9. Compile DB containing unexpected project TU",
-                expected_code=1,
-                cmd_args=[sys.executable, harness_script, "--build-dir", tmpdir, "--config-file", real_config],
-                expect_in_output="unexpected first-party TUs"
-            )
-            all_passed = all_passed and passed
+    # 9. Compile DB containing unexpected project TU
+    with tempfile.TemporaryDirectory() as tmpdir:
+        adapted_text = raw_compdb_text.replace(real_build_dir, tmpdir)
+        compdb = json.loads(adapted_text)
+        compdb.append({
+            "directory": tmpdir,
+            "file": os.path.join(repo_root, "unexpected_tu.cpp"),
+            "command": "clang++ -c unexpected_tu.cpp"
+        })
+        with open(os.path.join(tmpdir, "compile_commands.json"), "w") as f:
+            json.dump(compdb, f)
+        passed = run_test(
+            "9. Compile DB containing unexpected project TU",
+            expected_code=1,
+            cmd_args=[sys.executable, harness_script, "--build-dir", tmpdir, "--config-file", real_config],
+            expect_in_output="unexpected first-party TUs"
+        )
+        all_passed = all_passed and passed
 
-        # 10. Duplicate project TU in compile DB
-        with tempfile.TemporaryDirectory() as tmpdir:
-            adapted_text = raw_compdb_text.replace(real_build_dir, tmpdir)
-            compdb = json.loads(adapted_text)
-            compdb.append(compdb[0])
-            with open(os.path.join(tmpdir, "compile_commands.json"), "w") as f:
-                json.dump(compdb, f)
-            passed = run_test(
-                "10. Duplicate project TU in compile DB",
-                expected_code=1,
-                cmd_args=[sys.executable, harness_script, "--build-dir", tmpdir, "--config-file", real_config],
-                expect_in_output="Duplicate TU entries found"
-            )
-            all_passed = all_passed and passed
+    # 10. Duplicate project TU in compile DB
+    with tempfile.TemporaryDirectory() as tmpdir:
+        adapted_text = raw_compdb_text.replace(real_build_dir, tmpdir)
+        compdb = json.loads(adapted_text)
+        compdb.append(compdb[0])
+        with open(os.path.join(tmpdir, "compile_commands.json"), "w") as f:
+            json.dump(compdb, f)
+        passed = run_test(
+            "10. Duplicate project TU in compile DB",
+            expected_code=1,
+            cmd_args=[sys.executable, harness_script, "--build-dir", tmpdir, "--config-file", real_config],
+            expect_in_output="Duplicate TU entries found"
+        )
+        all_passed = all_passed and passed
 
     # 11. Expected-set derivation returns empty
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -318,9 +351,43 @@ def main():
         )
         all_passed = all_passed and passed
 
+    # AFA005 mandatory controls use actual runner/tool execution, not banner matching alone.
+    passed = run_test("21. Wrong tool version rejected", expected_code=1,
+        cmd_args=[sys.executable, harness_script, "--build-dir", real_build_dir,
+                  "--clang-tidy", binary, "--required-clang-tidy-major", "999"],
+        expect_in_output="does not match required major")
+    all_passed = all_passed and passed
+    passed = run_test("22. Tool invocation failure rejected", expected_code=1,
+        cmd_args=[sys.executable, harness_script, "--build-dir", real_build_dir,
+                  "--clang-tidy", sys.executable],
+        expect_in_output="Failed to query configured clang-tidy checks")
+    all_passed = all_passed and passed
+    with tempfile.TemporaryDirectory() as tmpdir:
+        source = os.path.join(tmpdir, "modules", "VectorisNumerics", "tests", "AFA005Diagnostic.cpp")
+        os.makedirs(os.path.dirname(source))
+        with open(source, "w") as f:
+            f.write("int narrow(double value) { return value; }\n")
+        with open(os.path.join(tmpdir, "compile_commands.json"), "w") as f:
+            json.dump([{"directory": tmpdir, "file": source,
+                        "arguments": ["clang++", "-std=c++20", "-c", source]}], f)
+        passed = run_test("23. Real generated diagnostic rejected", expected_code=1,
+            cmd_args=[sys.executable, harness_script, "--repo-root", tmpdir, "--build-dir", tmpdir,
+                      "--config-file", real_config, "--clang-tidy", binary, "--warnings-as-errors",
+                      "--skip-category-check", "--skip-expected-set-check"],
+            expect_in_output="bugprone-narrowing-conversions")
+        all_passed = all_passed and passed
+    passed = run_test("24. Actual fresh exact TU set analyzed cleanly", expected_code=0,
+        cmd_args=[sys.executable, harness_script, "--build-dir", real_build_dir,
+                  "--clang-tidy", binary, "--required-clang-tidy-major", "22", "--warnings-as-errors"],
+        expect_in_output="RESULT: PASS")
+    all_passed = all_passed and passed
+
     print("=" * 80)
-    if all_passed:
-        print("ALL 20 VRT-11 GATE SELF-TESTS PASSED SUCCESSFULLY.")
+    passed_count = sum(passed for _, passed in RESULTS)
+    failed_count = len(RESULTS) - passed_count
+    print(f"AFA005 executed={len(RESULTS)} passed={passed_count} failed={failed_count} skipped=0")
+    if all_passed and failed_count == 0:
+        print("MANDATORY VRT-11 GATE SELF-TESTS PASSED.")
         sys.exit(0)
     else:
         print("VRT-11 GATE SELF-TESTS FAILED.")

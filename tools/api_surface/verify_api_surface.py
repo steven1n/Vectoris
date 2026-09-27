@@ -15,6 +15,7 @@ import re
 import shutil
 import subprocess
 import sys
+from positive_probe_contract import verify_source, verify_ctest
 
 def resolve_compiler(explicit_cxx, build_dir):
     # 1. Explicit argument
@@ -176,13 +177,17 @@ def main():
     with open(test_src, "r", encoding="utf-8") as f:
         src_content = f.read()
 
-    discovered_source_tests = set(re.findall(r"TEST\(PublicApiSurfaceTest,\s*([A-Za-z0-9_]+)\)", src_content))
-    if len(discovered_source_tests) == 0:
-        print("ERROR: Zero TEST(PublicApiSurfaceTest, ...) found in PublicApiSurfaceTest.cpp", file=sys.stderr)
+    required_identities = manifest.get("required_positive_tests", [])
+    try:
+        source_defined = verify_source(required_identities, src_content)
+    except (ValueError, TypeError) as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
         sys.exit(1)
-
+    discovered_source_tests = {name.split(".", 1)[1] for name in source_defined}
     print(f"Positive API Test Source:         {os.path.relpath(test_src, repo_root)}")
-    print(f"Discovered Test Definitions:      {len(discovered_source_tests)}")
+    print(f"Discovered Test Definitions:      {len(source_defined)}")
+    print("REQUIRED=" + json.dumps(sorted(required_identities)))
+    print("SOURCE_DEFINED=" + json.dumps(sorted(source_defined)))
 
     # 4. Machine-verifiable declared Dynamics semantic API contracts.
     dynamics_contracts = manifest.get("dynamics_public_api_contracts", [])
@@ -313,41 +318,17 @@ def main():
             print(build_res.stderr, file=sys.stderr)
             sys.exit(1)
 
-        # Query registered tests in CTest
-        query_cmd = ["ctest", "--test-dir", build_dir, "-N", "-R", "^PublicApiSurfaceTest"]
-        query_res = subprocess.run(query_cmd, capture_output=True, text=True)
-        if query_res.returncode != 0:
-            print("ERROR: Failed to query registered tests from CTest!", file=sys.stderr)
+        try:
+            identities = verify_ctest(build_dir, required_identities)
+        except (ValueError, KeyError, OSError) as exc:
+            print(f"ERROR: Positive API identity verification failed: {exc}", file=sys.stderr)
             sys.exit(1)
-
-        registered_matches = re.findall(r"Test\s+#\d+:\s+(PublicApiSurfaceTest\.[A-Za-z0-9_]+)", query_res.stdout)
-        registered_tests = len(registered_matches)
-        if registered_tests == 0:
-            print("ERROR: Zero PublicApiSurfaceTest tests registered in CTest!", file=sys.stderr)
-            sys.exit(1)
-
-        # Execute tests via CTest
-        exec_cmd = ["ctest", "--test-dir", build_dir, "-R", "^PublicApiSurfaceTest", "--output-on-failure"]
-        exec_res = subprocess.run(exec_cmd, capture_output=True, text=True)
-
-        # Parse execution results
-        for line in exec_res.stdout.splitlines():
-            if "Test #" in line and "PublicApiSurfaceTest" in line:
-                executed_tests += 1
-                if "Passed" in line:
-                    passed_tests += 1
-                else:
-                    failed_tests += 1
-
-        print(f"Registered API Tests:  {registered_tests}")
-        print(f"Executed API Tests:    {executed_tests}")
-        print(f"Passed API Tests:      {passed_tests}")
-        print(f"Failed API Tests:      {failed_tests}")
-
-        if exec_res.returncode != 0 or failed_tests > 0 or passed_tests != registered_tests:
-            print(f"ERROR: Positive API surface tests failed! (passed: {passed_tests}, failed: {failed_tests})", file=sys.stderr)
-            sys.exit(1)
-        print("Positive Test Execution:          PASS (100% success)")
+        for stage, names in identities.items():
+            print(stage + "=" + json.dumps(names))
+        registered_tests = len(identities["REGISTERED"])
+        executed_tests = len(identities["EXECUTED"])
+        passed_tests = len(identities["PASSED"])
+        print("Positive Test Execution:          PASS (exact identity equality)")
 
         # Each declared Dynamics contract is compiled in the module test target and
         # executed independently so manifest entries cannot be descriptive-only.
@@ -370,9 +351,6 @@ def main():
                 sys.exit(1)
             print(f"Dynamics API Probe:               PASS ({dynamics_test})")
     else:
-        registered_tests = len(discovered_source_tests)
-        executed_tests = len(discovered_source_tests)
-        passed_tests = len(discovered_source_tests)
         print("Positive Test Execution:          SKIPPED (--skip-build-exec)")
 
     # 6. Negative Compile Probes & Controls (VRT-10C)
@@ -440,7 +418,8 @@ def main():
     print(f"Negative Compile Probes:           {len(negative_probes)} / {len(negative_probes)} (100.0%)")
     print(f"Migrated Requires Assertions:      {len(manifest.get('migrated_requires_assertions', []))}")
     print("=" * 80)
-    print("RESULT: PASS (Declared supported public API instantiation surface verified)")
+    print("RESULT: PARTIAL (source/compile checks only; execution NOT VERIFIED)" if args.skip_build_exec
+          else "RESULT: PASS (Declared supported public API instantiation surface verified)")
     sys.exit(0)
 
 if __name__ == "__main__":

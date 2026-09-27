@@ -22,6 +22,7 @@ Deterministic verification that tools/api_surface/verify_api_surface.py fails-cl
 """
 
 import json
+import argparse
 import os
 import shutil
 import subprocess
@@ -152,7 +153,7 @@ def test_zero_discovered_positive_tests(repo_root, valid_manifest):
             json.dump(valid_manifest, f)
         res = run_gate(["--repo-root", temp_dir, "--manifest", manifest_copy, "--skip-build-exec"])
         assert res.returncode != 0, "Gate should fail on zero discovered tests"
-        assert "Zero TEST(PublicApiSurfaceTest, ...) found" in res.stderr
+        assert "SOURCE_DEFINED:" in res.stderr
     print("  [TEST 9/17] Zero discovered positive test definitions ... PASS")
 
 def test_failing_positive_api_test(repo_root):
@@ -208,8 +209,8 @@ def test_broken_negative_probe_control(repo_root, valid_manifest):
         assert "control probe failed to compile" in res.stderr
     print("  [TEST 12/17] Broken negative-probe control ... PASS")
 
-def test_valid_controlled_pass():
-    res = run_gate([])
+def test_valid_controlled_pass(build_dir):
+    res = run_gate(["--build-dir", build_dir])
     assert res.returncode == 0, f"Valid gate run failed: {res.stderr}\n{res.stdout}"
     assert "RESULT: PASS" in res.stdout
     print("  [TEST 13/17] Minimal valid controlled PASS ... PASS")
@@ -268,6 +269,9 @@ def test_missing_dynamics_api_probe(valid_manifest):
     print("  [TEST 17/17] Missing Dynamics semantic API probe ... PASS")
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--build-dir", required=True)
+    args = parser.parse_args()
     print("=" * 80)
     print("Vectoris Public API Surface Gate Self-Test Suite (VRT-10D)")
     print("=" * 80)
@@ -289,14 +293,15 @@ def main():
     test_failing_positive_api_test(repo_root)
     test_negative_probe_unexpectedly_accepted(repo_root, valid_manifest)
     test_broken_negative_probe_control(repo_root, valid_manifest)
-    test_valid_controlled_pass()
+    test_valid_controlled_pass(args.build_dir)
     test_untracked_extra_header(repo_root, valid_manifest)
     test_namespace_metadata(valid_manifest)
     test_missing_namespace_probe(valid_manifest)
     test_missing_dynamics_api_probe(valid_manifest)
 
     print("=" * 80)
-    print("ALL 17 VRT-10 GATE SELF-TESTS PASSED SUCCESSFULLY.")
+    subprocess.run([sys.executable, os.path.join(os.path.dirname(__file__), "test_positive_probe_contract.py")], check=True)
+    print("VRT-10 legacy controls: 17 passed; AFA003 CTest identity controls: see unittest execution summary above.")
     print("=" * 80)
 
 if __name__ == "__main__":
