@@ -145,8 +145,7 @@ namespace vectoris::numerics::Geometry {
                     ApplyRow<ResT>(dcm_(1,0), dcm_(1,1), dcm_(1,2), v.x, v.y, v.z),
                     ApplyRow<ResT>(dcm_(2,0), dcm_(2,1), dcm_(2,2), v.x, v.y, v.z)
                 };
-            }
-            if constexpr (std::floating_point<T> && Units::IsQuantity<U>) {
+            } else if constexpr (std::floating_point<T> && Units::IsQuantity<U>) {
                 // Unwrap only within the dimension-preserving numerical adapter.
                 // Existing Quantity scalar multiplication requires the same T.
                 return Vector3<ResT, FrameTo>{
@@ -154,13 +153,14 @@ namespace vectoris::numerics::Geometry {
                     ResT{ApplyRow<T>(dcm_(1,0), dcm_(1,1), dcm_(1,2), v.x.value(), v.y.value(), v.z.value())},
                     ResT{ApplyRow<T>(dcm_(2,0), dcm_(2,1), dcm_(2,2), v.x.value(), v.y.value(), v.z.value())}
                 };
+            } else {
+                // Generic custom scalar operations retain exception propagation.
+                return Vector3<ResT, FrameTo>{
+                    dcm_(0,0)*v.x + dcm_(0,1)*v.y + dcm_(0,2)*v.z,
+                    dcm_(1,0)*v.x + dcm_(1,1)*v.y + dcm_(1,2)*v.z,
+                    dcm_(2,0)*v.x + dcm_(2,1)*v.y + dcm_(2,2)*v.z
+                };
             }
-            // Generic custom scalar operations retain exception propagation.
-            return Vector3<ResT, FrameTo>{
-                dcm_(0,0)*v.x + dcm_(0,1)*v.y + dcm_(0,2)*v.z,
-                dcm_(1,0)*v.x + dcm_(1,1)*v.y + dcm_(1,2)*v.z,
-                dcm_(2,0)*v.x + dcm_(2,1)*v.y + dcm_(2,2)*v.z
-            };
         }
 
         // 拦截跨坐标系非法向量乘法

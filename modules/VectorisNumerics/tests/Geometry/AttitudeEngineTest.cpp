@@ -489,3 +489,23 @@ template<class T> void C11QuantityRotation() {
 }
 TEST(C11Rotation, FloatQuantityKeepsUnitsAndFrame){C11QuantityRotation<float>();}
 TEST(C11Rotation, DoubleQuantityKeepsUnitsAndFrame){C11QuantityRotation<double>();}
+
+// C12: instantiate both safe-kernel selectors under each compiler's strict warnings.
+TEST(C12RotationControlFlow, PlainFloatingBranches) {
+    const auto rf=RotationMatrix3<float,FrameA,FrameA>::Identity();
+    const auto rd=RotationMatrix3<double,FrameA,FrameA>::Identity();
+    const auto f=rf*Vector3<float,FrameA>{1.f,-2.f,3.f};
+    const auto d=rd*Vector3<double,FrameA>{1.,-2.,3.};
+    EXPECT_FLOAT_EQ(f.x,1.f); EXPECT_FLOAT_EQ(f.y,-2.f); EXPECT_FLOAT_EQ(f.z,3.f);
+    EXPECT_DOUBLE_EQ(d.x,1.); EXPECT_DOUBLE_EQ(d.y,-2.); EXPECT_DOUBLE_EQ(d.z,3.);
+}
+TEST(C12RotationControlFlow, QuantityBranchPreservesUnitsAndFrame) {
+    using Quantity=vectoris::numerics::units::Quantity<double,vectoris::numerics::units::MeterUnit>;
+    const auto r=Quaternion<double,FrameA,FrameB>::TryCreate(0.,1.,1.,1.).Value().ToRotationMatrix().Value();
+    const auto v=Vector3<Quantity,FrameA>{Quantity{1.},Quantity{1.},Quantity{1.}};
+    const auto out=r*v;
+    static_assert(std::same_as<std::remove_cvref_t<decltype(out)>,Vector3<Quantity,FrameB>>);
+    EXPECT_NEAR(out.x.value(),1.,1e-14);
+    EXPECT_NEAR(out.y.value(),1.,1e-14);
+    EXPECT_NEAR(out.z.value(),1.,1e-14);
+}

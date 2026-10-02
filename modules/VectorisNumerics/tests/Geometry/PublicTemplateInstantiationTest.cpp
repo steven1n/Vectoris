@@ -923,3 +923,14 @@ TEST(Matrix3ScalarContract, FloatDefaultAndExplicitTolerance) { CheckMatrixToler
 TEST(Matrix3ScalarContract, DoubleDefaultAndExplicitTolerance) { CheckMatrixTolerancePolicy<double>(); }
 TEST(Matrix3ScalarContract, FloatInverseThresholdUnchanged) { CheckInverseThresholdPolicy<float>(); }
 TEST(Matrix3ScalarContract, DoubleInverseThresholdUnchanged) { CheckInverseThresholdPolicy<double>(); }
+
+TEST(C12RotationControlFlow, GenericFallbackExceptionRemainsCatchable) {
+    using namespace AFA2Throwing;
+    const auto rotation=R::Identity();
+    const V v{S{1.},S{2.},S{3.}};
+    const auto out=rotation*v;
+    EXPECT_DOUBLE_EQ(out.x.v,1.); EXPECT_DOUBLE_EQ(out.y.v,2.); EXPECT_DOUBLE_EQ(out.z.v,3.);
+    static_assert(!noexcept(rotation*v));
+    const FaultScope fault{Fault::mul};
+    EXPECT_THROW(static_cast<void>(rotation*v),Raised);
+}

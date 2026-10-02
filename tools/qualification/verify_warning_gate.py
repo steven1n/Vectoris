@@ -73,6 +73,16 @@ class WarningGateTests(unittest.TestCase):
     def test_first_party_compiler_warning(self):
         self.expect_failure(COMPILER, "FIRST_PARTY_COMPILER_WARNING")
 
+    def test_c12_rotation_relative_c4702_is_first_party(self):
+        line = ("modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/RotationMatrix3.h(159,1): "
+                "warning C4702: unreachable code [build-msvc/modules/VectorisNumerics/VectorisNumerics_Tests.vcxproj]")
+        self.expect_failure(line, "FIRST_PARTY_COMPILER_WARNING")
+
+    def test_c12_rotation_c2220_fails_closed(self):
+        line = (SOURCE + "/modules/VectorisNumerics/include/Vectoris/Numerics/Geometry/RotationMatrix3.h(159,1): "
+                "error C2220: the following warning is treated as an error [" + NUMERICS + "VectorisNumerics_Tests.vcxproj]")
+        self.expect_failure(line, "BUILD_ERROR")
+
     def test_first_party_linker_warning(self):
         self.expect_failure(LINKER, "FIRST_PARTY_LINKER_WARNING")
 
