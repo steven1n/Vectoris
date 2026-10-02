@@ -7,6 +7,7 @@
 #include "Vectoris/Numerics/Geometry/Point3.h"
 #include "Vectoris/Numerics/Geometry/Quaternion.h"
 #include "Vectoris/Numerics/Geometry/Transform3.h"
+#include "Vectoris/Numerics/Units/BaseUnits/Length.h"
 
 using namespace vectoris::numerics::Geometry;
 
@@ -348,3 +349,143 @@ TEST(AFA001Rotation, ConstexprRoundedOverflowBoundary) {
     static_assert(actual.x == std::numeric_limits<double>::max());
     EXPECT_EQ(actual.x, std::numeric_limits<double>::max());
 }
+
+namespace {
+template<class T> void C11AuditRotation() {
+    const auto q=Quaternion<T,FrameA,FrameA>::TryCreate(T{0},T{1},T{1},T{1}).Value();
+    const auto rotation=q.ToRotationMatrix();ASSERT_TRUE(rotation.IsSuccess());
+    const T max=std::numeric_limits<T>::max();
+    const Vector3<T,FrameA> v = [] {
+        const T m=std::numeric_limits<T>::max();
+        if constexpr (std::same_as<T,float>) return Vector3<T,FrameA>{m,m,m};
+        else return Vector3<T,FrameA>{m,-m,-m};
+    }();
+    const auto result=rotation.Value()*v;
+    if constexpr (std::same_as<T,float>) {
+        EXPECT_FLOAT_EQ(result.z,0x1.fffffcp+127f);
+    } else {
+        EXPECT_DOUBLE_EQ(result.y,0x1.5555555555556p+1022);
+    }
+    const auto negative=rotation.Value()*(-v);
+    const std::array<T,3> actual{result.x,result.y,result.z},neg{negative.x,negative.y,negative.z};
+    for(size_t i=0;i<3;++i){
+        EXPECT_EQ(neg[i],-actual[i]);
+        if constexpr (std::same_as<T,double>) { if(i==0){EXPECT_EQ(actual[i],-std::numeric_limits<T>::infinity());continue;} }
+        EXPECT_TRUE(std::isfinite(actual[i]));EXPECT_LE(std::abs(actual[i]),max);
+    }
+}
+template<class T> void C11RotationAxes() {
+    const T max=std::numeric_limits<T>::max(),tiny=std::numeric_limits<T>::denorm_min();
+    for(size_t axis=0;axis<3;++axis){
+        const std::array<T,3> unit{axis==0?T{1}:T{0},axis==1?T{1}:T{0},axis==2?T{1}:T{0}};
+        const auto q=Quaternion<T,FrameA,FrameA>::TryCreate(T{0},unit[0],unit[1],unit[2]).Value();
+        const auto r=q.ToRotationMatrix().Value();
+        for(T value:{max,-max,max/T{2},tiny,-tiny,T{0}}){
+            const auto a=r*Vector3<T,FrameA>{value,value,value};
+            const std::array<T,3> components{a.x,a.y,a.z};
+            for(size_t i=0;i<3;++i) EXPECT_EQ(components[i],i==axis?value:-value);
+        }
+    }
+    const auto identity=RotationMatrix3<T,FrameA,FrameA>::Identity();
+    const auto mixed=identity*Vector3<T,FrameA>{max,tiny,-tiny};
+    EXPECT_EQ(mixed.x,max);EXPECT_EQ(mixed.y,tiny);EXPECT_EQ(mixed.z,-tiny);
+}
+template<class T> void C11OperationalRotation() {
+    // Exact analytic rotation for input quaternion (1,2,3,4), norm squared 30.
+    // The oracle never calls a production rotation or matrix arithmetic path.
+    const auto q=Quaternion<T,FrameA,FrameA>::TryCreate(T{1},T{2},T{3},T{4}).Value();
+    const auto r=q.ToRotationMatrix().Value();
+    const auto transform=Transform3<T,FrameA,FrameA>::Create(q,Vector3<T,FrameA>{});
+    constexpr long double coefficients[3][3]{{-20.L/30,4.L/30,22.L/30},
+        {20.L/30,-10.L/30,20.L/30},{10.L/30,28.L/30,4.L/30}};
+    for(T scale : {static_cast<T>(1e-9),static_cast<T>(1e-6),T{1},T{1e3},T{7e6},T{1e9},static_cast<T>(1e12)}){
+        const Vector3<T,FrameA> v{scale,scale*T{-2},scale*T{3}};
+        const auto matrix=r*v,quat=q*v,trans=transform*v;
+        const std::array<T,3> m{matrix.x,matrix.y,matrix.z},a{quat.x,quat.y,quat.z},b{trans.x,trans.y,trans.z};
+        const long double input[3]{static_cast<long double>(v.x),static_cast<long double>(v.y),static_cast<long double>(v.z)};
+        for(size_t i=0;i<3;++i){
+            const long double expected=coefficients[i][0]*input[0]+coefficients[i][1]*input[1]+coefficients[i][2]*input[2];
+            const long double tolerance=64.L*std::numeric_limits<T>::epsilon()*std::abs(expected);
+            EXPECT_LE(std::abs(static_cast<long double>(m[i])-expected),tolerance);
+            EXPECT_LE(std::abs(static_cast<long double>(a[i])-expected),tolerance);
+            EXPECT_LE(std::abs(static_cast<long double>(b[i])-expected),tolerance);
+        }
+        const long double input_norm=std::hypot(input[0],input[1],input[2]);
+        const long double output_norm=std::hypot(static_cast<long double>(m[0]),static_cast<long double>(m[1]),static_cast<long double>(m[2]));
+        EXPECT_LE(std::abs(output_norm/input_norm-1.L),64.L*std::numeric_limits<T>::epsilon());
+    }
+}
+template<class T> void C11CancellationRotation() {
+    // Exactly stored signed permutation/cancellation rotation coefficients.
+    const auto q=Quaternion<T,FrameA,FrameA>::TryCreate(T{0},T{1},T{1},T{1}).Value();
+    const auto r=q.ToRotationMatrix().Value();
+    const T max=std::numeric_limits<T>::max();
+    for(T scale:{max/T{2},static_cast<T>(1e12),T{1},std::numeric_limits<T>::min()}) {
+        for(const auto& v:std::array<Vector3<T,FrameA>,3>{
+            Vector3<T,FrameA>{scale,-scale,scale/T{2}},
+            Vector3<T,FrameA>{scale,scale/T{4},-scale/T{2}},
+            Vector3<T,FrameA>{-scale/T{4},scale,-scale/T{2}}}) {
+            const auto a=r*v;
+            const auto& m=r.ToMatrix();
+            const std::array<T,3> actual{a.x,a.y,a.z};
+            for(size_t i=0;i<3;++i){
+                const long double reference=(static_cast<long double>(m(i,0))*static_cast<long double>(v.x)+
+                    static_cast<long double>(m(i,1))*static_cast<long double>(v.y))+
+                    static_cast<long double>(m(i,2))*static_cast<long double>(v.z);
+                const long double tolerance=8.L*std::numeric_limits<T>::epsilon()*static_cast<long double>(scale)+
+                    4.L*std::numeric_limits<T>::denorm_min();
+                ASSERT_TRUE(std::isfinite(actual[i]));
+                EXPECT_LE(std::abs(static_cast<long double>(actual[i])-reference),tolerance);
+            }
+        }
+    }
+}
+template<class T> void C11NonFiniteRotation() {
+    const auto r=RotationMatrix3<T,FrameA,FrameA>::Identity();
+    const auto nan=r*Vector3<T,FrameA>{std::numeric_limits<T>::quiet_NaN(),T{1},T{2}};
+    EXPECT_TRUE(std::isnan(nan.x));
+    const auto inf=r*Vector3<T,FrameA>{std::numeric_limits<T>::infinity(),T{1},T{2}};
+    EXPECT_TRUE(std::isinf(inf.x));
+    const auto overflow=Quaternion<T,FrameA,FrameA>::TryCreate(T{1},T{0},T{0},T{1}).Value().ToRotationMatrix().Value()*
+        Vector3<T,FrameA>{std::numeric_limits<T>::max(),-std::numeric_limits<T>::max(),T{0}};
+    EXPECT_TRUE(std::isfinite(overflow.x));
+}
+}
+TEST(C11Rotation, FloatOriginalAuditReproducer){C11AuditRotation<float>();}
+TEST(C11Rotation, DoubleOriginalAuditReproducer){C11AuditRotation<double>();}
+TEST(C11Rotation, FloatAxesAndMixedExponents){C11RotationAxes<float>();}
+TEST(C11Rotation, DoubleAxesAndMixedExponents){C11RotationAxes<double>();}
+TEST(C11Rotation, FloatOperationalRange){C11OperationalRotation<float>();}
+TEST(C11Rotation, DoubleOperationalRange){C11OperationalRotation<double>();}
+TEST(C11Rotation, FloatCancellation){C11CancellationRotation<float>();}
+TEST(C11Rotation, DoubleCancellation){C11CancellationRotation<double>();}
+TEST(C11Rotation, FloatNonFinitePropagation){C11NonFiniteRotation<float>();}
+TEST(C11Rotation, DoubleNonFinitePropagation){C11NonFiniteRotation<double>();}
+TEST(C11Rotation, ConstexprIdentityBoundary){
+    constexpr auto a=RotationMatrix3<double,FrameA,FrameA>::Identity()*Vector3<double,FrameA>{std::numeric_limits<double>::max(),1.,-1.};
+    static_assert(a.x==std::numeric_limits<double>::max() && a.y==1. && a.z==-1.);
+    EXPECT_EQ(a.x,std::numeric_limits<double>::max());
+}
+
+namespace {
+template<class T> void C11QuantityRotation() {
+    using Quantity=vectoris::numerics::units::Quantity<T,vectoris::numerics::units::MeterUnit>;
+    const auto q=Quaternion<T,FrameA,FrameB>::TryCreate(T{0},T{1},T{1},T{1}).Value();
+    const auto r=q.ToRotationMatrix().Value();
+    const T max=std::numeric_limits<T>::max();
+    const auto v=[] {
+        const T m=std::numeric_limits<T>::max();
+        if constexpr(std::same_as<T,float>)return Vector3<Quantity,FrameA>{Quantity{m},Quantity{m},Quantity{m}};
+        else return Vector3<Quantity,FrameA>{Quantity{m},Quantity{-m},Quantity{-m}};
+    }();
+    const auto out=r*v;
+    static_assert(std::same_as<std::remove_cvref_t<decltype(out)>,Vector3<Quantity,FrameB>>);
+    if constexpr(std::same_as<T,float>) EXPECT_FLOAT_EQ(out.z.value(),0x1.fffffcp+127f);
+    else EXPECT_DOUBLE_EQ(out.y.value(),0x1.5555555555556p+1022);
+    EXPECT_TRUE(std::isfinite(out.y.value()));EXPECT_TRUE(std::isfinite(out.z.value()));
+    const auto mixed=r*Vector3<Quantity,FrameA>{Quantity{max/T{2}},Quantity{T{1}},Quantity{-max/T{2}}};
+    EXPECT_TRUE(std::isfinite(mixed.x.value()));EXPECT_TRUE(std::isfinite(mixed.y.value()));EXPECT_TRUE(std::isfinite(mixed.z.value()));
+}
+}
+TEST(C11Rotation, FloatQuantityKeepsUnitsAndFrame){C11QuantityRotation<float>();}
+TEST(C11Rotation, DoubleQuantityKeepsUnitsAndFrame){C11QuantityRotation<double>();}

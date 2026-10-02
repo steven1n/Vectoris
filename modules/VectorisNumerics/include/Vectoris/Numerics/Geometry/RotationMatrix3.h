@@ -1,6 +1,8 @@
 #pragma once
 #include "Namespace.h"
 #include <type_traits>
+#include <algorithm>
+#include <limits>
 #include "Concepts.h"
 #include "FrameTags.h"
 #include "Matrix3.h"
@@ -8,6 +10,7 @@
 #include "Detail/RotationInvariant.h"
 #include "Detail/ABI.h"
 #include "../Core/Result.h"
+#include "../Units/UnitConcepts.h"
 
 namespace vectoris::numerics::Geometry {
 
@@ -28,6 +31,75 @@ namespace vectoris::numerics::Geometry {
         // 私有构造，封锁绕过正交性检查的非法实例
         constexpr explicit RotationMatrix3(const Matrix3<T>& raw_matrix) noexcept(std::is_arithmetic_v<T>)
             : dcm_(raw_matrix) {}
+
+        // AFA2-009: checked rotations require overflow-resistant row evaluation.
+        // Raw Matrix3 arithmetic keeps its existing unchecked scalar semantics.
+        template <std::floating_point R>
+        struct RowWide final { R hi; R lo; };
+
+        template <std::floating_point R>
+        static constexpr RowWide<R> AddRowWide(RowWide<R> a, RowWide<R> b) noexcept {
+            const R sum = a.hi + b.hi;
+            const R virtual_b = sum - a.hi;
+            const R error = ((a.hi - (sum - virtual_b)) + (b.hi - virtual_b)) + (a.lo + b.lo);
+            const R hi = sum + error;
+            return {hi, error - (hi - sum)};
+        }
+
+        template <std::floating_point R>
+        static constexpr RowWide<R> BoundedProduct(R a, R b) noexcept {
+            constexpr R splitter = [] {
+                R power = R{1};
+                for (int i = 0; i < (std::numeric_limits<R>::digits + 1) / 2; ++i) power *= R{2};
+                return power + R{1};
+            }();
+            const R split_a = splitter * a, split_b = splitter * b;
+            const R hi_a = split_a - (split_a - a), hi_b = split_b - (split_b - b);
+            const R lo_a = a - hi_a, lo_b = b - hi_b;
+            const R product = a * b;
+            const R error = ((hi_a * hi_b - product) + hi_a * lo_b + lo_a * hi_b) + lo_a * lo_b;
+            return {product, error};
+        }
+
+        template <std::floating_point R>
+        static constexpr bool RowSumAtBoundary(R a, R b) noexcept {
+            return b > R{0} ? a >= std::numeric_limits<R>::max() - b
+                            : a <= -std::numeric_limits<R>::max() - b;
+        }
+
+        template <std::floating_point R>
+        static constexpr R ApplyRow(R r0, R r1, R r2, R x, R y, R z) noexcept {
+            const R a = r0 * x, b = r1 * y, c = r2 * z;
+            // Measured ordinary-path shortcut: three products bounded by max/4
+            // cannot overflow their two additions. Keep existing rounding here.
+            constexpr R ordinary_limit = std::numeric_limits<R>::max() / R{4};
+            if (a >= -ordinary_limit && a <= ordinary_limit &&
+                b >= -ordinary_limit && b <= ordinary_limit &&
+                c >= -ordinary_limit && c <= ordinary_limit) return (a + b) + c;
+            const R lo = std::min({a, b, c}), hi = std::max({a, b, c});
+            const R mid = std::clamp(b, std::min(a, c), std::max(a, c));
+            // Opposite signs first: preserve isolated tiny terms and avoid
+            // intermediate overflow without scaling ordinary/subnormal inputs.
+            constexpr R max = std::numeric_limits<R>::max();
+            if (lo >= -max && hi <= max && !RowSumAtBoundary(lo, hi)) {
+                const R partial = lo + hi;
+                if (!RowSumAtBoundary(partial, mid)) return partial + mid;
+            }
+            // Existing IEEE propagation for inputs outside the finite contract.
+            if (!(Traits::IsFinite(x) && Traits::IsFinite(y) && Traits::IsFinite(z))) {
+                return (a + b) + c;
+            }
+            // Only the overflow boundary uses a two-component dot product.
+            // Valid rotation coefficients are near [-1,1]; scaled inputs <= 2.
+            // Exact powers of two prevent scale division error. This does not
+            // require wider long double, FMA, or compiler FP contraction.
+            constexpr R down = std::numeric_limits<R>::min() / R{2};
+            constexpr R up = max / (R{2} - std::numeric_limits<R>::epsilon());
+            const auto sum = AddRowWide(AddRowWide(BoundedProduct(r0, x * down),
+                                                  BoundedProduct(r1, y * down)),
+                                       BoundedProduct(r2, z * down));
+            return (sum.hi + sum.lo) * up;
+        }
 
     public:
         // --- 核心防线：禁止未定义状态 ---
@@ -67,7 +139,23 @@ namespace vectoris::numerics::Geometry {
         template <ScalarArithmetic U>
         constexpr auto operator*(const Vector3<U, FrameFrom>& v) const noexcept(std::is_arithmetic_v<T> && std::is_arithmetic_v<U>) {
             using ResT = decltype(dcm_(0,0) * v.x);
-            // 内部解包数学矩阵，运算后重新封装至目标 Frame
+            if constexpr (std::floating_point<T> && std::floating_point<U>) {
+                return Vector3<ResT, FrameTo>{
+                    ApplyRow<ResT>(dcm_(0,0), dcm_(0,1), dcm_(0,2), v.x, v.y, v.z),
+                    ApplyRow<ResT>(dcm_(1,0), dcm_(1,1), dcm_(1,2), v.x, v.y, v.z),
+                    ApplyRow<ResT>(dcm_(2,0), dcm_(2,1), dcm_(2,2), v.x, v.y, v.z)
+                };
+            }
+            if constexpr (std::floating_point<T> && Units::IsQuantity<U>) {
+                // Unwrap only within the dimension-preserving numerical adapter.
+                // Existing Quantity scalar multiplication requires the same T.
+                return Vector3<ResT, FrameTo>{
+                    ResT{ApplyRow<T>(dcm_(0,0), dcm_(0,1), dcm_(0,2), v.x.value(), v.y.value(), v.z.value())},
+                    ResT{ApplyRow<T>(dcm_(1,0), dcm_(1,1), dcm_(1,2), v.x.value(), v.y.value(), v.z.value())},
+                    ResT{ApplyRow<T>(dcm_(2,0), dcm_(2,1), dcm_(2,2), v.x.value(), v.y.value(), v.z.value())}
+                };
+            }
+            // Generic custom scalar operations retain exception propagation.
             return Vector3<ResT, FrameTo>{
                 dcm_(0,0)*v.x + dcm_(0,1)*v.y + dcm_(0,2)*v.z,
                 dcm_(1,0)*v.x + dcm_(1,1)*v.y + dcm_(1,2)*v.z,

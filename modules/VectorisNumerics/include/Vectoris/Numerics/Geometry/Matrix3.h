@@ -8,6 +8,7 @@
 #include "Detail/ABI.h"
 #include "Traits.h"
 #include "Vector3.h"
+#include "../Core/Result.h"
 
 namespace vectoris::numerics::Geometry {
 
@@ -30,6 +31,48 @@ namespace vectoris::numerics::Geometry {
             } else {
                 return std::move_if_noexcept(value);
             }
+        }
+
+        // Integral determinant evaluation checks before each arithmetic step;
+        // neither INT_MIN negation nor signed overflow is used as a detector.
+        static constexpr bool CheckedProduct(T a, T b, T& out) noexcept
+            requires Concepts::NumericInteger<T> {
+            constexpr T min = std::numeric_limits<T>::lowest(), max = std::numeric_limits<T>::max();
+            if constexpr (std::is_signed_v<T>) {
+                if (a > T{0}) {
+                    if ((b > T{0} && a > max / b) || (b < T{0} && b < min / a)) return false;
+                } else if (a < T{0}) {
+                    if ((b > T{0} && a < min / b) || (b < T{0} && a < max / b)) return false;
+                }
+            } else {
+                if (a != T{0} && b > max / a) return false;
+            }
+            out = static_cast<T>(a * b);
+            return true;
+        }
+
+        static constexpr bool CheckedDifference(T a, T b, T& out) noexcept
+            requires Concepts::NumericInteger<T> {
+            if constexpr (std::is_signed_v<T>) {
+                if ((b > T{0} && a < std::numeric_limits<T>::lowest() + b) ||
+                    (b < T{0} && a > std::numeric_limits<T>::max() + b)) return false;
+            } else {
+                if (a < b) return false;
+            }
+            out = static_cast<T>(a - b);
+            return true;
+        }
+
+        static constexpr bool CheckedSum(T a, T b, T& out) noexcept
+            requires Concepts::NumericInteger<T> {
+            if constexpr (std::is_signed_v<T>) {
+                if ((b > T{0} && a > std::numeric_limits<T>::max() - b) ||
+                    (b < T{0} && a < std::numeric_limits<T>::lowest() - b)) return false;
+            } else {
+                if (a > std::numeric_limits<T>::max() - b) return false;
+            }
+            out = static_cast<T>(a + b);
+            return true;
         }
 
         // The body is instantiated only for a selected floating-point comparison.
@@ -140,10 +183,34 @@ namespace vectoris::numerics::Geometry {
         }
 
         // 行列式
-        constexpr T det() const noexcept(std::is_arithmetic_v<T>) {
+        constexpr T det() const noexcept(std::is_arithmetic_v<T>)
+            requires (!Concepts::NumericInteger<T>) {
             return m[0] * (m[4]*m[8] - m[5]*m[7])
                  - m[1] * (m[3]*m[8] - m[5]*m[6])
                  + m[2] * (m[3]*m[7] - m[4]*m[6]);
+        }
+
+        // Checked integer determinant: every intermediate must fit T.
+        // A domain_error also covers a representable final determinant whose
+        // cofactor evaluation exceeds T; no truncation or dummy value is returned.
+        [[nodiscard]] constexpr auto det() const noexcept
+            requires Concepts::NumericInteger<T> {
+            T terms[3]{};
+            constexpr size_t left[3][2]{{4,8}, {3,8}, {3,7}};
+            constexpr size_t right[3][2]{{5,7}, {5,6}, {4,6}};
+            for (size_t i = 0; i < 3; ++i) {
+                T a{}, b{}, minor{};
+                if (!CheckedProduct(m[left[i][0]], m[left[i][1]], a) ||
+                    !CheckedProduct(m[right[i][0]], m[right[i][1]], b) ||
+                    !CheckedDifference(a, b, minor) || !CheckedProduct(m[i], minor, terms[i])) {
+                    return Core::Result<T>::failure(Core::MathError::domain_error);
+                }
+            }
+            T partial{}, result{};
+            if (!CheckedDifference(terms[0], terms[1], partial) || !CheckedSum(partial, terms[2], result)) {
+                return Core::Result<T>::failure(Core::MathError::domain_error);
+            }
+            return Core::Result<T>::success(result);
         }
 
         // 计算 Frobenius 范数的平方: ||M||_F^2 = sum(m_i^2)
@@ -158,7 +225,7 @@ namespace vectoris::numerics::Geometry {
         // 伴随矩阵求逆 (无抛出原则, 失败返回 false)
         // 遵循 Solve-Not-Invert 原则：仅在需要显式矩阵逆时使用；解线性方程应使用消元求解器
         constexpr bool TryInverse(Matrix3& out) const noexcept(std::is_arithmetic_v<T>)
-            requires Concepts::Numeric<T> {
+            requires Concepts::FloatingPoint<T> {
             // 1. 评估矩阵元素最大模长尺度 (Scale / Infinity Norm Proxy)
             T max_val = T{0};
             for (size_t i = 0; i < 9; ++i) {

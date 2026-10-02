@@ -144,6 +144,8 @@ if(BUILD_TESTING)
         vectoris_register_coverage_target(VectorisNumerics_Tests)
     endif()
 
+    include(${PROJECT_SOURCE_DIR}/cmake/Matrix3InverseDomainProbe.cmake)
+
     gtest_discover_tests(VectorisNumerics_Tests)
 
     # ==============================================================================

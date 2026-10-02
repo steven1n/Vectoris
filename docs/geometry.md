@@ -532,7 +532,44 @@ uses NumericTraits only when a floating-point comparison is selected. Constructi
 parameter declaration. Float/double default absolute/relative values
 (`epsilon * 100`), one-tolerance calls and member-function pointer types remain
 unchanged.
-`TryInverse` requires `Concepts::Numeric<T>` to make its existing built-in
-numerical-limits/epsilon policy visible; its formula, thresholds and float/double
+Candidate #10 historically required `Concepts::Numeric<T>` for `TryInverse`.
+Candidate #11 tightens this to `Concepts::FloatingPoint<T>`, exposing its non-truncating
+numeric domain and existing built-in
+numerical-limits/epsilon policy; its formula, thresholds and float/double
 behavior are unchanged. Custom-scalar arithmetic remains exception-propagating.
 Consumers rebuild these header-only instantiations; no ABI stability is asserted.
+
+### Candidate #11: rotation evaluation and integer matrix domain
+
+Checked RotationMatrix3 application to floating-point Vector3 components (plain
+scalars or project `Units::Quantity` of the same scalar) uses the overflow-resistant
+row kernel. The Quantity adapter unwraps only inside numerical evaluation and
+reconstructs the same unit/dimension and target Frame in its public result.
+Outside the bounded ordinary path, opposite-sign products are evaluated first. At the overflow boundary, a compensated three-product
+dot uses exact power-of-two downscaling and rescaling. The compensation uses the
+same scalar precision; correctness requires neither wider long double nor FMA/FP
+contraction. Ordinary and isolated subnormal terms avoid global scaling. The
+finite-input contract uses the stored rotation coefficients; genuinely unrepresentable
+outputs may be Inf. NaN/Inf inputs are outside the finite-input guarantee and retain
+IEEE propagation. Round-to-nearest, gradual underflow and no fast-math remain required.
+This is rotation-specific; raw Matrix3 multiplication remains unchecked arithmetic.
+
+| Matrix3 operation | Numeric integral scalar (`Concepts::NumericInteger`) | float/double |
+| --- | --- | --- |
+| Construction, indexing, basic arithmetic | Supported; index and arithmetic representability preconditions apply | Supported |
+| `det()` | `Result<T, MathError>`; checked products, differences and sum | Existing scalar result and numerical semantics |
+| `TryInverse(out)` | Unavailable at the public floating-point constraint | Existing spelling, bool result, algorithm and thresholds |
+| `AlmostEqual` | Unavailable | Existing default/explicit tolerances |
+
+The checked determinant domain excludes bool and character scalar types, following
+`Concepts::NumericInteger`. Numeric integral determinant evaluation rejects any
+unrepresentable intermediate with
+`MathError::domain_error`, including a representable final determinant whose cofactor
+formula exceeds T at an earlier step. It never uses signed overflow or INT_MIN
+negation to discover failure. Integral callers must now inspect the Result, and
+integral inverse callers no longer compile: both are correctness-driven source
+contract tightening. Custom arithmetic-only scalar support is retained; custom
+scalar `det()` still follows its own arithmetic contract. This does not promise
+that every other integral Matrix3 operation is overflow checked, nor any ABI stability.
+Float/double inverse behavior is unchanged. Solve linear systems instead of forming
+an inverse unless the problem requires an explicit inverse.

@@ -371,6 +371,10 @@ TEST(PublicApiSurfaceTest, GeometryMatrix3AndVectorMultiplication) {
     EXPECT_DOUBLE_EQ(res_vd.y, 32.0);
     EXPECT_DOUBLE_EQ(res_vd.z, 50.0);
 
+    const Matrix3<int> integer_matrix{2,0,0,0,1,0,0,0,1};
+    const auto integer_determinant = integer_matrix.det();
+    ASSERT_TRUE(integer_determinant.IsSuccess());
+    EXPECT_EQ(integer_determinant.Value(), 2);
     // Scalar-left and scalar-right
     auto m_scaled = 2.0 * md;
     auto m_scaled2 = md * 2.0;

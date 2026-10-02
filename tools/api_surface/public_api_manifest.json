@@ -66,6 +66,12 @@
       ],
       "special_values": "signed zero and +Inf preserved; negative nonzero and NaN inputs produce NaN",
       "accuracy_validation": "<=1 ULP against independent std::sqrt in round-to-nearest; no cross-platform bit-identity or NaN-payload guarantee"
+    },
+    "matrix3_integer": {
+      "storage_and_basic_arithmetic": "Supported; callers keep intermediate basic arithmetic representable in T.",
+      "determinant": "For Concepts::NumericInteger (excludes bool/characters), det() returns Result<T,MathError>; domain_error on an out-of-range checked intermediate.",
+      "inverse": "Unsupported: TryInverse requires Concepts::FloatingPoint<T>.",
+      "positive_probe": "PublicApiSurfaceTest.GeometryMatrix3AndVectorMultiplication"
     }
   },
   "historical_gaps_verified": [
@@ -218,6 +224,13 @@
       "control_file": "tools/api_surface/negative_probes/matrix_explicit_tolerance_control.cpp",
       "description": "Arithmetic-only Matrix3 scalar lacks the floating-point comparison policy; reject at constrained overload resolution.",
       "expected_failure_pattern": "constraints not satisfied"
+    },
+    {
+      "id": "NEG-15",
+      "file": "tools/api_surface/negative_probes/matrix_integer_inverse.cpp",
+      "control_file": "tools/api_surface/negative_probes/matrix_integer_inverse_control.cpp",
+      "description": "General inverse rejects integral scalars at the floating-point public constraint. Integer storage, basic arithmetic and checked determinant remain supported.",
+      "expected_failure_pattern": "constraints"
     }
   ],
   "public_headers_count": 58,

@@ -97,7 +97,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: gcc-linux-qualification-logs
-          path: artifacts-gcc/
+          path: |
+            artifacts-gcc/
+            build-gcc-debug/modules/VectorisNumerics/matrix3-inverse-domain-evidence.txt
+            build-gcc-release/modules/VectorisNumerics/matrix3-inverse-domain-evidence.txt
 
   # ============================================================================
   # 2. LLVM Clang / Linux Qualification
@@ -178,7 +181,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: clang-linux-qualification-logs
-          path: artifacts-clang/
+          path: |
+            artifacts-clang/
+            build-clang-debug/modules/VectorisNumerics/matrix3-inverse-domain-evidence.txt
+            build-clang-release/modules/VectorisNumerics/matrix3-inverse-domain-evidence.txt
 
   # ============================================================================
   # 3. MSVC / Windows Qualification
@@ -311,7 +317,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: msvc-windows-qualification-logs
-          path: artifacts-msvc/
+          path: |
+            artifacts-msvc/
+            build-msvc/modules/VectorisNumerics/matrix3-inverse-domain-evidence.txt
 
   # ============================================================================
   # 4. Dynamic Sanitizers / Linux (ASan, UBSan, ASan+UBSan)

@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <cmath>
+#include <array>
 #include "Vectoris/Numerics/Geometry/Matrix3.h"
 #include "Vectoris/Numerics/Core/NumericTraits.h"
 
@@ -308,3 +309,90 @@ TEST(Matrix3Test, FloatTryInverseComprehensive) {
 }
 
 
+
+// Candidate #11: inverse needs a non-truncating numeric domain.
+namespace {
+template<class T> concept C11HasInverse = requires(const Matrix3<T>& a, Matrix3<T>& out) { a.TryInverse(out); };
+static_assert(!C11HasInverse<int> && !C11HasInverse<unsigned>);
+static_assert(C11HasInverse<float> && C11HasInverse<double>);
+}
+TEST(C11MatrixDomain, IntegerConstructionAndArithmeticRemainSupported) {
+    Matrix3<int> a{2,0,0,0,1,0,0,0,1};
+    EXPECT_EQ(a(0,0),2);
+    EXPECT_EQ((a + Matrix3<int>::Identity())(0,0),3);
+    EXPECT_EQ((a - Matrix3<int>::Identity())(1,1),0);
+    EXPECT_EQ((a * Matrix3<int>::Identity())(0,0),2);
+    const auto determinant = a.det();
+    ASSERT_TRUE(determinant.IsSuccess());
+    EXPECT_EQ(determinant.Value(),2);
+}
+TEST(C11MatrixDomain, IntMinInverseIsUnavailableWithoutEvaluation) {
+    Matrix3<int> a{std::numeric_limits<int>::lowest(),0,0,0,1,0,0,0,1};
+    static_assert(!C11HasInverse<int>);
+    const auto determinant = a.det();
+    ASSERT_TRUE(determinant.IsSuccess());
+    EXPECT_EQ(determinant.Value(),std::numeric_limits<int>::lowest());
+}
+TEST(C11MatrixDomain, CheckedIntegerDeterminantRejectsOverflow) {
+    const int low=std::numeric_limits<int>::lowest(), high=std::numeric_limits<int>::max();
+    for (const auto& a : std::array<Matrix3<int>,6>{
+        Matrix3<int>{low,0,0,0,2,0,0,0,1},
+        Matrix3<int>{high,0,0,0,2,0,0,0,1},
+        Matrix3<int>{1,0,0,0,high,0,0,0,2},
+        Matrix3<int>{1,0,0,0,0,low,0,1,0},
+        Matrix3<int>{1,0,0,0,high,1,0,-1,1},
+        Matrix3<int>{1,0,0,0,low,1,0,1,1}}) {
+        const auto determinant=a.det();
+        ASSERT_FALSE(determinant.IsSuccess());
+        EXPECT_EQ(determinant.error(),Core::MathError::domain_error);
+    }
+}
+TEST(C11MatrixDomain, CheckedIntegerDeterminantSignsAndZero) {
+    for (int x : {-7,0,7}) for (int y : {-3,0,3}) for (int z : {-2,0,2}) {
+        const Matrix3<int> a{x,0,0,0,y,0,0,0,z};
+        const auto determinant=a.det();
+        ASSERT_TRUE(determinant.IsSuccess());
+        EXPECT_EQ(determinant.Value(),x*y*z);
+    }
+    const Matrix3<int> negative_term{0,2,0,3,0,0,0,0,1};
+    EXPECT_EQ(negative_term.det().Value(),-6);
+    const Matrix3<int> third_term{0,0,2,3,0,0,0,1,0};
+    EXPECT_EQ(third_term.det().Value(),6);
+}
+TEST(C11MatrixDomain, UnsignedDeterminantIsChecked) {
+    const Matrix3<unsigned> ok{2,0,0,0,3,0,0,0,4};
+    EXPECT_EQ(ok.det().Value(),24U);
+    const Matrix3<unsigned> overflow{std::numeric_limits<unsigned>::max(),0,0,0,2,0,0,0,1};
+    EXPECT_FALSE(overflow.det().IsSuccess());
+    const Matrix3<unsigned> negative{0,1,0,1,0,0,0,0,1};
+    EXPECT_FALSE(negative.det().IsSuccess());
+}
+TEST(C11MatrixDomain, FloatingInverseCompatibility) {
+    const Matrix3<double> a{2,0,0,0,1,0,0,0,1};Matrix3<double> inverse;
+    ASSERT_TRUE(a.TryInverse(inverse));
+    EXPECT_DOUBLE_EQ(inverse(0,0),0.5);
+    EXPECT_TRUE((a*inverse).AlmostEqual(Matrix3<double>::Identity()));
+    const Matrix3<float> f{2,0,0,0,1,0,0,0,1};Matrix3<float> fi;
+    ASSERT_TRUE(f.TryInverse(fi));
+    EXPECT_FLOAT_EQ(fi(0,0),0.5f);
+    EXPECT_TRUE((f*fi).AlmostEqual(Matrix3<float>::Identity()));
+}
+
+TEST(C11MatrixDomain, CheckedDeterminantAccumulatorBoundaries) {
+    const int low=std::numeric_limits<int>::lowest(), high=std::numeric_limits<int>::max();
+    for(const auto& a:std::array<Matrix3<int>,6>{
+        Matrix3<int>{high,0,-1,0,1,0,1,0,1},
+        Matrix3<int>{low,0,1,0,1,0,1,0,1},
+        Matrix3<int>{low,0,0,0,-1,0,0,0,1},
+        Matrix3<int>{high,0,0,0,-2,0,0,0,1},
+        Matrix3<int>{high,-1,0,1,1,0,0,0,1},
+        Matrix3<int>{low,1,0,1,1,0,0,0,1}}) EXPECT_FALSE(a.det().IsSuccess());
+    for(int term:{-3,0,3}) {
+        const Matrix3<int> a{7,0,term,0,1,0,1,0,1};
+        EXPECT_EQ(a.det().Value(),7-term);
+    }
+    const Matrix3<unsigned> unsigned_sum_overflow{std::numeric_limits<unsigned>::max(),0,1,1,1,0,0,1,1};
+    EXPECT_FALSE(unsigned_sum_overflow.det().IsSuccess());
+    const Matrix3<unsigned> unsigned_sum{3,0,1,1,1,0,0,1,1};
+    EXPECT_EQ(unsigned_sum.det().Value(),4U);
+}
