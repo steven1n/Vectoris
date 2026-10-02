@@ -508,3 +508,31 @@ Reference-only accessors remain non-throwing. FromQuaternion propagates the
 complete conversion expression's exception specification, including for a
 user-defined adapter. Object layouts and frame constraints are unchanged; custom
 specialization exception traits change. This is not an ABI stability guarantee.
+
+### Matrix3 scalar capabilities (Candidate #10)
+
+`ScalarArithmetic<T>` admits scalar arithmetic expressions; it does not imply
+IEEE-754 finite-value handling, epsilon, numerical limits or tolerance comparison.
+`Matrix3<T>` construction and basic arithmetic retain the custom-scalar support
+exercised by the throwing-scalar regression suite. Operations still require the
+construction and scalar expressions they actually evaluate.
+
+Matrix3 member/free `AlmostEqual`, and the corresponding Vector3, Point3,
+Quaternion (`AlmostEqual` and `RotationEquivalent`), RotationMatrix3 and Transform3
+comparison helpers require `Concepts::FloatingPoint<T>`, matching the existing
+`Traits::AlmostEqual` policy. Both explicit-tolerance and default-tolerance
+comparison are unavailable for an arithmetic-only custom scalar, including
+ThrowingScalar; supplying a tolerance does not provide a finite/comparison policy.
+No test-only NumericTraits specialization or custom comparison algorithm is added.
+
+Matrix3 member comparison retains its existing signature and default-argument
+call spellings. Defaults invoke a private delayed tolerance function whose body
+uses NumericTraits only when a floating-point comparison is selected. Constructing
+`Matrix3<ThrowingScalar>` never forms `NumericTraits<ThrowingScalar>` in a member
+parameter declaration. Float/double default absolute/relative values
+(`epsilon * 100`), one-tolerance calls and member-function pointer types remain
+unchanged.
+`TryInverse` requires `Concepts::Numeric<T>` to make its existing built-in
+numerical-limits/epsilon policy visible; its formula, thresholds and float/double
+behavior are unchanged. Custom-scalar arithmetic remains exception-propagating.
+Consumers rebuild these header-only instantiations; no ABI stability is asserted.

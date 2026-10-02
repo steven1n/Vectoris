@@ -204,6 +204,20 @@
       "control_file": "tools/api_surface/negative_probes/sqrt_compatibility_conversion_control.cpp",
       "description": "compatibility sqrt rejects deduced conversion arguments.",
       "expected_failure_pattern": "no matching function"
+    },
+    {
+      "id": "NEG-C10-MATRIX_DEFAULT_TOLERANCE",
+      "file": "tools/api_surface/negative_probes/matrix_default_tolerance.cpp",
+      "control_file": "tools/api_surface/negative_probes/matrix_default_tolerance_control.cpp",
+      "description": "Arithmetic-only Matrix3 scalar lacks the floating-point comparison policy; reject at constrained overload resolution.",
+      "expected_failure_pattern": "constraints not satisfied"
+    },
+    {
+      "id": "NEG-C10-MATRIX_EXPLICIT_TOLERANCE",
+      "file": "tools/api_surface/negative_probes/matrix_explicit_tolerance.cpp",
+      "control_file": "tools/api_surface/negative_probes/matrix_explicit_tolerance_control.cpp",
+      "description": "Arithmetic-only Matrix3 scalar lacks the floating-point comparison policy; reject at constrained overload resolution.",
+      "expected_failure_pattern": "constraints not satisfied"
     }
   ],
   "public_headers_count": 58,

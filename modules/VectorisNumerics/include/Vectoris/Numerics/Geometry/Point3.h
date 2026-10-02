@@ -62,7 +62,7 @@ namespace vectoris::numerics::Geometry {
     };
 
     // 容差自适应近似相等 (Tolerance-Aware Numerical Comparison)
-    template <ScalarArithmetic T, FrameTag Frame>
+    template <Concepts::FloatingPoint T, FrameTag Frame>
     [[nodiscard]] inline bool AlmostEqual(
         const Point3<T, Frame>& a,
         const Point3<T, Frame>& b,

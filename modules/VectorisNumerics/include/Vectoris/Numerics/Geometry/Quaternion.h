@@ -345,7 +345,7 @@ namespace vectoris::numerics::Geometry {
     };
 
     // 容差自适应逐分量近似相等
-    template <ScalarArithmetic T, FrameTag FrameFrom, FrameTag FrameTo>
+    template <Concepts::FloatingPoint T, FrameTag FrameFrom, FrameTag FrameTo>
     [[nodiscard]] inline bool AlmostEqual(
         const Quaternion<T, FrameFrom, FrameTo>& a,
         const Quaternion<T, FrameFrom, FrameTo>& b,
@@ -359,7 +359,7 @@ namespace vectoris::numerics::Geometry {
     }
 
     // SO(3) 旋转几何等价判定 (双覆盖性质: q 与 -q 表达空间同一旋转)
-    template <ScalarArithmetic T, FrameTag FrameFrom, FrameTag FrameTo>
+    template <Concepts::FloatingPoint T, FrameTag FrameFrom, FrameTag FrameTo>
     [[nodiscard]] inline bool RotationEquivalent(
         const Quaternion<T, FrameFrom, FrameTo>& a,
         const Quaternion<T, FrameFrom, FrameTo>& b,

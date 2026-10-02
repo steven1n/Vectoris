@@ -32,6 +32,12 @@ namespace vectoris::numerics::Geometry {
             }
         }
 
+        // The body is instantiated only for a selected floating-point comparison.
+        // A generic Matrix3 declaration never forms NumericTraits<T> here.
+        static constexpr T DefaultComparisonTolerance() noexcept(std::is_arithmetic_v<T>) {
+            return Traits::NumericTraits<T>::epsilon() * T{100};
+        }
+
     public:
         // [GEO-REV-002] 强制值初始化，避免不可预测的随机内存态
         constexpr Matrix3() noexcept(std::is_arithmetic_v<T>) : m{T{}, T{}, T{}, T{}, T{}, T{}, T{}, T{}, T{}} {}
@@ -151,7 +157,8 @@ namespace vectoris::numerics::Geometry {
 
         // 伴随矩阵求逆 (无抛出原则, 失败返回 false)
         // 遵循 Solve-Not-Invert 原则：仅在需要显式矩阵逆时使用；解线性方程应使用消元求解器
-        constexpr bool TryInverse(Matrix3& out) const noexcept(std::is_arithmetic_v<T>) {
+        constexpr bool TryInverse(Matrix3& out) const noexcept(std::is_arithmetic_v<T>)
+            requires Concepts::Numeric<T> {
             // 1. 评估矩阵元素最大模长尺度 (Scale / Infinity Norm Proxy)
             T max_val = T{0};
             for (size_t i = 0; i < 9; ++i) {
@@ -236,9 +243,9 @@ namespace vectoris::numerics::Geometry {
         // 容差自适应数值近似判定
         [[nodiscard]] bool AlmostEqual(
             const Matrix3& rhs,
-            T absoluteTolerance = Traits::NumericTraits<T>::epsilon() * T{100},
-            T relativeTolerance = Traits::NumericTraits<T>::epsilon() * T{100}
-        ) const noexcept(std::is_arithmetic_v<T>) {
+            T absoluteTolerance = DefaultComparisonTolerance(),
+            T relativeTolerance = DefaultComparisonTolerance()
+        ) const noexcept(std::is_arithmetic_v<T>) requires Concepts::FloatingPoint<T> {
             for (size_t i = 0; i < 9; ++i) {
                 if (!Traits::AlmostEqual(m[i], rhs.m[i], absoluteTolerance, relativeTolerance)) {
                     return false;
@@ -246,6 +253,7 @@ namespace vectoris::numerics::Geometry {
             }
             return true;
         }
+
     };
 
     template <ScalarArithmetic T>
@@ -263,7 +271,7 @@ namespace vectoris::numerics::Geometry {
     }
 
     // 容差自适应近似相等 (Tolerance-Aware Numerical Comparison)
-    template <ScalarArithmetic T>
+    template <Concepts::FloatingPoint T>
     [[nodiscard]] inline bool AlmostEqual(
         const Matrix3<T>& a,
         const Matrix3<T>& b,

@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <cmath>
 #include "Vectoris/Numerics/Geometry/Vector3.h"
 #include "Vectoris/Numerics/Geometry/Point3.h"
 #include "Vectoris/Numerics/Geometry/UnitVector3.h"
@@ -837,3 +838,88 @@ TEST(AFA2Noexcept, QuaternionAdapterExceptionPropagates) {
     static_assert(!noexcept(R::FromQuaternion(adapter)));
     EXPECT_THROW(static_cast<void>(R::FromQuaternion(adapter)),AFA2Throwing::Raised);
 }
+
+// C10: arithmetic capability does not supply the floating-point tolerance policy.
+namespace {
+template<class M> concept HasDefaultMatrixComparison = requires(const M& a) { a.AlmostEqual(a); };
+template<class M> concept HasPartialMatrixComparison = requires(const M& a, typename vectoris::numerics::geometry::GeometryTraits<M>::ScalarType t) { a.AlmostEqual(a,t); };
+template<class M> concept HasExplicitMatrixComparison = requires(const M& a, typename vectoris::numerics::geometry::GeometryTraits<M>::ScalarType t) { a.AlmostEqual(a,t,t); };
+template<class M> concept HasMatrixInverse = requires(const M& a, M& out) { a.TryInverse(out); };
+template<class G, class S> concept HasDefaultGeometryComparison = requires(const G& a) { vectoris::numerics::geometry::AlmostEqual(a,a); };
+template<class G, class S> concept HasExplicitGeometryComparison = requires(const G& a, S t) { vectoris::numerics::geometry::AlmostEqual(a,a,t,t); };
+template<class Q, class S> concept HasRotationComparison = requires(const Q& q, S t) { vectoris::numerics::geometry::RotationEquivalent(q,q,t,t); };
+
+template<class T>
+void CheckMatrixTolerancePolicy() {
+    using M = vectoris::numerics::geometry::Matrix3<T>;
+    static_assert(HasDefaultMatrixComparison<M> && HasPartialMatrixComparison<M> && HasExplicitMatrixComparison<M>);
+    static_assert(noexcept(M::Identity().AlmostEqual(M::Identity())));
+    const T eps = std::numeric_limits<T>::epsilon();
+    const M identity = M::Identity();
+    // The original, unambiguous member-function address remains source compatible.
+    const auto compare = &M::AlmostEqual;
+    EXPECT_TRUE((identity.*compare)(identity,T{0},T{0}));
+    M near = identity;
+    near.m[0] += eps*T{50};
+    M far = identity;
+    far.m[0] += eps*T{200};
+    EXPECT_TRUE(identity.AlmostEqual(near));
+    EXPECT_FALSE(identity.AlmostEqual(far));
+    EXPECT_TRUE(identity.AlmostEqual(near,T{0}));
+    EXPECT_FALSE(identity.AlmostEqual(near,T{0},T{0}));
+    EXPECT_TRUE(identity.AlmostEqual(near,eps*T{100},T{0}));
+    EXPECT_TRUE(vectoris::numerics::geometry::AlmostEqual(identity,near));
+    EXPECT_FALSE(vectoris::numerics::geometry::AlmostEqual(identity,far));
+    EXPECT_TRUE(vectoris::numerics::geometry::AlmostEqual(identity,near,T{0}));
+    EXPECT_FALSE(vectoris::numerics::geometry::AlmostEqual(identity,near,T{0},T{0}));
+}
+
+template<class T>
+void CheckInverseThresholdPolicy() {
+    using M = vectoris::numerics::geometry::Matrix3<T>;
+    static_assert(HasMatrixInverse<M>);
+    const T eps = std::numeric_limits<T>::epsilon();
+    M matrix = M::Identity();
+    M out = M::Zero();
+    matrix.m[8] = eps;
+    EXPECT_FALSE(matrix.TryInverse(out));
+    EXPECT_EQ(out.m[8],T{0}); // failed operation retains the prior output
+    matrix.m[8] = std::nextafter(eps,std::numeric_limits<T>::infinity());
+    ASSERT_TRUE(matrix.TryInverse(out));
+    EXPECT_NEAR(out.m[8]*matrix.m[8],T{1},eps*T{2});
+}
+} // namespace
+
+TEST(Matrix3ScalarContract, CustomConstructionAndArithmetic) {
+    using namespace AFA2Throwing;
+    const M identity = M::Identity();
+    const M sum = identity+identity;
+    const M product = (sum-identity)*identity;
+    EXPECT_DOUBLE_EQ(product.m[0].v,1.0);
+    EXPECT_DOUBLE_EQ(product.m[4].v,1.0);
+    EXPECT_DOUBLE_EQ(product.m[8].v,1.0);
+    EXPECT_DOUBLE_EQ(product.m[1].v,0.0);
+}
+
+TEST(Matrix3ScalarContract, UnsupportedToleranceIsUnavailableAtPublicBoundary) {
+    using namespace AFA2Throwing;
+    static_assert(!vectoris::numerics::Concepts::Numeric<S>);
+    static_assert(!HasDefaultMatrixComparison<M>);
+    static_assert(!HasPartialMatrixComparison<M>);
+    static_assert(!HasExplicitMatrixComparison<M>);
+    static_assert(!HasMatrixInverse<M>);
+    static_assert(!HasDefaultGeometryComparison<M,S> && !HasExplicitGeometryComparison<M,S>);
+    static_assert(!HasDefaultGeometryComparison<V,S> && !HasExplicitGeometryComparison<V,S>);
+    static_assert(!HasDefaultGeometryComparison<P,S> && !HasExplicitGeometryComparison<P,S>);
+    static_assert(!HasDefaultGeometryComparison<Q,S> && !HasExplicitGeometryComparison<Q,S>);
+    static_assert(!HasDefaultGeometryComparison<R,S> && !HasExplicitGeometryComparison<R,S>);
+    static_assert(!HasDefaultGeometryComparison<T,S> && !HasExplicitGeometryComparison<T,S>);
+    static_assert(!HasRotationComparison<Q,S>);
+    static_assert(!HasDefaultMatrixComparison<g::Matrix3<int>>);
+    EXPECT_DOUBLE_EQ(M::Identity().m[0].v,1.0);
+}
+
+TEST(Matrix3ScalarContract, FloatDefaultAndExplicitTolerance) { CheckMatrixTolerancePolicy<float>(); }
+TEST(Matrix3ScalarContract, DoubleDefaultAndExplicitTolerance) { CheckMatrixTolerancePolicy<double>(); }
+TEST(Matrix3ScalarContract, FloatInverseThresholdUnchanged) { CheckInverseThresholdPolicy<float>(); }
+TEST(Matrix3ScalarContract, DoubleInverseThresholdUnchanged) { CheckInverseThresholdPolicy<double>(); }
