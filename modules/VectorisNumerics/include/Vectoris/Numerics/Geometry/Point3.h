@@ -1,5 +1,7 @@
 #pragma once
 #include "Namespace.h"
+#include <type_traits>
+#include <utility>
 #include <cstddef>
 #include "Concepts.h"
 #include "FrameTags.h"
@@ -15,12 +17,23 @@ namespace vectoris::numerics::Geometry {
         T y;
         T z;
 
-        constexpr Point3() noexcept : x{}, y{}, z{} {}
-        constexpr Point3(T _x, T _y, T _z) noexcept : x(_x), y(_y), z(_z) {}
+    private:
+        // Preserve reference scalars; otherwise move only when it is safe.
+        static constexpr decltype(auto) ComponentArgument(T& value) noexcept {
+            if constexpr (std::is_lvalue_reference_v<T>) {
+                return (value);
+            } else {
+                return std::move_if_noexcept(value);
+            }
+        }
+
+    public:
+        constexpr Point3() noexcept(std::is_arithmetic_v<T>) : x{}, y{}, z{} {}
+        constexpr Point3(T _x, T _y, T _z) noexcept(std::is_arithmetic_v<T>) : x(ComponentArgument(_x)), y(ComponentArgument(_y)), z(ComponentArgument(_z)) {}
 
         // Point + Vector = Point
         template <ScalarArithmetic U>
-        constexpr auto operator+(const Vector3<U, Frame>& vec) const noexcept {
+        constexpr auto operator+(const Vector3<U, Frame>& vec) const noexcept(std::is_arithmetic_v<T> && std::is_arithmetic_v<U>) {
             return Point3<decltype(x + vec.x), Frame>{x + vec.x, y + vec.y, z + vec.z};
         }
 
@@ -30,7 +43,7 @@ namespace vectoris::numerics::Geometry {
 
         // Point - Point = Vector (必须同 Frame)
         template <ScalarArithmetic U>
-        constexpr auto operator-(const Point3<U, Frame>& rhs) const noexcept {
+        constexpr auto operator-(const Point3<U, Frame>& rhs) const noexcept(std::is_arithmetic_v<T> && std::is_arithmetic_v<U>) {
             return Vector3<decltype(x - rhs.x), Frame>{x - rhs.x, y - rhs.y, z - rhs.z};
         }
 
@@ -39,11 +52,11 @@ namespace vectoris::numerics::Geometry {
         constexpr auto operator-(const Point3<U, OtherFrame>&) const = delete;
 
         // 精确逐分量数值相等性判定 (Exact component-wise stored-value equality under C++ == semantics)
-        constexpr bool operator==(const Point3& rhs) const noexcept {
+        constexpr bool operator==(const Point3& rhs) const noexcept(std::is_arithmetic_v<T>) {
             return x == rhs.x && y == rhs.y && z == rhs.z;
         }
 
-        constexpr bool operator!=(const Point3& rhs) const noexcept {
+        constexpr bool operator!=(const Point3& rhs) const noexcept(std::is_arithmetic_v<T>) {
             return !(*this == rhs);
         }
     };
@@ -55,7 +68,7 @@ namespace vectoris::numerics::Geometry {
         const Point3<T, Frame>& b,
         T absoluteTolerance = Traits::NumericTraits<T>::epsilon() * T{100},
         T relativeTolerance = Traits::NumericTraits<T>::epsilon() * T{100}
-    ) noexcept {
+    ) noexcept(std::is_arithmetic_v<T>) {
         return Traits::AlmostEqual(a.x, b.x, absoluteTolerance, relativeTolerance) &&
                Traits::AlmostEqual(a.y, b.y, absoluteTolerance, relativeTolerance) &&
                Traits::AlmostEqual(a.z, b.z, absoluteTolerance, relativeTolerance);

@@ -2,7 +2,7 @@
 
 Vectoris is a modular, deterministic, header-only ISO C++20 numerical computing and engineering simulation framework for high-reliability applications, scientific computation, and spatial dynamics.
 
-The framework prioritizes compile-time dimensional safety, coordinate-frame safety, zero-overhead abstractions, verified source-level type layouts where required, and verifiable numerical contracts without runtime exceptions or dynamic heap allocations. Type-layout checks are not a general ABI-stability promise.
+The framework prioritizes compile-time dimensional safety, coordinate-frame safety, zero-overhead abstractions, verified source-level type layouts where required, and verifiable numerical contracts. Built-in floating numerical kernels do not use runtime exceptions; generic Geometry custom scalars may propagate exceptions. Stable numerical kernels prohibit uncontrolled runtime heap allocation after initialization. Type-layout checks are not a general ABI-stability promise.
 
 > [!NOTE]
 > **Modular Architecture**: Vectoris enforces a strict separation between pure mathematics ([`VectorisNumerics`](modules/VectorisNumerics/)) and domain-specific physical mechanics ([`VectorisDynamics`](modules/VectorisDynamics/)). See [`docs/PURE_MATH_SCOPE.md`](docs/PURE_MATH_SCOPE.md) and [`docs/VECTORIS_RENAME_MIGRATION.md`](docs/VECTORIS_RENAME_MIGRATION.md).
@@ -70,10 +70,39 @@ Vectoris/
 
 ## Current Status
 
-**NOT REQUALIFIED / Experimental.** The R1 qualification is historical and does
-not qualify the current source tree. The incremental red-team remediation ledger
-records step-specific local changes and verification; findings remain pending CI
-and independent review until explicitly closed.
+**NOT FINALIZED / Experimental. No Numerics 1.0 release or freeze is authorized.**
+
+- **Frozen historical candidate:** Candidate #8,
+  `147731efa0ff6ea14de52ceba456e54c384cd219`; its cross-platform remediation CI
+  passed, but Fresh Independent Final Audit #2 found five MAJOR issues. It remains
+  unchanged. Full Final Requalification #2 was explicitly skipped.
+- **Latest qualification candidate:** Candidate #9 on
+  `qualification/vectoris-remediation-candidate-9`, containing the five post-C8
+  fixes. Its exact commit SHA, local execution results and cross-platform CI
+  disposition belong to the external Candidate #9 qualification report; this
+  README does not grant qualification or independent-audit PASS.
+- **Latest independent audit:** Candidate #8 audit FAIL. Candidate #9 requires a
+  fresh independent final audit after exact-SHA qualification. AFA / VRT findings
+  remain NOT CLOSED. Historical R1 qualification is not qualification of C9.
+- **Test-count provenance:** C8 had 311 Debug / 309 Release registered tests;
+  the post-C8 patch adds 64 regressions (375 Debug / 373 Release). These are
+  source-registration counts relative to the recorded C8 SHA, not proof of
+  execution. Actual pass counts are bound to the exact frozen C9 SHA in its
+  qualification evidence. No new frozen release is asserted; `VERSION`'s RC1
+  label is a development label, not release authorization.
+
+### Numerical support boundaries
+
+Determinism means deterministic behavior under a fixed implementation, toolchain,
+floating-point environment, configuration, algorithm and seed. Cross-toolchain
+and cross-hardware bitwise identity is not guaranteed.
+
+`double` is the default numerical type for aerospace, orbital and estimation
+workloads unless an explicit error budget justifies `float`. `float` remains
+supported; support alone does not establish suitability for a workload.
+
+Qualification and independent audit are internal project processes. They do not
+constitute MISRA compliance, DO-178C / ASIL certification or formal verification.
 
 LLVM function coverage measures emitted functions only. HeaderIsolation checks
 independent header inclusion, the Public API surface gate checks its declared

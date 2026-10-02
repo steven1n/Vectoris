@@ -222,3 +222,618 @@ TEST(AFA002Noexcept, ReferenceScalarConstructionRemainsCompatible) {
     EXPECT_EQ(&references.y, &y);
     EXPECT_EQ(&references.z, &z);
 }
+
+// AFA2-002: scalar faults must propagate through every composite family.
+namespace {
+namespace AFA2Throwing {
+namespace g = vectoris::numerics::geometry;
+struct F {};
+struct G {};
+struct Raised {};
+enum class Fault { none, def, convert, copy, move, copy_assign, move_assign, add, sub, neg, mul, div, compare };
+struct ThrowingScalar {
+  static inline Fault fault = Fault::none;
+  double v;
+  static void raise(Fault f) { if (fault == f) throw Raised{}; }
+  ThrowingScalar() : v(0) { raise(Fault::def); }
+  ThrowingScalar(double x) : v(x) { raise(Fault::convert); }
+  ThrowingScalar(const ThrowingScalar& x) : v(x.v) { raise(Fault::copy); }
+  ThrowingScalar(ThrowingScalar&& x) noexcept(false) : v(x.v) { raise(Fault::move); }
+  ~ThrowingScalar() = default;
+  ThrowingScalar& operator=(const ThrowingScalar& x) { v=x.v; raise(Fault::copy_assign); return *this; }
+  ThrowingScalar& operator=(ThrowingScalar&& x) noexcept(false) { v=x.v; raise(Fault::move_assign); return *this; }
+  friend ThrowingScalar operator+(const ThrowingScalar& a,const ThrowingScalar& b) { raise(Fault::add); return a.v+b.v; }
+  friend ThrowingScalar operator-(const ThrowingScalar& a,const ThrowingScalar& b) { raise(Fault::sub); return a.v-b.v; }
+  friend ThrowingScalar operator-(const ThrowingScalar& a) { raise(Fault::neg); return -a.v; }
+  friend ThrowingScalar operator*(const ThrowingScalar& a,const ThrowingScalar& b) { raise(Fault::mul); return a.v*b.v; }
+  friend ThrowingScalar operator/(const ThrowingScalar& a,const ThrowingScalar& b) { raise(Fault::div); return a.v/b.v; }
+  ThrowingScalar& operator+=(const ThrowingScalar& b) { *this=*this+b; return *this; }
+  friend bool operator==(const ThrowingScalar& a,const ThrowingScalar& b) { raise(Fault::compare); return a.v==b.v; }
+  friend bool operator<(const ThrowingScalar& a,const ThrowingScalar& b) { raise(Fault::compare); return a.v<b.v; }
+};
+using S=ThrowingScalar;
+using V=g::Vector3<S,F>; using P=g::Point3<S,F>; using M=g::Matrix3<S>;
+using Q=g::Quaternion<S,F,F>; using R=g::RotationMatrix3<S,F,F>; using T=g::Transform3<S,F,F>;
+static_assert(g::ScalarArithmetic<S>);
+static_assert(!std::is_nothrow_copy_constructible_v<S>);
+struct FaultScope {
+ explicit FaultScope(Fault f) { S::fault=f; }
+ ~FaultScope() { S::fault=Fault::none; }
+ FaultScope(const FaultScope&) = delete;
+ FaultScope& operator=(const FaultScope&) = delete;
+ FaultScope(FaultScope&&) = delete;
+ FaultScope& operator=(FaultScope&&) = delete;
+};
+} // namespace AFA2Throwing
+} // namespace
+
+TEST(AFA2Noexcept, vector_default) {
+    using namespace AFA2Throwing;
+    static_assert(!noexcept(V{}));
+    static_cast<void>(V{}); // successful control also exercises result construction
+    const FaultScope fault{Fault::def};
+    EXPECT_THROW(static_cast<void>(V{}), Raised);
+}
+
+TEST(AFA2Noexcept, vector_component_convert) {
+    using namespace AFA2Throwing;
+    static_assert(!noexcept((V{1.,2.,3.})));
+    static_cast<void>((V{1.,2.,3.})); // successful control also exercises result construction
+    const FaultScope fault{Fault::convert};
+    EXPECT_THROW(static_cast<void>((V{1.,2.,3.})), Raised);
+}
+
+TEST(AFA2Noexcept, vector_component_copy) {
+    using namespace AFA2Throwing;
+    static_assert(!noexcept((V{S{1},S{2},S{3}})));
+    static_cast<void>((V{S{1},S{2},S{3}})); // successful control also exercises result construction
+    const FaultScope fault{Fault::copy};
+    EXPECT_THROW(static_cast<void>((V{S{1},S{2},S{3}})), Raised);
+}
+
+TEST(AFA2Noexcept, vector_copy) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    static_assert(!noexcept(V(v)));
+    static_cast<void>(V(v)); // successful control also exercises result construction
+    const FaultScope fault{Fault::copy};
+    EXPECT_THROW(static_cast<void>(V(v)), Raised);
+}
+
+TEST(AFA2Noexcept, vector_move) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    static_assert(!noexcept(V(std::move(v))));
+    static_cast<void>(V(std::move(v))); // successful control also exercises result construction
+    v=V{S{1},S{2},S{3}}; // fresh source for the throwing control
+    const FaultScope fault{Fault::move};
+    EXPECT_THROW(static_cast<void>(V(std::move(v))), Raised);
+}
+
+TEST(AFA2Noexcept, vector_copy_assign) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    V v2=v;
+    static_assert(!noexcept(v2=v));
+    static_cast<void>(v2=v); // successful control also exercises result construction
+    const FaultScope fault{Fault::copy_assign};
+    EXPECT_THROW(static_cast<void>(v2=v), Raised);
+}
+
+TEST(AFA2Noexcept, vector_move_assign) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    V v2=v;
+    static_assert(!noexcept(v2=std::move(v)));
+    static_cast<void>(v2=std::move(v)); // successful control also exercises result construction
+    v=V{S{1},S{2},S{3}}; // fresh source for the throwing control
+    const FaultScope fault{Fault::move_assign};
+    EXPECT_THROW(static_cast<void>(v2=std::move(v)), Raised);
+}
+
+TEST(AFA2Noexcept, vector_add) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    static_assert(!noexcept(v+v));
+    static_cast<void>(v+v); // successful control also exercises result construction
+    const FaultScope fault{Fault::add};
+    EXPECT_THROW(static_cast<void>(v+v), Raised);
+}
+
+TEST(AFA2Noexcept, vector_sub) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    static_assert(!noexcept(v-v));
+    static_cast<void>(v-v); // successful control also exercises result construction
+    const FaultScope fault{Fault::sub};
+    EXPECT_THROW(static_cast<void>(v-v), Raised);
+}
+
+TEST(AFA2Noexcept, vector_neg) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    static_assert(!noexcept(-v));
+    static_cast<void>(-v); // successful control also exercises result construction
+    const FaultScope fault{Fault::neg};
+    EXPECT_THROW(static_cast<void>(-v), Raised);
+}
+
+TEST(AFA2Noexcept, vector_mul_right) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    const S scalar{2};
+    static_assert(!noexcept(v*scalar));
+    static_cast<void>(v*scalar); // successful control also exercises result construction
+    const FaultScope fault{Fault::mul};
+    EXPECT_THROW(static_cast<void>(v*scalar), Raised);
+}
+
+TEST(AFA2Noexcept, vector_mul_left) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    const S scalar{2};
+    static_assert(!noexcept(scalar*v));
+    static_cast<void>(scalar*v); // successful control also exercises result construction
+    const FaultScope fault{Fault::mul};
+    EXPECT_THROW(static_cast<void>(scalar*v), Raised);
+}
+
+TEST(AFA2Noexcept, vector_dot_mul) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    static_assert(!noexcept(v.dot(v)));
+    static_cast<void>(v.dot(v)); // successful control also exercises result construction
+    const FaultScope fault{Fault::mul};
+    EXPECT_THROW(static_cast<void>(v.dot(v)), Raised);
+}
+
+TEST(AFA2Noexcept, vector_dot_add) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    static_assert(!noexcept(v.dot(v)));
+    static_cast<void>(v.dot(v)); // successful control also exercises result construction
+    const FaultScope fault{Fault::add};
+    EXPECT_THROW(static_cast<void>(v.dot(v)), Raised);
+}
+
+TEST(AFA2Noexcept, vector_equal) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    static_assert(!noexcept(v==v));
+    static_cast<void>(v==v); // successful control also exercises result construction
+    const FaultScope fault{Fault::compare};
+    EXPECT_THROW(static_cast<void>(v==v), Raised);
+}
+
+TEST(AFA2Noexcept, vector_unequal) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    static_assert(!noexcept(v!=v));
+    static_cast<void>(v!=v); // successful control also exercises result construction
+    const FaultScope fault{Fault::compare};
+    EXPECT_THROW(static_cast<void>(v!=v), Raised);
+}
+
+TEST(AFA2Noexcept, point_default) {
+    using namespace AFA2Throwing;
+    static_assert(!noexcept(P{}));
+    static_cast<void>(P{}); // successful control also exercises result construction
+    const FaultScope fault{Fault::def};
+    EXPECT_THROW(static_cast<void>(P{}), Raised);
+}
+
+TEST(AFA2Noexcept, point_component_copy) {
+    using namespace AFA2Throwing;
+    static_assert(!noexcept((P{S{1},S{2},S{3}})));
+    static_cast<void>((P{S{1},S{2},S{3}})); // successful control also exercises result construction
+    const FaultScope fault{Fault::copy};
+    EXPECT_THROW(static_cast<void>((P{S{1},S{2},S{3}})), Raised);
+}
+
+TEST(AFA2Noexcept, point_add) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    const P p{S{1},S{2},S{3}};
+    static_assert(!noexcept(p+v));
+    static_cast<void>(p+v); // successful control also exercises result construction
+    const FaultScope fault{Fault::add};
+    EXPECT_THROW(static_cast<void>(p+v), Raised);
+}
+
+TEST(AFA2Noexcept, point_sub) {
+    using namespace AFA2Throwing;
+    const P p{S{1},S{2},S{3}};
+    static_assert(!noexcept(p-p));
+    static_cast<void>(p-p); // successful control also exercises result construction
+    const FaultScope fault{Fault::sub};
+    EXPECT_THROW(static_cast<void>(p-p), Raised);
+}
+
+TEST(AFA2Noexcept, point_equal) {
+    using namespace AFA2Throwing;
+    const P p{S{1},S{2},S{3}};
+    static_assert(!noexcept(p==p));
+    static_cast<void>(p==p); // successful control also exercises result construction
+    const FaultScope fault{Fault::compare};
+    EXPECT_THROW(static_cast<void>(p==p), Raised);
+}
+
+TEST(AFA2Noexcept, matrix_default) {
+    using namespace AFA2Throwing;
+    static_assert(!noexcept(M{}));
+    static_cast<void>(M{}); // successful control also exercises result construction
+    const FaultScope fault{Fault::def};
+    EXPECT_THROW(static_cast<void>(M{}), Raised);
+}
+
+TEST(AFA2Noexcept, matrix_identity) {
+    using namespace AFA2Throwing;
+    static_assert(!noexcept(M::Identity()));
+    static_cast<void>(M::Identity()); // successful control also exercises result construction
+    const FaultScope fault{Fault::copy};
+    EXPECT_THROW(static_cast<void>(M::Identity()), Raised);
+}
+
+TEST(AFA2Noexcept, matrix_add) {
+    using namespace AFA2Throwing;
+    const M matrix=M::Identity();
+    static_assert(!noexcept(matrix+matrix));
+    static_cast<void>(matrix+matrix); // successful control also exercises result construction
+    const FaultScope fault{Fault::add};
+    EXPECT_THROW(static_cast<void>(matrix+matrix), Raised);
+}
+
+TEST(AFA2Noexcept, matrix_sub) {
+    using namespace AFA2Throwing;
+    const M matrix=M::Identity();
+    static_assert(!noexcept(matrix-matrix));
+    static_cast<void>(matrix-matrix); // successful control also exercises result construction
+    const FaultScope fault{Fault::sub};
+    EXPECT_THROW(static_cast<void>(matrix-matrix), Raised);
+}
+
+TEST(AFA2Noexcept, matrix_mul_right) {
+    using namespace AFA2Throwing;
+    const S scalar{2};
+    const M matrix=M::Identity();
+    static_assert(!noexcept(matrix*scalar));
+    static_cast<void>(matrix*scalar); // successful control also exercises result construction
+    const FaultScope fault{Fault::mul};
+    EXPECT_THROW(static_cast<void>(matrix*scalar), Raised);
+}
+
+TEST(AFA2Noexcept, matrix_mul_left) {
+    using namespace AFA2Throwing;
+    const S scalar{2};
+    const M matrix=M::Identity();
+    static_assert(!noexcept(scalar*matrix));
+    static_cast<void>(scalar*matrix); // successful control also exercises result construction
+    const FaultScope fault{Fault::mul};
+    EXPECT_THROW(static_cast<void>(scalar*matrix), Raised);
+}
+
+TEST(AFA2Noexcept, matrix_matrix) {
+    using namespace AFA2Throwing;
+    const M matrix=M::Identity();
+    static_assert(!noexcept(matrix*matrix));
+    static_cast<void>(matrix*matrix); // successful control also exercises result construction
+    const FaultScope fault{Fault::mul};
+    EXPECT_THROW(static_cast<void>(matrix*matrix), Raised);
+}
+
+TEST(AFA2Noexcept, matrix_vector) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    const M matrix=M::Identity();
+    static_assert(!noexcept(matrix*v));
+    static_cast<void>(matrix*v); // successful control also exercises result construction
+    const FaultScope fault{Fault::mul};
+    EXPECT_THROW(static_cast<void>(matrix*v), Raised);
+}
+
+TEST(AFA2Noexcept, matrix_transposed) {
+    using namespace AFA2Throwing;
+    const M matrix=M::Identity();
+    static_assert(!noexcept(matrix.transposed()));
+    static_cast<void>(matrix.transposed()); // successful control also exercises result construction
+    const FaultScope fault{Fault::copy};
+    EXPECT_THROW(static_cast<void>(matrix.transposed()), Raised);
+}
+
+TEST(AFA2Noexcept, matrix_det) {
+    using namespace AFA2Throwing;
+    const M matrix=M::Identity();
+    static_assert(!noexcept(matrix.det()));
+    static_cast<void>(matrix.det()); // successful control also exercises result construction
+    const FaultScope fault{Fault::mul};
+    EXPECT_THROW(static_cast<void>(matrix.det()), Raised);
+}
+
+TEST(AFA2Noexcept, matrix_frobenius) {
+    using namespace AFA2Throwing;
+    const M matrix=M::Identity();
+    static_assert(!noexcept(matrix.frobenius_norm_squared()));
+    static_cast<void>(matrix.frobenius_norm_squared()); // successful control also exercises result construction
+    const FaultScope fault{Fault::mul};
+    EXPECT_THROW(static_cast<void>(matrix.frobenius_norm_squared()), Raised);
+}
+
+TEST(AFA2Noexcept, matrix_equal) {
+    using namespace AFA2Throwing;
+    const M matrix=M::Identity();
+    static_assert(!noexcept(matrix==matrix));
+    static_cast<void>(matrix==matrix); // successful control also exercises result construction
+    const FaultScope fault{Fault::compare};
+    EXPECT_THROW(static_cast<void>(matrix==matrix), Raised);
+}
+
+TEST(AFA2Noexcept, quaternion_identity) {
+    using namespace AFA2Throwing;
+    static_assert(!noexcept(Q::Identity()));
+    static_cast<void>(Q::Identity()); // successful control also exercises result construction
+    const FaultScope fault{Fault::copy};
+    EXPECT_THROW(static_cast<void>(Q::Identity()), Raised);
+}
+
+TEST(AFA2Noexcept, quaternion_canonical) {
+    using namespace AFA2Throwing;
+    const Q quaternion=Q::Identity();
+    static_assert(!noexcept(quaternion.Canonicalized()));
+    static_cast<void>(quaternion.Canonicalized()); // successful control also exercises result construction
+    const FaultScope fault{Fault::compare};
+    EXPECT_THROW(static_cast<void>(quaternion.Canonicalized()), Raised);
+}
+
+TEST(AFA2Noexcept, quaternion_conjugate) {
+    using namespace AFA2Throwing;
+    const Q quaternion=Q::Identity();
+    static_assert(!noexcept(quaternion.Conjugate()));
+    static_cast<void>(quaternion.Conjugate()); // successful control also exercises result construction
+    const FaultScope fault{Fault::neg};
+    EXPECT_THROW(static_cast<void>(quaternion.Conjugate()), Raised);
+}
+
+TEST(AFA2Noexcept, quaternion_compose) {
+    using namespace AFA2Throwing;
+    const Q quaternion=Q::Identity();
+    static_assert(!noexcept(quaternion*quaternion));
+    static_cast<void>(quaternion*quaternion); // successful control also exercises result construction
+    const FaultScope fault{Fault::mul};
+    EXPECT_THROW(static_cast<void>(quaternion*quaternion), Raised);
+}
+
+TEST(AFA2Noexcept, quaternion_vector) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    const Q quaternion=Q::Identity();
+    static_assert(!noexcept(quaternion*v));
+    static_cast<void>(quaternion*v); // successful control also exercises result construction
+    const FaultScope fault{Fault::mul};
+    EXPECT_THROW(static_cast<void>(quaternion*v), Raised);
+}
+
+TEST(AFA2Noexcept, quaternion_equal) {
+    using namespace AFA2Throwing;
+    const Q quaternion=Q::Identity();
+    static_assert(!noexcept(quaternion==quaternion));
+    static_cast<void>(quaternion==quaternion); // successful control also exercises result construction
+    const FaultScope fault{Fault::compare};
+    EXPECT_THROW(static_cast<void>(quaternion==quaternion), Raised);
+}
+
+TEST(AFA2Noexcept, rotation_identity) {
+    using namespace AFA2Throwing;
+    static_assert(!noexcept(R::Identity()));
+    static_cast<void>(R::Identity()); // successful control also exercises result construction
+    const FaultScope fault{Fault::copy};
+    EXPECT_THROW(static_cast<void>(R::Identity()), Raised);
+}
+
+TEST(AFA2Noexcept, rotation_vector) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    const R rotation=R::Identity();
+    static_assert(!noexcept(rotation*v));
+    static_cast<void>(rotation*v); // successful control also exercises result construction
+    const FaultScope fault{Fault::mul};
+    EXPECT_THROW(static_cast<void>(rotation*v), Raised);
+}
+
+TEST(AFA2Noexcept, rotation_compose) {
+    using namespace AFA2Throwing;
+    const R rotation=R::Identity();
+    static_assert(!noexcept(rotation*rotation));
+    static_cast<void>(rotation*rotation); // successful control also exercises result construction
+    const FaultScope fault{Fault::mul};
+    EXPECT_THROW(static_cast<void>(rotation*rotation), Raised);
+}
+
+TEST(AFA2Noexcept, rotation_inverse) {
+    using namespace AFA2Throwing;
+    const R rotation=R::Identity();
+    static_assert(!noexcept(rotation.Inverse()));
+    static_cast<void>(rotation.Inverse()); // successful control also exercises result construction
+    const FaultScope fault{Fault::copy};
+    EXPECT_THROW(static_cast<void>(rotation.Inverse()), Raised);
+}
+
+TEST(AFA2Noexcept, rotation_equal) {
+    using namespace AFA2Throwing;
+    const R rotation=R::Identity();
+    static_assert(!noexcept(rotation==rotation));
+    static_cast<void>(rotation==rotation); // successful control also exercises result construction
+    const FaultScope fault{Fault::compare};
+    EXPECT_THROW(static_cast<void>(rotation==rotation), Raised);
+}
+
+TEST(AFA2Noexcept, transform_create) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    const Q quaternion=Q::Identity();
+    static_assert(!noexcept(T::Create(quaternion,v)));
+    static_cast<void>(T::Create(quaternion,v)); // successful control also exercises result construction
+    const FaultScope fault{Fault::copy};
+    EXPECT_THROW(static_cast<void>(T::Create(quaternion,v)), Raised);
+}
+
+TEST(AFA2Noexcept, transform_identity) {
+    using namespace AFA2Throwing;
+    static_assert(!noexcept(T::Identity()));
+    static_cast<void>(T::Identity()); // successful control also exercises result construction
+    const FaultScope fault{Fault::copy};
+    EXPECT_THROW(static_cast<void>(T::Identity()), Raised);
+}
+
+TEST(AFA2Noexcept, transform_vector) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    const Q quaternion=Q::Identity();
+    const T transform=T::Create(quaternion,v);
+    static_assert(!noexcept(transform*v));
+    static_cast<void>(transform*v); // successful control also exercises result construction
+    const FaultScope fault{Fault::mul};
+    EXPECT_THROW(static_cast<void>(transform*v), Raised);
+}
+
+TEST(AFA2Noexcept, transform_point) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    const P p{S{1},S{2},S{3}};
+    const Q quaternion=Q::Identity();
+    const T transform=T::Create(quaternion,v);
+    static_assert(!noexcept(transform*p));
+    static_cast<void>(transform*p); // successful control also exercises result construction
+    const FaultScope fault{Fault::mul};
+    EXPECT_THROW(static_cast<void>(transform*p), Raised);
+}
+
+TEST(AFA2Noexcept, transform_compose) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    const Q quaternion=Q::Identity();
+    const T transform=T::Create(quaternion,v);
+    static_assert(!noexcept(transform*transform));
+    static_cast<void>(transform*transform); // successful control also exercises result construction
+    const FaultScope fault{Fault::mul};
+    EXPECT_THROW(static_cast<void>(transform*transform), Raised);
+}
+
+TEST(AFA2Noexcept, transform_inverse) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    const Q quaternion=Q::Identity();
+    const T transform=T::Create(quaternion,v);
+    static_assert(!noexcept(transform.Inverse()));
+    static_cast<void>(transform.Inverse()); // successful control also exercises result construction
+    const FaultScope fault{Fault::neg};
+    EXPECT_THROW(static_cast<void>(transform.Inverse()), Raised);
+}
+
+TEST(AFA2Noexcept, transform_equal) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    const Q quaternion=Q::Identity();
+    const T transform=T::Create(quaternion,v);
+    static_assert(!noexcept(transform==transform));
+    static_cast<void>(transform==transform); // successful control also exercises result construction
+    const FaultScope fault{Fault::compare};
+    EXPECT_THROW(static_cast<void>(transform==transform), Raised);
+}
+
+TEST(AFA2Noexcept, unit_mul_right) {
+    using namespace AFA2Throwing;
+    const S scalar{2};
+    const auto unit=g::UnitVector3<double,F>::TryCreate(g::Vector3<double,F>{1,0,0}).value();
+    static_assert(!noexcept(unit*scalar));
+    static_cast<void>(unit*scalar); // successful control also exercises result construction
+    const FaultScope fault{Fault::mul};
+    EXPECT_THROW(static_cast<void>(unit*scalar), Raised);
+}
+
+TEST(AFA2Noexcept, unit_mul_left) {
+    using namespace AFA2Throwing;
+    const S scalar{2};
+    const auto unit=g::UnitVector3<double,F>::TryCreate(g::Vector3<double,F>{1,0,0}).value();
+    static_assert(!noexcept(scalar*unit));
+    static_cast<void>(scalar*unit); // successful control also exercises result construction
+    const FaultScope fault{Fault::mul};
+    EXPECT_THROW(static_cast<void>(scalar*unit), Raised);
+}
+
+TEST(AFA2Noexcept, unit_dot_vector) {
+    using namespace AFA2Throwing;
+    V v{S{1},S{2},S{3}};
+    const auto unit=g::UnitVector3<double,F>::TryCreate(g::Vector3<double,F>{1,0,0}).value();
+    static_assert(!noexcept(unit.dot(v)));
+    static_cast<void>(unit.dot(v)); // successful control also exercises result construction
+    const FaultScope fault{Fault::mul};
+    EXPECT_THROW(static_cast<void>(unit.dot(v)), Raised);
+}
+
+namespace {
+struct CopyOnlyScalar {
+ static inline bool throw_copy=false;
+ int v;
+ CopyOnlyScalar(int x=0) noexcept : v(x) {}
+ CopyOnlyScalar(const CopyOnlyScalar& x) : v(x.v) { if(throw_copy) throw 7; }
+ CopyOnlyScalar(CopyOnlyScalar&& x) noexcept(false) : v(x.v) { if(throw_copy) throw 7; }
+ ~CopyOnlyScalar() = default;
+ CopyOnlyScalar& operator=(const CopyOnlyScalar&) = default;
+ CopyOnlyScalar& operator=(CopyOnlyScalar&&) = default;
+ friend CopyOnlyScalar operator+(const CopyOnlyScalar& a,const CopyOnlyScalar& b) noexcept { return CopyOnlyScalar{a.v+b.v}; }
+ friend CopyOnlyScalar operator-(const CopyOnlyScalar& a,const CopyOnlyScalar& b) noexcept { return CopyOnlyScalar{a.v-b.v}; }
+ friend CopyOnlyScalar operator-(const CopyOnlyScalar& a) noexcept { return CopyOnlyScalar{-a.v}; }
+ friend CopyOnlyScalar operator*(const CopyOnlyScalar& a,const CopyOnlyScalar& b) noexcept { return CopyOnlyScalar{a.v*b.v}; }
+ friend CopyOnlyScalar operator/(const CopyOnlyScalar& a,const CopyOnlyScalar& b) noexcept { return CopyOnlyScalar{a.v/b.v}; }
+};
+}
+TEST(AFA2Noexcept, MatrixLeftProductResultCopy) {
+    namespace g=vectoris::numerics::geometry;
+    using S=CopyOnlyScalar;
+    const auto matrix=g::Matrix3<S>::Identity();
+    const S scalar{2};
+    static_assert(noexcept(scalar * matrix.m[0]));
+    static_assert(!noexcept(scalar * matrix));
+    S::throw_copy=true;
+    EXPECT_THROW(static_cast<void>(scalar * matrix), int);
+    S::throw_copy=false;
+}
+TEST(AFA2Noexcept, CompositeBuiltinContract) {
+    namespace g=vectoris::numerics::geometry;
+    using P=g::Point3<double,TestFrameA>; using M=g::Matrix3<double>;
+    using Q=g::Quaternion<double,TestFrameA,TestFrameA>;
+    using R=g::RotationMatrix3<double,TestFrameA,TestFrameA>;
+    using T=g::Transform3<double,TestFrameA,TestFrameA>;
+    constexpr auto v=g::Vector3<double,TestFrameA>{1.,2.,3.};
+    constexpr auto m=M::Identity(); constexpr auto q=Q::Identity();
+    constexpr auto r=R::Identity(); constexpr auto t=T::Identity();
+    static_assert(noexcept(P{}) && noexcept(P{1.,2.,3.}) && noexcept(M{}));
+    static_assert(noexcept(m+m) && noexcept(m*m) && noexcept(m*v) && noexcept(2.*m));
+    static_assert(noexcept(q*q) && noexcept(q*v) && noexcept(q.Conjugate()));
+    static_assert(noexcept(r*r) && noexcept(r*v) && noexcept(r.Inverse()));
+    static_assert(noexcept(t*t) && noexcept(t*v) && noexcept(t*P{}) && noexcept(t.Inverse()));
+    EXPECT_DOUBLE_EQ((t*v).y,2.);
+}
+
+TEST(AFA2Noexcept, ScalarFixtureArithmeticControls) {
+    using namespace AFA2Throwing;
+    const S a{6}, b{2};
+    EXPECT_DOUBLE_EQ((a/b).v,3.);
+    const CopyOnlyScalar x{6}, y{2};
+    EXPECT_EQ((x+y).v,8); EXPECT_EQ((x-y).v,4);
+    EXPECT_EQ((-x).v,-6); EXPECT_EQ((x/y).v,3);
+}
+namespace {
+struct ThrowingQuaternionAdapter {
+    using R=vectoris::numerics::geometry::RotationMatrix3<double,TestFrameA,TestFrameA>;
+    vectoris::numerics::core::Result<R> ToRotationMatrix() const {
+        throw AFA2Throwing::Raised{};
+    }
+};
+}
+TEST(AFA2Noexcept, QuaternionAdapterExceptionPropagates) {
+    using R=ThrowingQuaternionAdapter::R;
+    const ThrowingQuaternionAdapter adapter;
+    static_assert(!noexcept(R::FromQuaternion(adapter)));
+    EXPECT_THROW(static_cast<void>(R::FromQuaternion(adapter)),AFA2Throwing::Raised);
+}

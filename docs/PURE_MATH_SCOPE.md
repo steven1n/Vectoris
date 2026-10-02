@@ -12,6 +12,12 @@
 
 **VectorisNumerics** is a standalone, deterministic, header-only ISO C++20 mathematics and numerical computation library within the Vectoris framework.
 
+Determinism is scoped to a fixed implementation, toolchain, floating-point
+environment, configuration, algorithm and seed. Cross-toolchain and
+cross-hardware bitwise identity is not guaranteed. For aerospace, orbital and
+estimation workloads, `double` is the default unless an explicit error budget
+justifies `float`; this is guidance, not a restriction on supported scalar types.
+
 Its exclusive purpose is to provide:
 - Strict, zero-overhead dimensional algebra and physical unit representation (`vectoris::numerics::units`)
 - High-integrity scalar floating-point primitives and IEEE-754 traits (`vectoris::numerics::core`)

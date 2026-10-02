@@ -1,4 +1,6 @@
 """AFA003 real CTest registration/execution mutations; no production tree changes."""
+import argparse
+import sys
 import contextlib
 import io
 import json
@@ -13,14 +15,34 @@ REQUIRED = json.loads((ROOT / 'tools/api_surface/public_api_manifest.json').read
 SOURCE = (ROOT / 'modules/VectorisNumerics/tests/PublicApi/PublicApiSurfaceTest.cpp').read_text()
 
 class AFA003IdentityContract(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        if not BUILD_DIR:
+            raise RuntimeError("mandatory real GoogleTest build fixture missing: use --build-dir")
+        query = subprocess.run(["ctest", "--test-dir", BUILD_DIR,
+                                "-R", "^PublicApiSurfaceTest\\.", "--show-only=json-v1"],
+                               capture_output=True, text=True, check=True)
+        records = json.loads(query.stdout)["tests"]
+        require_equal(REQUIRED, [x["name"] for x in records], "FIXTURE_REGISTERED")
+        cls.binary = records[0]["command"][0]
+        if not Path(cls.binary).is_file():
+            raise RuntimeError("mandatory GoogleTest fixture executable missing")
+
     def ctest_case(self, mode):
         with tempfile.TemporaryDirectory(prefix='afa003-') as tmp:
             root = Path(tmp)
             names = REQUIRED[:-1] if mode == 'missing' else REQUIRED
             content = ['cmake_minimum_required(VERSION 3.14)', 'project(AFA003 NONE)', 'enable_testing()']
             for name in names:
-                outcome = 'false' if mode == 'failed' and name == REQUIRED[0] else 'true'
-                content.append(f'add_test(NAME {name} COMMAND "${{CMAKE_COMMAND}}" -E {outcome})')
+                selected = 'NoSuchSuite.NoSuchBody' if mode == 'zero_tests' else name
+                if mode == 'wrong_body' and name == REQUIRED[0]:
+                    selected = REQUIRED[1]
+                cmd = f'"{self.binary}" "--gtest_filter={selected}"'
+                if mode == 'missing_report':
+                    cmd = '"${CMAKE_COMMAND}" -E true'
+                if mode == 'failed' and name == REQUIRED[0]:
+                    cmd = '"${CMAKE_COMMAND}" -E false'
+                content.append(f'add_test(NAME {name} COMMAND {cmd})')
             if mode == 'unexpected':
                 content.append('add_test(NAME PublicApiSurfaceTest.Unexpected COMMAND "${CMAKE_COMMAND}" -E true)')
             if mode == 'not_executed':
@@ -55,6 +77,15 @@ class AFA003IdentityContract(unittest.TestCase):
     def test_executed_failed(self):
         with self.assertRaisesRegex(ValueError,'EXECUTED: CTest failure'):
             self.ctest_case('failed')
+    def test_actual_zero_gtest_bodies(self):
+        with self.assertRaisesRegex(ValueError, 'GTEST_DEFINED:'):
+            self.ctest_case('zero_tests')
+    def test_actual_wrong_gtest_body(self):
+        with self.assertRaisesRegex(ValueError, 'GTEST_DEFINED:'):
+            self.ctest_case('wrong_body')
+    def test_empty_command_is_not_body_execution(self):
+        with self.assertRaisesRegex(ValueError, 'missing fresh GoogleTest'):
+            self.ctest_case('missing_report')
     def test_missing_source(self):
         name=REQUIRED[0].split('.')[1]
         with self.assertRaisesRegex(ValueError,'SOURCE_DEFINED:'):
@@ -66,5 +97,10 @@ class AFA003IdentityContract(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'PASSED:'):
             require_equal(REQUIRED,REQUIRED[:-1]+['PublicApiSurfaceTest.Impostor'],'PASSED')
 
+BUILD_DIR = None
 if __name__=='__main__':
-    unittest.main(verbosity=2)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--build-dir', required=True)
+    args, remaining = parser.parse_known_args()
+    BUILD_DIR = args.build_dir
+    unittest.main(argv=[sys.argv[0]] + remaining, verbosity=2)

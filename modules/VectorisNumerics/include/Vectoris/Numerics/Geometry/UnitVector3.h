@@ -107,7 +107,7 @@ namespace vectoris::numerics::Geometry {
 
         // 方向乘长度：UnitVector3 * Scalar = Vector3
         template <ScalarArithmetic S>
-        constexpr auto operator*(const S& scalar) const noexcept {
+        constexpr auto operator*(const S& scalar) const noexcept(std::is_arithmetic_v<S>) {
             // Pass component values to user-defined scalar operators, not storage references.
             using ResT = decltype(x() * scalar);
             return Vector3<ResT, Frame>{x() * scalar, y() * scalar, z() * scalar};
@@ -123,7 +123,7 @@ namespace vectoris::numerics::Geometry {
         }
 
         template <ScalarArithmetic U>
-        constexpr auto dot(const Vector3<U, Frame>& rhs) const noexcept {
+        constexpr auto dot(const Vector3<U, Frame>& rhs) const noexcept(std::is_arithmetic_v<U>) {
             return (x() * rhs.x) + (y() * rhs.y) + (z() * rhs.z);
         }
 
@@ -152,7 +152,7 @@ namespace vectoris::numerics::Geometry {
 
     // Use only public value accessors; scalar multiplication needs no friendship.
     template <ScalarArithmetic S, std::floating_point T, FrameTag Frame>
-    constexpr auto operator*(const S& scalar, const UnitVector3<T, Frame>& v) noexcept {
+    constexpr auto operator*(const S& scalar, const UnitVector3<T, Frame>& v) noexcept(std::is_arithmetic_v<S>) {
         using ResT = decltype(scalar * v.x());
         return Vector3<ResT, Frame>{scalar * v.x(), scalar * v.y(), scalar * v.z()};
     }

@@ -1,5 +1,7 @@
 #pragma once
 #include "Namespace.h"
+#include <type_traits>
+#include <utility>
 #include <algorithm>
 #include <limits>
 #include "Concepts.h"
@@ -32,8 +34,18 @@ namespace vectoris::numerics::Geometry {
         friend struct Quaternion;
 
     private:
-        constexpr Quaternion(T _w, T _x, T _y, T _z, ValidatedTag) noexcept
-            : w(_w), x(_x), y(_y), z(_z) {}
+        // Preserve reference scalars; otherwise move only when it is safe.
+        static constexpr decltype(auto) ComponentArgument(T& value) noexcept {
+            if constexpr (std::is_lvalue_reference_v<T>) {
+                return (value);
+            } else {
+                return std::move_if_noexcept(value);
+            }
+        }
+
+        constexpr Quaternion(T _w, T _x, T _y, T _z, ValidatedTag) noexcept(std::is_arithmetic_v<T>)
+            : w(ComponentArgument(_w)), x(ComponentArgument(_x)),
+              y(ComponentArgument(_y)), z(ComponentArgument(_z)) {}
 
     public:
         Quaternion() = delete;
@@ -43,11 +55,11 @@ namespace vectoris::numerics::Geometry {
         template <FrameTag F1 = FrameFrom, FrameTag F2 = FrameTo>
         requires std::same_as<FrameFrom, FrameTo> &&
                  std::same_as<F1, F2>
-        static constexpr Quaternion Identity() noexcept {
+        static constexpr Quaternion Identity() noexcept(std::is_arithmetic_v<T>) {
             return Quaternion(T{1}, T{0}, T{0}, T{0}, ValidatedTag{});
         }
 
-        static constexpr Core::Result<Quaternion> TryCreate(T w, T x, T y, T z) noexcept {
+        static constexpr Core::Result<Quaternion> TryCreate(T w, T x, T y, T z) noexcept(std::is_arithmetic_v<T>) {
             if (!Traits::IsFinite(w) || !Traits::IsFinite(x) || !Traits::IsFinite(y) || !Traits::IsFinite(z)) {
                 return Core::Result<Quaternion>::failure(Core::MathError::non_finite_input);
             }
@@ -71,21 +83,21 @@ namespace vectoris::numerics::Geometry {
         // 构造期符号规范化: 采用精确 w < T{0} 判定，杜绝平台相关浮点容差噪声。
         // 保证非零实部满足 w >= 0；对于 w == 0 (180度纯向量旋转)，符号不作强制翻转 (Option A 约定)。
         // 空间旋转的严格等价性由 RotationEquivalent 双覆盖判定承担。
-        constexpr Quaternion Canonicalized() const noexcept {
+        constexpr Quaternion Canonicalized() const noexcept(std::is_arithmetic_v<T>) {
             if (w < T{0}) {
                 return Quaternion(-w, -x, -y, -z, ValidatedTag{});
             }
             return *this;
         }
 
-        constexpr Quaternion<T, FrameTo, FrameFrom> Conjugate() const noexcept {
+        constexpr Quaternion<T, FrameTo, FrameFrom> Conjugate() const noexcept(std::is_arithmetic_v<T>) {
             return Quaternion<T, FrameTo, FrameFrom>(w, -x, -y, -z, ValidatedTag{});
         }
 
         // [修复 3] 姿态级联: Q_AC = Q_AB * Q_BC (C++ API 顺序)
         // 物理数学: Q_AC = Q_BC ⊗ Q_AB (Hamilton Product 逆向)
         template <FrameTag FrameNext>
-        constexpr auto operator*(const Quaternion<T, FrameTo, FrameNext>& rhs) const noexcept {
+        constexpr auto operator*(const Quaternion<T, FrameTo, FrameNext>& rhs) const noexcept(std::is_arithmetic_v<T>) {
             // 注意：这里用 rhs 的元素乘以 this 的元素，实现自动数学倒置
             return Quaternion<T, FrameFrom, FrameNext>(
                 rhs.w*w - rhs.x*x - rhs.y*y - rhs.z*z,
@@ -190,7 +202,7 @@ namespace vectoris::numerics::Geometry {
         // AFA-001: valid unit quaternion + finite vector. No FP contraction is
         // required. Coefficients are bounded before multiplying unscaled inputs.
         template <ScalarArithmetic U>
-        constexpr auto operator*(const Vector3<U, FrameFrom>& v) const noexcept {
+        constexpr auto operator*(const Vector3<U, FrameFrom>& v) const noexcept(std::is_arithmetic_v<T> && std::is_arithmetic_v<U>) {
             using ResT = decltype(T{} * U{});
             if constexpr (std::floating_point<T> && std::floating_point<U>) {
                 // Exact zero classification; preserve the input zero signs.
@@ -259,7 +271,7 @@ namespace vectoris::numerics::Geometry {
 
         // 导出方向余弦旋转矩阵 (DCM)
         [[nodiscard]] constexpr Core::Result<RotationMatrix3<T, FrameFrom, FrameTo>>
-        ToRotationMatrix() const noexcept {
+        ToRotationMatrix() const noexcept(std::is_arithmetic_v<T>) {
             // Public components and accumulated products may no longer be unit length.
             // Validate before multiplication, including finite values whose square overflows.
             if (!Traits::IsFinite(w) || !Traits::IsFinite(x) ||
@@ -292,7 +304,7 @@ namespace vectoris::numerics::Geometry {
             return RotationMatrix3<T, FrameFrom, FrameTo>::TryCreate(m);
         }
 
-        constexpr Core::Result<Quaternion> Slerp(const Quaternion& target, T t) const noexcept {
+        constexpr Core::Result<Quaternion> Slerp(const Quaternion& target, T t) const noexcept(std::is_arithmetic_v<T>) {
             if (!Traits::IsFinite(t)) {
                 return Core::Result<Quaternion>::failure(Core::MathError::non_finite_input);
             }
@@ -323,11 +335,11 @@ namespace vectoris::numerics::Geometry {
         }
 
         // 精确逐分量数值相等性判定 (Exact component-wise stored-value equality under C++ == semantics)
-        constexpr bool operator==(const Quaternion& rhs) const noexcept {
+        constexpr bool operator==(const Quaternion& rhs) const noexcept(std::is_arithmetic_v<T>) {
             return w == rhs.w && x == rhs.x && y == rhs.y && z == rhs.z;
         }
 
-        constexpr bool operator!=(const Quaternion& rhs) const noexcept {
+        constexpr bool operator!=(const Quaternion& rhs) const noexcept(std::is_arithmetic_v<T>) {
             return !(*this == rhs);
         }
     };
@@ -339,7 +351,7 @@ namespace vectoris::numerics::Geometry {
         const Quaternion<T, FrameFrom, FrameTo>& b,
         T absoluteTolerance = Traits::NumericTraits<T>::epsilon() * T{100},
         T relativeTolerance = Traits::NumericTraits<T>::epsilon() * T{100}
-    ) noexcept {
+    ) noexcept(std::is_arithmetic_v<T>) {
         return Traits::AlmostEqual(a.w, b.w, absoluteTolerance, relativeTolerance) &&
                Traits::AlmostEqual(a.x, b.x, absoluteTolerance, relativeTolerance) &&
                Traits::AlmostEqual(a.y, b.y, absoluteTolerance, relativeTolerance) &&
@@ -353,7 +365,7 @@ namespace vectoris::numerics::Geometry {
         const Quaternion<T, FrameFrom, FrameTo>& b,
         T absoluteTolerance = Traits::NumericTraits<T>::epsilon() * T{100},
         T relativeTolerance = Traits::NumericTraits<T>::epsilon() * T{100}
-    ) noexcept {
+    ) noexcept(std::is_arithmetic_v<T>) {
         const bool pos_match =
             Traits::AlmostEqual(a.w, b.w, absoluteTolerance, relativeTolerance) &&
             Traits::AlmostEqual(a.x, b.x, absoluteTolerance, relativeTolerance) &&

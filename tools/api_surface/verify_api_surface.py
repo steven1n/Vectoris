@@ -333,21 +333,11 @@ def main():
         # Each declared Dynamics contract is compiled in the module test target and
         # executed independently so manifest entries cannot be descriptive-only.
         for dynamics_test in dynamics_positive_tests:
-            query = subprocess.run(
-                ["ctest", "--test-dir", build_dir, "-N", "-R", "^" + re.escape(dynamics_test) + "$"],
-                capture_output=True, text=True
-            )
-            if query.returncode != 0 or dynamics_test not in query.stdout:
-                print(f"ERROR: Dynamics API test is not registered with CTest: {dynamics_test}", file=sys.stderr)
-                sys.exit(1)
-            execution = subprocess.run(
-                ["ctest", "--test-dir", build_dir, "-R", "^" + re.escape(dynamics_test) + "$", "--output-on-failure"],
-                capture_output=True, text=True
-            )
-            if execution.returncode != 0 or "Passed" not in execution.stdout:
-                print(f"ERROR: Dynamics API contract test failed: {dynamics_test}", file=sys.stderr)
-                print(execution.stdout)
-                print(execution.stderr, file=sys.stderr)
+            try:
+                verify_ctest(build_dir, [dynamics_test],
+                             selection="^" + re.escape(dynamics_test) + "$")
+            except (ValueError, KeyError, OSError) as exc:
+                print(f"ERROR: Dynamics API body verification failed: {exc}", file=sys.stderr)
                 sys.exit(1)
             print(f"Dynamics API Probe:               PASS ({dynamics_test})")
     else:

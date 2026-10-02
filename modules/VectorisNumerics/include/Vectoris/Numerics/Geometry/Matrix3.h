@@ -1,5 +1,7 @@
 #pragma once
 #include "Namespace.h"
+#include <type_traits>
+#include <utility>
 #include <cstddef>
 #include <limits>
 #include "Concepts.h"
@@ -20,22 +22,35 @@ namespace vectoris::numerics::Geometry {
         // The representation is not a C ABI, wire format, or persistent-storage guarantee.
         T m[9];
 
+    private:
+        // Preserve reference scalars; otherwise move only when it is safe.
+        static constexpr decltype(auto) ComponentArgument(T& value) noexcept {
+            if constexpr (std::is_lvalue_reference_v<T>) {
+                return (value);
+            } else {
+                return std::move_if_noexcept(value);
+            }
+        }
+
+    public:
         // [GEO-REV-002] 强制值初始化，避免不可预测的随机内存态
-        constexpr Matrix3() noexcept : m{T{}, T{}, T{}, T{}, T{}, T{}, T{}, T{}, T{}} {}
+        constexpr Matrix3() noexcept(std::is_arithmetic_v<T>) : m{T{}, T{}, T{}, T{}, T{}, T{}, T{}, T{}, T{}} {}
 
         // 行主序显式构造
         constexpr Matrix3(T m00, T m01, T m02,
                           T m10, T m11, T m12,
-                          T m20, T m21, T m22) noexcept
-            : m{m00, m01, m02, m10, m11, m12, m20, m21, m22} {}
+                          T m20, T m21, T m22) noexcept(std::is_arithmetic_v<T>)
+            : m{ComponentArgument(m00), ComponentArgument(m01), ComponentArgument(m02),
+                ComponentArgument(m10), ComponentArgument(m11), ComponentArgument(m12),
+                ComponentArgument(m20), ComponentArgument(m21), ComponentArgument(m22)} {}
 
         // Factory: Zero Matrix
-        static constexpr Matrix3 Zero() noexcept {
+        static constexpr Matrix3 Zero() noexcept(std::is_arithmetic_v<T>) {
             return Matrix3();
         }
 
         // Factory: Identity Matrix
-        static constexpr Matrix3 Identity() noexcept {
+        static constexpr Matrix3 Identity() noexcept(std::is_arithmetic_v<T>) {
             return Matrix3(
                 T{1}, T{0}, T{0},
                 T{0}, T{1}, T{0},
@@ -53,7 +68,7 @@ namespace vectoris::numerics::Geometry {
         }
 
         // 矩阵加法
-        constexpr Matrix3 operator+(const Matrix3& rhs) const noexcept {
+        constexpr Matrix3 operator+(const Matrix3& rhs) const noexcept(std::is_arithmetic_v<T>) {
             return Matrix3(
                 m[0]+rhs.m[0], m[1]+rhs.m[1], m[2]+rhs.m[2],
                 m[3]+rhs.m[3], m[4]+rhs.m[4], m[5]+rhs.m[5],
@@ -62,7 +77,7 @@ namespace vectoris::numerics::Geometry {
         }
 
         // 矩阵减法
-        constexpr Matrix3 operator-(const Matrix3& rhs) const noexcept {
+        constexpr Matrix3 operator-(const Matrix3& rhs) const noexcept(std::is_arithmetic_v<T>) {
             return Matrix3(
                 m[0]-rhs.m[0], m[1]-rhs.m[1], m[2]-rhs.m[2],
                 m[3]-rhs.m[3], m[4]-rhs.m[4], m[5]-rhs.m[5],
@@ -72,7 +87,7 @@ namespace vectoris::numerics::Geometry {
 
         // ScalarArithmetic excludes all Matrix3 and Vector3 specializations.
         template <ScalarArithmetic S>
-        constexpr auto operator*(const S& scalar) const noexcept {
+        constexpr auto operator*(const S& scalar) const noexcept(std::is_arithmetic_v<T> && std::is_arithmetic_v<S>) {
             using ResT = decltype(m[0] * scalar);
             return Matrix3<ResT>(
                 m[0]*scalar, m[1]*scalar, m[2]*scalar,
@@ -82,7 +97,7 @@ namespace vectoris::numerics::Geometry {
         }
 
         // 矩阵乘法 (Matrix * Matrix)
-        constexpr Matrix3 operator*(const Matrix3& rhs) const noexcept {
+        constexpr Matrix3 operator*(const Matrix3& rhs) const noexcept(std::is_arithmetic_v<T>) {
             return Matrix3(
                 m[0]*rhs.m[0] + m[1]*rhs.m[3] + m[2]*rhs.m[6],
                 m[0]*rhs.m[1] + m[1]*rhs.m[4] + m[2]*rhs.m[7],
@@ -100,7 +115,7 @@ namespace vectoris::numerics::Geometry {
 
         // 矩阵乘向量 (Matrix * Vector3) -> 保持 Frame 标签流转
         template <ScalarArithmetic U, FrameTag Frame>
-        constexpr auto operator*(const Vector3<U, Frame>& v) const noexcept {
+        constexpr auto operator*(const Vector3<U, Frame>& v) const noexcept(std::is_arithmetic_v<T> && std::is_arithmetic_v<U>) {
             using ResT = decltype(m[0] * v.x);
             return Vector3<ResT, Frame>{
                 m[0]*v.x + m[1]*v.y + m[2]*v.z,
@@ -110,7 +125,7 @@ namespace vectoris::numerics::Geometry {
         }
 
         // 矩阵转置
-        constexpr Matrix3 transposed() const noexcept {
+        constexpr Matrix3 transposed() const noexcept(std::is_arithmetic_v<T>) {
             return Matrix3(
                 m[0], m[3], m[6],
                 m[1], m[4], m[7],
@@ -119,14 +134,14 @@ namespace vectoris::numerics::Geometry {
         }
 
         // 行列式
-        constexpr T det() const noexcept {
+        constexpr T det() const noexcept(std::is_arithmetic_v<T>) {
             return m[0] * (m[4]*m[8] - m[5]*m[7])
                  - m[1] * (m[3]*m[8] - m[5]*m[6])
                  + m[2] * (m[3]*m[7] - m[4]*m[6]);
         }
 
         // 计算 Frobenius 范数的平方: ||M||_F^2 = sum(m_i^2)
-        constexpr T frobenius_norm_squared() const noexcept {
+        constexpr T frobenius_norm_squared() const noexcept(std::is_arithmetic_v<T>) {
             T sum = T{0};
             for (size_t i = 0; i < 9; ++i) {
                 sum += m[i] * m[i];
@@ -136,7 +151,7 @@ namespace vectoris::numerics::Geometry {
 
         // 伴随矩阵求逆 (无抛出原则, 失败返回 false)
         // 遵循 Solve-Not-Invert 原则：仅在需要显式矩阵逆时使用；解线性方程应使用消元求解器
-        constexpr bool TryInverse(Matrix3& out) const noexcept {
+        constexpr bool TryInverse(Matrix3& out) const noexcept(std::is_arithmetic_v<T>) {
             // 1. 评估矩阵元素最大模长尺度 (Scale / Infinity Norm Proxy)
             T max_val = T{0};
             for (size_t i = 0; i < 9; ++i) {
@@ -205,7 +220,7 @@ namespace vectoris::numerics::Geometry {
         }
 
         // 精确逐分量数值相等性判定 (Exact component-wise stored-value equality under C++ == semantics)
-        constexpr bool operator==(const Matrix3& rhs) const noexcept {
+        constexpr bool operator==(const Matrix3& rhs) const noexcept(std::is_arithmetic_v<T>) {
             for (size_t i = 0; i < 9; ++i) {
                 if (m[i] != rhs.m[i]) {
                     return false;
@@ -214,7 +229,7 @@ namespace vectoris::numerics::Geometry {
             return true;
         }
 
-        constexpr bool operator!=(const Matrix3& rhs) const noexcept {
+        constexpr bool operator!=(const Matrix3& rhs) const noexcept(std::is_arithmetic_v<T>) {
             return !(*this == rhs);
         }
 
@@ -223,7 +238,7 @@ namespace vectoris::numerics::Geometry {
             const Matrix3& rhs,
             T absoluteTolerance = Traits::NumericTraits<T>::epsilon() * T{100},
             T relativeTolerance = Traits::NumericTraits<T>::epsilon() * T{100}
-        ) const noexcept {
+        ) const noexcept(std::is_arithmetic_v<T>) {
             for (size_t i = 0; i < 9; ++i) {
                 if (!Traits::AlmostEqual(m[i], rhs.m[i], absoluteTolerance, relativeTolerance)) {
                     return false;
@@ -238,7 +253,7 @@ namespace vectoris::numerics::Geometry {
 
     template <ScalarArithmetic S, ScalarArithmetic T>
     constexpr auto operator*(const S& scalar, const Matrix3<T>& matrix)
-        noexcept(noexcept(scalar * matrix.m[0])) {
+        noexcept(std::is_arithmetic_v<S> && std::is_arithmetic_v<T>) {
         using ResT = decltype(scalar * matrix.m[0]);
         return Matrix3<ResT>(
             scalar*matrix.m[0], scalar*matrix.m[1], scalar*matrix.m[2],
@@ -254,7 +269,7 @@ namespace vectoris::numerics::Geometry {
         const Matrix3<T>& b,
         T absoluteTolerance = Traits::NumericTraits<T>::epsilon() * T{100},
         T relativeTolerance = Traits::NumericTraits<T>::epsilon() * T{100}
-    ) noexcept {
+    ) noexcept(std::is_arithmetic_v<T>) {
         return a.AlmostEqual(b, absoluteTolerance, relativeTolerance);
     }
 

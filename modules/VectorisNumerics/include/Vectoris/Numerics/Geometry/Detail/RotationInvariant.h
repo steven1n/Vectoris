@@ -9,7 +9,7 @@ namespace vectoris::numerics::Geometry::Detail {
     // 严苛验证 DCM (方向余弦矩阵) 的数学不变量
     template <ScalarArithmetic T>
     constexpr bool CheckRotationInvariants(const Matrix3<T>& m, 
-                                           T tolerance = Traits::NumericTraits<T>::epsilon() * T{100}) noexcept {
+                                           T tolerance = Traits::NumericTraits<T>::epsilon() * T{100}) noexcept(std::is_arithmetic_v<T>) {
         // 1. 验证行列式: |det(R) - 1| <= tolerance
         // 旋转矩阵必须是保向的 (行列式为1)
         T det = m.det();

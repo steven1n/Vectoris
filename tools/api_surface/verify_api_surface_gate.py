@@ -300,7 +300,7 @@ def main():
     test_missing_dynamics_api_probe(valid_manifest)
 
     print("=" * 80)
-    subprocess.run([sys.executable, os.path.join(os.path.dirname(__file__), "test_positive_probe_contract.py")], check=True)
+    subprocess.run([sys.executable, os.path.join(os.path.dirname(__file__), "test_positive_probe_contract.py"), "--build-dir", args.build_dir], check=True)
     print("VRT-10 legacy controls: 17 passed; AFA003 CTest identity controls: see unittest execution summary above.")
     print("=" * 80)
 

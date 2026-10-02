@@ -492,3 +492,19 @@ to the caller. This is an exception-specification correction, not a new mathemat
 error channel. It changes noexcept type/trait observations for throwing scalars;
 consumers must rebuild affected template instantiations. Layout is unchanged; no
 binary ABI stability is promised.
+
+### Generic scalar exception contract (AFA2-002)
+
+`ScalarArithmetic` establishes available expressions; it does not require them,
+construction, comparison, conversion or copying to be non-throwing. Vector3 uses
+expression-based conditional exception specifications. Point3, Matrix3,
+Quaternion, RotationMatrix3 and Transform3 composite operations guarantee
+`noexcept` for built-in arithmetic scalar operands; custom scalar composites
+conservatively permit exceptions, including result construction. UnitVector3's
+floating-only invariant operations remain non-throwing; multiplication and dot
+products involving custom scalar/vector operands permit their exceptions to
+propagate. Implicit copy/move members keep compiler-inferred specifications.
+Reference-only accessors remain non-throwing. FromQuaternion propagates the
+complete conversion expression's exception specification, including for a
+user-defined adapter. Object layouts and frame constraints are unchanged; custom
+specialization exception traits change. This is not an ABI stability guarantee.

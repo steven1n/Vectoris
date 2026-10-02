@@ -1,5 +1,6 @@
 """AFA-003: exact positive probe identities, independently obtained at each stage."""
 import json
+import os
 import re
 import subprocess
 import tempfile
@@ -29,32 +30,73 @@ def verify_source(required, source):
     require_equal(required, found, "SOURCE_DEFINED")
     return found
 
-def verify_ctest(build_dir, required, config=None):
-    """Query CTest JSON registration, then compare its real JUnit execution records."""
+def gtest_execution(report, required):
+    """Read executed body identities, never CTest wrapper labels or counts alone."""
+    if not report.is_file():
+        raise ValueError("EXECUTED: missing fresh GoogleTest body report")
+    try:
+        root = ET.parse(report).getroot()
+    except ET.ParseError as exc:
+        raise ValueError("EXECUTED: malformed GoogleTest report") from exc
+    if root.tag != "testsuites":
+        raise ValueError("EXECUTED: invalid GoogleTest report root")
+    tests = root.findall(".//testcase")
+    defined = [test.attrib.get("classname", "") + "." + test.attrib.get("name", "")
+               for test in tests]
+    require_equal(required, defined, "GTEST_DEFINED")
+    executed = [identity for identity, test in zip(defined, tests)
+                if test.attrib.get("status") == "run"
+                and test.attrib.get("result") == "completed"
+                and test.find("skipped") is None]
+    passed = [identity for identity, test in zip(defined, tests)
+              if identity in executed and test.find("failure") is None
+              and test.find("error") is None]
+    require_equal(required, executed, "EXECUTED")
+    require_equal(required, passed, "PASSED")
+    return executed, passed
+
+
+def verify_ctest(build_dir, required, config=None, selection=r"^PublicApiSurfaceTest\."):
+    """Require CTest success AND fresh, exact GoogleTest body execution evidence."""
     command = ["ctest", "--test-dir", str(build_dir)]
     if config:
         command += ["-C", config]
-    selection = ["-R", r"^PublicApiSurfaceTest\."]
-    query = subprocess.run(command + selection + ["--show-only=json-v1"], capture_output=True, text=True)
+    query = subprocess.run(command + ["-R", selection, "--show-only=json-v1"],
+                           capture_output=True, text=True)
     if query.returncode:
         raise ValueError("REGISTERED: CTest query failed: " + query.stderr)
-    registered = [test["name"] for test in json.loads(query.stdout)["tests"]]
+    registrations = json.loads(query.stdout)["tests"]
+    registered = [test["name"] for test in registrations]
     require_equal(required, registered, "REGISTERED")
+    executed, passed = [], []
     with tempfile.TemporaryDirectory(prefix="vectoris-api-results-") as tmp:
-        junit = Path(tmp) / "execution.xml"
-        run = subprocess.run(command + selection + ["--output-on-failure", "--output-junit", str(junit)],
-                             capture_output=True, text=True)
-        print(run.stdout, end="")
-        if run.returncode:
-            raise ValueError("EXECUTED: CTest failure: " + run.stderr)
-        if not junit.is_file():
-            raise ValueError("EXECUTED: missing CTest JUnit report")
-        tests = ET.parse(junit).getroot().findall(".//testcase")
-        executed = [test.attrib["name"] for test in tests
-                    if test.find("skipped") is None and test.attrib.get("status") in (None, "run")]
-        passed = [test.attrib["name"] for test in tests
-                  if test.attrib["name"] in executed and test.find("failure") is None
-                  and test.find("error") is None and test.attrib.get("status") in (None, "run")]
-        require_equal(required, executed, "EXECUTED")
-        require_equal(required, passed, "PASSED")
+        for index, test in enumerate(registrations):
+            name = test["name"]
+            if any(arg.startswith("--gtest_output") for arg in test.get("command", [])):
+                raise ValueError("EXECUTED: registration overrides fresh GoogleTest report")
+            body_report = Path(tmp) / f"body-{index}.xml"
+            junit = Path(tmp) / f"ctest-{index}.xml"
+            env = dict(os.environ, GTEST_OUTPUT="xml:" + str(body_report))
+            run = subprocess.run(command + ["-R", "^" + re.escape(name) + "$",
+                                 "--output-on-failure", "--output-junit", str(junit)],
+                                 capture_output=True, text=True, env=env)
+            print(run.stdout, end="")
+            if run.returncode:
+                raise ValueError("EXECUTED: CTest failure: " + run.stderr)
+            if not junit.is_file():
+                raise ValueError("EXECUTED: missing CTest JUnit report")
+            try:
+                wrappers = ET.parse(junit).getroot().findall(".//testcase")
+            except ET.ParseError as exc:
+                raise ValueError("EXECUTED: malformed CTest report") from exc
+            completed = [case.attrib.get("name") for case in wrappers
+                         if case.find("skipped") is None and case.find("failure") is None
+                         and case.find("error") is None
+                         and case.attrib.get("status") in (None, "run")]
+            require_equal([name], completed, "EXECUTED")
+            actual, successful = gtest_execution(body_report, [name])
+            executed.extend(actual)
+            passed.extend(successful)
+    require_equal(required, executed, "EXECUTED")
+    require_equal(required, passed, "PASSED")
     return {"REGISTERED": sorted(registered), "EXECUTED": sorted(executed), "PASSED": sorted(passed)}

@@ -99,11 +99,12 @@ def audit_bash(script):
     # Accepted qualification dialect: explicit fail-fast prologue, never disabled.
     # Quotes/comments are tokenized, so prose mentioning pipefail cannot pass.
     import shlex
+    import posixpath
     lines = [line for line in script.splitlines() if line.strip() and not line.lstrip().startswith("#")]
     first = shlex.split(lines[0], comments=True) if lines else []
     if first not in (["set", "-euo", "pipefail"], ["set", "-eo", "pipefail"]):
         raise ValueError("bash requires active set -e[u]o pipefail before commands")
-    lexer = shlex.shlex(script, posix=True, punctuation_chars=";&|\n")
+    lexer = shlex.shlex(script.replace("\\\n", ""), posix=True, punctuation_chars=";&|\n")
     lexer.whitespace = " \t\r"
     lexer.whitespace_split = True
     tokens = []
@@ -112,15 +113,38 @@ def audit_bash(script):
         # operators separate from line boundaries so the final command is audited.
         tokens.extend(re.findall(r"\n|&&|\|\||[;&|]", token)
                       if re.fullmatch(r"[;&|\n]+", token) else [token])
+    seen_prologue = False
+    command_start = True
     for index, token in enumerate(tokens):
-        if token == "set" and index + 1 < len(tokens) and tokens[index + 1].startswith("+"):
-            raise ValueError("bash failure policy may not be disabled")
+        if token in ("\n", ";", "|", "{", "}"):
+            command_start = True
+            continue
+        if command_start:
+            # Policy mutators must not be hidden behind variable commands or an
+            # assignment prefix. Literal compiler selection prefixes are allowed;
+            # they do not consume the command word. The only expanded executable
+            # is the fixed interpreter path in the prepared CI venv.
+            if re.match(r"^[A-Za-z_]\w*=", token):
+                if re.fullmatch(r"(?:CC|CXX)=[A-Za-z0-9_./+-]+", token):
+                    continue
+                raise ValueError("shell assignment prefixes are outside the audited dialect")
+            if "$" in token and token != "$RUNNER_TEMP/vectoris-ci-tools/bin/python":
+                raise ValueError("dynamic bash command name is outside the audited dialect")
+            command_start = False
+        # Only the verified prologue may set options. Combined flags can hide
+        # disabling options after enabling ones; shopt can change them as well.
+        if (token == "set" and seen_prologue) or token in ("shopt", "enable", "alias", "unalias"):
+            raise ValueError("bash option/builtin policy may not be changed after the prologue")
+        if token == "set":
+            seen_prologue = True
         fd_redirect = (token == "&" and index > 0 and index + 1 < len(tokens) and
                        re.fullmatch(r"\d*>", tokens[index - 1]) and tokens[index + 1].isdigit())
         if (token in ("||", "&&") or (token == "&" and not fd_redirect) or
                 any(part in token for part in ("$(", "`", "(", ")")) or
-                token in ("eval", "source", "bash", "sh", "pwsh", "if", "while", "until", "!",
-                          "trap", "function", "for", "case", "coproc", "builtin", "command") or
+                posixpath.basename(token) in
+                ("eval", "source", "bash", "sh", "pwsh", "if", "while", "until", "!",
+                 "trap", "function", "for", "case", "coproc", "builtin", "command",
+                 "env", "exec", "exit", "return") or
                 (token == "." and (index == 0 or tokens[index - 1] in (";", "|", "\n")))):
             raise ValueError("unsupported dynamic or failure-masking bash construct: " + token)
 
@@ -185,6 +209,10 @@ def audit_pwsh(script):
                 audit_pwsh_metadata(line)
             continue
         if line.endswith(('@"', "@'")):
+            # Never discard an unchecked native command or continuation on an
+            # opener line. Our metadata dialect permits only a simple assignment.
+            if pending or not re.fullmatch(r"\$\w+\s*=\s*@['\"]", line):
+                raise ValueError("here-string opener must be a standalone variable assignment")
             in_here = True
             continue
         if line.endswith("`"):

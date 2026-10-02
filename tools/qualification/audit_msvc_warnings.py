@@ -98,13 +98,23 @@ def origin_path(origin, source_root):
 def ownership(origin, project, source_root, build_root):
     """No classification may be inferred from the free-form message text."""
     source = origin_path(origin, source_root)
-    project_path = normalized(project) if project else ""
+    project_paths = []
+    if project:
+        path = normalized(project.strip().strip('"'))
+        if path.startswith("/") or re.match(r"^[a-z]:/", path):
+            project_paths = [path]
+        elif not re.match(r"^[a-z]:", path):
+            # MSBuild can print either checkout-relative or build-relative
+            # project paths. Evaluate both against the trusted ownership roots.
+            project_paths = [normalized(root + "/" + path)
+                             for root in (source_root, build_root)]
     first_source = source == source_root + "/cmakelists.txt" or any(
         beneath(source, source_root + "/" + part)
         for part in ("modules", "cmake", "tools", "benchmarks"))
     first_project = (
-        beneath(project_path, build_root + "/modules/vectorisnumerics") or
-        beneath(project_path, build_root + "/modules/vectorisdynamics")
+        any(beneath(path, build_root + "/modules/" + module)
+            for path in project_paths
+            for module in ("vectorisnumerics", "vectorisdynamics"))
     )
     if first_source or first_project:
         return "FIRST_PARTY"
@@ -112,7 +122,12 @@ def ownership(origin, project, source_root, build_root):
         build_root + "/_deps/googletest-src",
         build_root + "/_deps/googletest-build",
     )
-    if any(beneath(source, d) or beneath(project_path, d) for d in dependency_roots):
+    if project:
+        # Unknown project provenance must not fall back to an external header.
+        # First-party precedence above also covers ambiguous candidate paths.
+        return "THIRD_PARTY" if any(beneath(path, d) for path in project_paths
+                                    for d in dependency_roots) else "UNKNOWN"
+    if any(beneath(source, d) for d in dependency_roots):
         return "THIRD_PARTY"
     return "UNKNOWN"
 

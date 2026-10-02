@@ -165,33 +165,19 @@ namespace vectoris::dynamics {
     // 四元数坐标系变换: q * v_from -> v_to
     // Hamilton 主动旋转, 保留物理量纲, 变换坐标系标签
     template <Concepts::FloatingPoint T, Geometry::FrameTag FrameFrom, Geometry::FrameTag FrameTo, typename Q>
+    requires Units::IsQuantity<Q> && std::same_as<T, typename Q::ValueType>
     [[nodiscard]] constexpr QuantityVector3<Q, FrameTo> operator*(
         const Geometry::Quaternion<T, FrameFrom, FrameTo>& q,
         const QuantityVector3<Q, FrameFrom>& v) noexcept
     {
-        T qw = q.w;
-        T qx = q.x;
-        T qy = q.y;
-        T qz = q.z;
-
-        // uv = q_vec x v
-        Q uv_x = qy * v.z - qz * v.y;
-        Q uv_y = qz * v.x - qx * v.z;
-        Q uv_z = qx * v.y - qy * v.x;
-
-        // uuv = q_vec x uv
-        Q uuv_x = qy * uv_z - qz * uv_y;
-        Q uuv_y = qz * uv_x - qx * uv_z;
-        Q uuv_z = qx * uv_y - qy * uv_x;
-
-        T two = static_cast<T>(2);
-        T two_w = two * qw;
-
-        return QuantityVector3<Q, FrameTo>(
-            v.x + two_w * uv_x + two * uuv_x,
-            v.y + two_w * uv_y + two * uuv_y,
-            v.z + two_w * uv_z + two * uuv_z
-        );
+        // Reuse the overflow-safe floating rotation kernel. Unwrap only inside
+        // this dimension-preserving adapter; the public input/output retain Q.
+        using Value = typename Q::ValueType;
+        const Geometry::Vector3<Value, FrameFrom> components{
+            v.x.value(), v.y.value(), v.z.value()};
+        const auto rotated = q * components;
+        return QuantityVector3<Q, FrameTo>{
+            Q{rotated.x}, Q{rotated.y}, Q{rotated.z}};
     }
 
     // 动力学标准化别名 (Dynamics Domain Type Aliases)

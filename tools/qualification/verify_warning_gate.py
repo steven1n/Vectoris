@@ -84,6 +84,38 @@ class WarningGateTests(unittest.TestCase):
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(result["counts"]["THIRD_PARTY_WARNING"], 1)
 
+    def test_relative_first_party_projects_override_dependency_header(self):
+        for project in ('build-msvc/modules/VectorisNumerics/VectorisNumerics_Tests.vcxproj',
+                        r'build-msvc\modules\VectorisNumerics\VectorisNumerics_Tests.vcxproj',
+                        'modules/VectorisNumerics/VectorisNumerics_Tests.vcxproj',
+                        'modules/VectorisDynamics/VectorisDynamics_Tests.vcxproj'):
+            with self.subTest(project=project):
+                text=EXTERNAL.replace(DEPS+'googletest/gtest.vcxproj', project)
+                (self.logs/'build-debug.log').write_text(self.clean['build-debug.log']+'\n'+text+'\n')
+                result=gate.audit_directory(self.logs, SOURCE, BUILD)
+                self.assertEqual(result['status'],'FAIL')
+                self.assertEqual(result['counts']['FIRST_PARTY_COMPILER_WARNING'],1)
+                output=self.logs/'result.json'
+                with contextlib.redirect_stdout(io.StringIO()):
+                    self.assertNotEqual(gate.main(['--log-dir',str(self.logs),'--source-root',SOURCE,
+                                                  '--build-root',BUILD,'--output',str(output)]),0)
+                self.assertEqual(json.loads(output.read_text())['counts']['THIRD_PARTY_WARNING'],0)
+    def test_relative_dependency_project_positive(self):
+        for project in ('_deps/googletest-build/googletest/gtest.vcxproj',
+                        'build-msvc/_deps/googletest-build/googletest/gtest.vcxproj'):
+            with self.subTest(project=project):
+                text=EXTERNAL.replace(DEPS+'googletest/gtest.vcxproj', project)
+                (self.logs/'build-debug.log').write_text(self.clean['build-debug.log']+'\n'+text+'\n')
+                self.assertEqual(gate.audit_directory(self.logs, SOURCE, BUILD)['status'],'PASS')
+    def test_unknown_project_does_not_fall_back_to_dependency_header(self):
+        for project in ('unknown/project.vcxproj', 'D:modules/VectorisNumerics/Test.vcxproj',
+                        '../escape/test.vcxproj', 'E:/unreviewed/test.vcxproj'):
+            with self.subTest(project=project):
+                text=EXTERNAL.replace(DEPS+'googletest/gtest.vcxproj', project)
+                (self.logs/'build-debug.log').write_text(self.clean['build-debug.log']+'\n'+text+'\n')
+                result=gate.audit_directory(self.logs, SOURCE, BUILD)
+                self.assertEqual(result['status'],'FAIL')
+                self.assertEqual(result['counts']['UNKNOWN_DIAGNOSTIC'],1)
     def test_unknown_diagnostic_fail_closed(self):
         self.expect_failure("warning: unexpected diagnostic", "UNKNOWN_DIAGNOSTIC")
 

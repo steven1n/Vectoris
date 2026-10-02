@@ -23,6 +23,8 @@ class AFA004PipelineContract(unittest.TestCase):
             scripts=[('bash',SAFE)]*3;scripts[index]=('bash','false | tee /dev/null')
             with self.subTest(index=index): self.assertFalse(self.audit(scripts))
     def test_safe_bash(self): self.assertTrue(self.audit([('bash',SAFE)]))
+    def test_safe_prologue_after_comments_and_blank_lines(self):
+        self.assertTrue(self.audit([('bash','\n# qualification metadata\n\n'+SAFE)]))
     def test_prose_is_not_prologue(self):
         self.assertFalse(self.audit([('bash','# set -euo pipefail\nfalse | tee /dev/null')]))
         self.assertFalse(self.audit([('bash','echo "set -euo pipefail"\nfalse | tee /dev/null')]))
@@ -60,6 +62,37 @@ class AFA004PipelineContract(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'continue on error'): workflow_run_blocks(text)
         text='jobs:\n  job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo test\n        continue-on-error: true\n'
         with self.assertRaisesRegex(ValueError, 'continue on error'): workflow_run_blocks(text)
+    def test_combined_set_and_shopt_masking(self):
+        for mutation in ('set -e +o pipefail', 'set -u +e', 'shopt -uo pipefail',
+                         'shopt -uo errexit', 'builtin set +e', 'command shopt -uo pipefail'):
+            for position in range(3):
+                scripts=[('bash', SAFE)]*3
+                scripts[position]=('bash', 'set -euo pipefail\n'+mutation+'\nfalse | tee /dev/null\necho masked')
+                with self.subTest(mutation=mutation, position=position):
+                    self.assertFalse(self.audit(scripts))
+    def test_native_command_on_here_string_opener(self):
+        for opener in ('& cmd /c exit 7; $meta = @"', '& failing.exe @"',
+                       '$meta = & failing.exe @"', '& failing.exe `\n$meta = @"'):
+            script=opener+'\ntext\n"@\n& cmd /c exit 0\n'+CHECK
+            with self.subTest(opener=opener): self.assertFalse(self.audit([('pwsh',script)]))
+    def test_standalone_metadata_here_string(self):
+        self.assertTrue(self.audit([('pwsh','$meta = @"\nordinary metadata\n"@\nWrite-Host $meta')]))
+    def test_option_changes_cannot_be_hidden_in_wrappers(self):
+        for command in ("env -S 'bash -c false'", "/usr/bin/env -S 'bash -c false'",
+                        "exec /bin/bash -c 'false; true'", "exit 0", "return 0"):
+            with self.subTest(command=command):
+                self.assertFalse(self.audit([('bash','set -euo pipefail\n'+command)]))
+    def test_indirect_policy_mutator_rejected(self):
+        for command in ('policy=set\n$policy -e +o pipefail',
+                        '${POLICY} -e +o pipefail', '"$POLICY" -e +o pipefail',
+                        'FOO=1 set -e +o pipefail'):
+            with self.subTest(command=command):
+                script='set -euo pipefail\n'+command+'\nfalse | tee /dev/null\necho masked'
+                self.assertFalse(self.audit([('bash',script)]))
+    def test_literal_compiler_prefix_preserves_command_audit(self):
+        self.assertTrue(self.audit([('bash','set -euo pipefail\nCC=clang-22 CXX=clang++-22 cmake -S .')]))
+        self.assertFalse(self.audit([('bash','set -euo pipefail\nCC=clang-22 set -e +o pipefail')]))
+        self.assertFalse(self.audit([('bash','set -euo pipefail\nCC=clang-22 $POLICY +e')]))
     def test_astra_originals(self):
         for path in (Path(__file__).parent/'fixtures').glob('*.yml'):
             with self.subTest(path=path.name),contextlib.redirect_stdout(io.StringIO()):

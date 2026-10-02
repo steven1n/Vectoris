@@ -610,3 +610,88 @@ TEST(EulerDynamicsTest, VRT07_ZeroForceAndConstantVelocity) {
     EXPECT_DOUBLE_EQ(state.linearVelocity.y.value(), -2.0);
     EXPECT_DOUBLE_EQ(state.linearVelocity.z.value(), 1.0);
 }
+
+// AFA2-001: known analytic directions provide an oracle independent of rotation.
+namespace {
+template <typename T>
+void TypedRotationExtremes() {
+    namespace G=vectoris::numerics::geometry;
+    using Q=typename Velocity3<BodyFrame,T>::Quantity_t;
+    using Rotation=G::Quaternion<T,BodyFrame,WorldFrame>;
+    const T maximum=std::numeric_limits<T>::max();
+    const T values[]{T{0},-T{0},std::numeric_limits<T>::denorm_min(),
+                     -std::numeric_limits<T>::denorm_min(),std::numeric_limits<T>::min(),
+                     T{1},T{-3},maximum/T{2},maximum,-maximum};
+    for (int axis=0;axis<3;++axis) {
+        const auto rotation=Rotation::TryCreate(T{0},axis==0?T{1}:T{0},
+                                                axis==1?T{1}:T{0},axis==2?T{1}:T{0}).value();
+        for (T a:values) for (T b:values) {
+            const T components[]{a,b,std::numeric_limits<T>::denorm_min()};
+            const Velocity3<BodyFrame,T> input{Q{components[0]},Q{components[1]},Q{components[2]}};
+            const auto result=rotation*input;
+            static_assert(std::same_as<std::remove_cvref_t<decltype(result)>,Velocity3<WorldFrame,T>>);
+            EXPECT_EQ(result.x.value(),axis==0?components[0]:-components[0]);
+            EXPECT_EQ(result.y.value(),axis==1?components[1]:-components[1]);
+            EXPECT_EQ(result.z.value(),axis==2?components[2]:-components[2]);
+            EXPECT_TRUE(std::isfinite(result.x.value()) && std::isfinite(result.y.value()) &&
+                        std::isfinite(result.z.value()));
+        }
+    }
+    const auto cyclic=Rotation::TryCreate(T{1},T{1},T{1},T{1}).value();
+    for (T a:values) {
+        const auto result=cyclic*Velocity3<BodyFrame,T>{Q{a},Q{T{2}},Q{T{-1}}};
+        EXPECT_EQ(result.x.value(),T{-1}); EXPECT_EQ(result.y.value(),a);
+        EXPECT_EQ(result.z.value(),T{2});
+    }
+    const auto identity=G::Quaternion<T,BodyFrame,BodyFrame>::Identity();
+    const auto zeros=identity*Velocity3<BodyFrame,T>{Q{-T{0}},Q{T{0}},Q{-T{0}}};
+    EXPECT_TRUE(std::signbit(zeros.x.value())); EXPECT_FALSE(std::signbit(zeros.y.value()));
+    EXPECT_TRUE(std::signbit(zeros.z.value()));
+}
+template <typename T>
+void TypedRotationGeneralOracle() {
+    namespace G=vectoris::numerics::geometry;
+    using Q=typename Velocity3<BodyFrame,T>::Quantity_t;
+    const auto rotation=G::Quaternion<T,BodyFrame,WorldFrame>::TryCreate(T{1},T{2},T{3},T{4}).value();
+    const long double w=rotation.w,x=rotation.x,y=rotation.y,z=rotation.z;
+    const long double norm=w*w+x*x+y*y+z*z;
+    for (T scale:{std::numeric_limits<T>::min(),T{1},std::numeric_limits<T>::max()/T{8}}) {
+        const T vx=scale,vy=-scale/T{2},vz=scale/T{4};
+        const auto result=rotation*Velocity3<BodyFrame,T>{Q{vx},Q{vy},Q{vz}};
+        const long double expected[]{((w*w+x*x-y*y-z*z)*vx+2*(x*y-w*z)*vy+2*(x*z+w*y)*vz)/norm,
+                                    (2*(x*y+w*z)*vx+(w*w-x*x+y*y-z*z)*vy+2*(y*z-w*x)*vz)/norm,
+                                    (2*(x*z-w*y)*vx+2*(y*z+w*x)*vy+(w*w-x*x-y*y+z*z)*vz)/norm};
+        const T actual[]{result.x.value(),result.y.value(),result.z.value()};
+        const long double tolerance=32*std::numeric_limits<T>::epsilon()*static_cast<long double>(scale)
+                                   +8*static_cast<long double>(std::numeric_limits<T>::denorm_min());
+        for (int i=0;i<3;++i) EXPECT_LE(std::abs(static_cast<long double>(actual[i])-expected[i]),tolerance);
+    }
+}
+template <typename T>
+void TypedRotationEulerCommit() {
+    namespace G=vectoris::numerics::geometry;
+    namespace U=vectoris::numerics::units;
+    using MassQ=U::Quantity<T,U::KilogramUnit>;
+    using TimeQ=U::Quantity<T,U::SecondUnit>;
+    using IQ=typename InertiaTensor3<T,BodyFrame>::InertiaQ;
+    using VQ=typename Velocity3<BodyFrame,T>::Quantity_t;
+    const InertiaTensor3<T,BodyFrame> inertia{IQ{T{1}},IQ{T{0}},IQ{T{0}},IQ{T{0}},IQ{T{1}},
+                                           IQ{T{0}},IQ{T{0}},IQ{T{0}},IQ{T{1}}};
+    const RigidBodyParameters<T,BodyFrame> parameters{MassQ{T{1}},Position3<BodyFrame,T>{},inertia};
+    const T maximum=std::numeric_limits<T>::max();
+    const auto rotation=G::Quaternion<T,BodyFrame,WorldFrame>::TryCreate(T{0},T{1},T{0},T{0}).value();
+    auto state=KinematicState<T,WorldFrame,BodyFrame>::Create(Position3<WorldFrame,T>{},rotation,
+                    Velocity3<BodyFrame,T>{VQ{T{0}},VQ{maximum},VQ{T{0}}},AngularVelocity3<BodyFrame,T>{});
+    const auto result=EulerIntegrator::Step(state,parameters,Wrench6<T,BodyFrame>{},TimeQ{T{0.25}});
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(state.position.y.value(),-maximum/T{4});
+    EXPECT_EQ(state.linearVelocity.y.value(),maximum);
+    EXPECT_TRUE(std::isfinite(state.position.y.value()));
+}
+}
+TEST(AFA2TypedRotation, FloatExtremes) { TypedRotationExtremes<float>(); }
+TEST(AFA2TypedRotation, DoubleExtremes) { TypedRotationExtremes<double>(); }
+TEST(AFA2TypedRotation, FloatGeneralOracle) { TypedRotationGeneralOracle<float>(); }
+TEST(AFA2TypedRotation, DoubleGeneralOracle) { TypedRotationGeneralOracle<double>(); }
+TEST(AFA2TypedRotation, FloatEulerCommit) { TypedRotationEulerCommit<float>(); }
+TEST(AFA2TypedRotation, DoubleEulerCommit) { TypedRotationEulerCommit<double>(); }
