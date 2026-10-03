@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.0] - 2026-10-03 - VectorisNumerics
+
+- Formal owner-accepted numerical/runtime 1.0 release based on frozen C15.
+- Preserve numerical hardening, exact-SHA GCC/Clang/MSVC qualification, sanitizer,
+  static-analysis, coverage and fresh release-smoke evidence.
+- VRT-01 through VRT-19 formally CLOSED on preserved substantive repair evidence.
+- AFA5-001 and AFA5-002 remain OPEN-DEFERRED / OWNER ACCEPTED RELEASE DEBT.
+  C15 independent re-audit FAIL is preserved; release uses an explicit owner
+  acceptance of two qualification-tooling MAJOR findings.
+- Attempt #1 ABORTED due to external probe error; Attempt #2 PASS.
+- No production algorithm/API changes. CMake project and VERSION now identify 1.0.0.
+- No install/config-package support added; Dynamics maturity remains separate.
+- [Release notes and scope](docs/releases/VectorisNumerics_1.0.0.md).
+
 ## [1.0.0-RC1] - 2026-09-17 - Vectoris Global Rename Migration
 
 ### Changed

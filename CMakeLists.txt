@@ -1,6 +1,6 @@
 # FetchContent_MakeAvailable, used only when tests are enabled, requires CMake 3.14.
 cmake_minimum_required(VERSION 3.14)
-project(Vectoris LANGUAGES CXX)
+project(Vectoris VERSION 1.0.0 LANGUAGES CXX)
 
 # ==============================================================================
 # 1. Global Build Standard (C++20 Mandatory Isolation)

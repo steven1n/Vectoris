@@ -2281,3 +2281,16 @@ NOT REQUALIFIED / Experimental
 ```
 
 No commit or push was made. No final requalification was performed.
+
+
+## Formal release disposition — 2026-10-03
+
+The earlier step-local status entries above are preserved historical snapshots.
+The owner has authorized formal closure of VRT-01 through VRT-19 on independently
+established substantive repair evidence preserved through frozen C15.
+**VRT-01 THROUGH VRT-19: CLOSED.** See the itemized
+[formal closure record](../releases/VectorisNumerics_1.0.0_Closure.md).
+C15 targeted independent re-audit remains **FAIL, 0 BLOCKER / 2 MAJOR**.
+AFA5-001 and AFA5-002 remain **OPEN-DEFERRED / OWNER ACCEPTED RELEASE DEBT**.
+Release is an explicit owner acceptance of qualification-tooling risk, not a
+rewritten independent audit PASS or a zero-known-MAJOR claim.

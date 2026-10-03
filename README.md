@@ -70,39 +70,52 @@ Vectoris/
 
 ## Current Status
 
-**NOT FINALIZED / Experimental. No Numerics 1.0 release or freeze is authorized.**
+**VectorisNumerics 1.0.0: numerical/runtime release accepted by the owner.**
+The release is identified by the annotated `v1.0.0` tag on the release-metadata
+commit descended from frozen Candidate #15. VectorisDynamics remains a
+downstream module; this release does not designate Dynamics as 1.0.
 
-- **Frozen historical candidate:** Candidate #8,
-  `147731efa0ff6ea14de52ceba456e54c384cd219`; its cross-platform remediation CI
-  passed, but Fresh Independent Final Audit #2 found five MAJOR issues. It remains
-  unchanged. Full Final Requalification #2 was explicitly skipped.
-- **Latest frozen independently audited candidate:** Candidate #13,
-  `60264514522cd22b1725b9918662a6d397e1ab24`. Local validation and exact-SHA CI
-  passed (run `37094734809`); Fresh Independent Release Audit **FAILED**:
-  0 BLOCKER, 1 MAJOR (AFA3-001 Core include-contract documentation),
-  3 MINOR, 4 OBSERVATION. AFA2-009, AFA2-010 and C13 nonfinite AFA2-011 were
-  independently verified remediated; the new MAJOR still blocks release.
-- **Current remediation candidate:** Candidate #14 on
-  `qualification/vectoris-remediation-candidate-14`, addressing AFA3-001 and the
-  three nonblocking MINORs. Exact frozen SHA, local results and CI disposition
-  belong to its external qualification report. C14 has **no independent re-audit
-  PASS**; targeted independent confirmation requires separate authorization.
-- **Historical qualification outcomes (preserved):**
+- **Frozen numerical baseline:** C15,
+  `3e7132df0b7e6f1cd0c62f33a2a433ce97670e4b`. Local validation and
+  [exact-SHA cross-platform CI](https://github.com/steven1n/Vectoris/actions/runs/37109622562)
+  passed. That CI validates C15, not the subsequent release-metadata SHA.
+- **Independent review:** C15 targeted independent release re-audit **FAIL**:
+  0 BLOCKER, 2 MAJOR, 0 MINOR, 0 OBSERVATION. This verdict is preserved.
+  Release proceeds by explicit owner acceptance of AFA5-001 and AFA5-002,
+  both **OPEN-DEFERRED / OWNER ACCEPTED RELEASE DEBT** concerning qualification
+  tooling. They are not fixed, closed or independently verified remediated.
+- **Fresh release smoke on C15:** Attempt #1 was **ABORTED** due to an external
+  consumer probe omitting the required AlmostEqual tolerances; no C15 production
+  defect was established. Attempt #2 passed: Release **425/425**, Debug
+  **427/427**, no failures/skips, Numerics/Dynamics HeaderIsolation, 36 focused
+  regressions and executed external consumers. Counts are bound to C15.
+- **Formal disposition:** VRT-01 through VRT-19 CLOSED on preserved substantive
+  repair evidence. Accepted AFA5 release debt remains open. See the
+  [closure and owner decision record](docs/releases/VectorisNumerics_1.0.0_Closure.md)
+  and [release notes](docs/releases/VectorisNumerics_1.0.0.md).
+- **Consumption:** C++20 `add_subdirectory` consumers with BUILD_TESTING=OFF
+  need neither GoogleTest nor qualification Python. This version does not
+  provide CMake install rules or a `find_package(Vectoris)` configuration.
+  An external staged-header consumer was separately compiled and executed;
+  this is not evidence of an installed CMake package.
 
-  | Candidate / exact SHA | Cross-platform CI | Independent release audit |
-  | --- | --- | --- |
-  | C9 `da5018d06e41051ceefc85ade18d108b377e5abf` | FAIL (MSVC C7602) | Not performed for the invalidated candidate |
-  | C10 `7d0c07137edc886f228c2c4ff2e0ac6b3ca6bb0c` | PASS | FAIL |
-  | C11 `c57d3010c3df77e3a680ae20ad86c55d23decebe` | FAIL | Not performed for the invalidated candidate |
-  | C12 `c553ad168f392b1ceb857329d275c3af5ffb076a` | FAIL | Not performed for the invalidated candidate |
-  | C13 `60264514522cd22b1725b9918662a6d397e1ab24` | PASS | FAIL (AFA3-001) |
+### Historical qualification outcomes — preserved
 
-- **Test-count provenance:** Exact C13 CI executed 425/425 Debug, 423/423 Release
-  and 425/425 per sanitizer configuration. These are historical C13 results, not
-  C14 evidence. C14 adds mandatory documentation-consumer and validator controls;
-  its actual counts are recorded against its frozen SHA. AFA / VRT remain
-  **NOT CLOSED**. Historical R1 qualification does not qualify a later candidate.
-  No frozen release is asserted; `VERSION`'s RC1 label is a development label.
+| Candidate | Local / cross-platform CI | Independent release review |
+| --- | --- | --- |
+| C7 | Final requalification PASS | FAIL |
+| C8 | Remediation CI PASS; final requalification #2 explicitly skipped | FAIL |
+| C9 | Local PASS / CI FAIL (MSVC C7602) | Not performed for invalidated candidate |
+| C10 | PASS / PASS | FAIL |
+| C11 | CI FAIL | Not performed for invalidated candidate |
+| C12 | CI FAIL | Not performed for invalidated candidate |
+| C13 | PASS / PASS | FAIL (AFA3-001) |
+| C14 | PASS / PASS | FAIL (AFA4-001) |
+| C15 | PASS / PASS | FAIL (AFA5-001, AFA5-002) |
+
+This is an owner release decision with accepted qualification debt, not an
+all-audits-passed or zero-MAJOR independent audit conclusion. Historical
+benchmark/test counts remain scoped to their recorded SHA and configuration.
 
 ### Numerical support boundaries
 
