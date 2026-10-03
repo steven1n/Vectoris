@@ -76,6 +76,11 @@ namespace vectoris::numerics::Geometry {
             if (a >= -ordinary_limit && a <= ordinary_limit &&
                 b >= -ordinary_limit && b <= ordinary_limit &&
                 c >= -ordinary_limit && c <= ordinary_limit) return (a + b) + c;
+            // Nonfinite inputs retain row-wise IEEE propagation before ordering.
+            // NaN is not a valid operand for the comparison-based reductions.
+            if (!(Traits::IsFinite(x) && Traits::IsFinite(y) && Traits::IsFinite(z))) {
+                return (a + b) + c;
+            }
             const R lo = std::min({a, b, c}), hi = std::max({a, b, c});
             const R mid = std::clamp(b, std::min(a, c), std::max(a, c));
             // Opposite signs first: preserve isolated tiny terms and avoid
@@ -84,10 +89,6 @@ namespace vectoris::numerics::Geometry {
             if (lo >= -max && hi <= max && !RowSumAtBoundary(lo, hi)) {
                 const R partial = lo + hi;
                 if (!RowSumAtBoundary(partial, mid)) return partial + mid;
-            }
-            // Existing IEEE propagation for inputs outside the finite contract.
-            if (!(Traits::IsFinite(x) && Traits::IsFinite(y) && Traits::IsFinite(z))) {
-                return (a + b) + c;
             }
             // Only the overflow boundary uses a two-component dot product.
             // Valid rotation coefficients are near [-1,1]; scaled inputs <= 2.

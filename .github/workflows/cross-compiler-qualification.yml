@@ -57,6 +57,11 @@ jobs:
             git rev-parse HEAD
           } | tee artifacts-gcc/environment.txt
 
+      - name: C13 Nonfinite Rotation Baseline and Current Semantics
+        run: |
+          set -euo pipefail
+          python3 tools/qualification/verify_nonfinite_rotation.py --output-dir artifacts-gcc/nonfinite-controls 2>&1 | tee artifacts-gcc/nonfinite-semantics.log
+
       - name: Phase 10 — GCC Debug Build & Test
         run: |
           set -euo pipefail
@@ -134,6 +139,11 @@ jobs:
             echo "=== Git SHA ==="
             git rev-parse HEAD
           } | tee artifacts-clang/environment.txt
+
+      - name: C13 Nonfinite Rotation Baseline and Current Semantics
+        run: |
+          set -euo pipefail
+          python3 tools/qualification/verify_nonfinite_rotation.py --output-dir artifacts-clang/nonfinite-controls 2>&1 | tee artifacts-clang/nonfinite-semantics.log
 
       - name: Phase 14 — LLVM Clang Debug Build & Test
         run: |
@@ -225,6 +235,12 @@ jobs:
           & cmake.exe --version *>&1 | Tee-Object -FilePath artifacts-msvc/environment.txt -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & git.exe rev-parse HEAD | Tee-Object -FilePath artifacts-msvc/environment.txt -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: C13 Nonfinite Rotation Baseline and Current Semantics
+        shell: pwsh
+        run: |
+          & python.exe tools/qualification/verify_nonfinite_rotation.py --output-dir artifacts-msvc/nonfinite-controls *>&1 | Tee-Object -FilePath artifacts-msvc/nonfinite-semantics.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Verify Fail-Closed Warning Gate Controls

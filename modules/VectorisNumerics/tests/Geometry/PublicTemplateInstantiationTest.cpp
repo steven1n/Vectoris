@@ -109,6 +109,44 @@ TEST(GeometryPublicTemplateTest, RotationMatrix3TryCreate) {
     EXPECT_EQ(nan_mat_res.error(), vectoris::numerics::Core::MathError::non_finite_input);
 }
 
+TEST(GeometryPublicTemplateTest, RotationMatrixRowsExecuteBeyondSignatureChecks) {
+    namespace g = vectoris::numerics::geometry;
+    using R = g::RotationMatrix3<double, TestFrameA, TestFrameA>;
+    using V = g::Vector3<double, TestFrameA>;
+    // This specialization previously appeared only in noexcept/decltype checks.
+    const auto identity = R::Identity();
+    const auto nan = identity * V{1., 2., std::numeric_limits<double>::quiet_NaN()};
+    EXPECT_TRUE(std::isnan(nan.x));
+    EXPECT_TRUE(std::isnan(nan.y));
+    EXPECT_TRUE(std::isnan(nan.z));
+    const auto inf = identity * V{std::numeric_limits<double>::infinity(), 1., 2.};
+    EXPECT_TRUE(std::isinf(inf.x));
+    EXPECT_FALSE(std::signbit(inf.x));
+    EXPECT_TRUE(std::isnan(inf.y));
+    EXPECT_TRUE(std::isnan(inf.z));
+    const double max = std::numeric_limits<double>::max();
+    const double tiny = std::numeric_limits<double>::denorm_min();
+    const auto finite = identity * V{max, tiny, -tiny};
+    EXPECT_NEAR(finite.x, max, 0.);
+    EXPECT_NEAR(finite.y, tiny, 0.);
+    EXPECT_NEAR(finite.z, -tiny, 0.);
+    // Analytic half-turn about (1,1,1): diagonal -1/3, off-diagonal 2/3.
+    const g::Matrix3<double> raw{-1./3., 2./3., 2./3.,
+                                2./3., -1./3., 2./3.,
+                                2./3., 2./3., -1./3.};
+    const auto rotation = R::TryCreate(raw);
+    ASSERT_TRUE(rotation.IsSuccess());
+    const auto boundary = rotation.Value() * V{max, -max, -max};
+    EXPECT_TRUE(std::isinf(boundary.x)); // -5*max/3 is unrepresentable.
+    EXPECT_TRUE(std::signbit(boundary.x));
+    ASSERT_TRUE(std::isfinite(boundary.y));
+    ASSERT_TRUE(std::isfinite(boundary.z));
+    const double expected = max / 3.; // The two representable rows are max/3.
+    const double tolerance = 8. * std::numeric_limits<double>::epsilon() * max;
+    EXPECT_NEAR(boundary.y, expected, tolerance);
+    EXPECT_NEAR(boundary.z, expected, tolerance);
+}
+
 TEST(GeometryPublicTemplateTest, Transform3Identity) {
     auto t_id = vectoris::numerics::Geometry::Transform3<double, TestFrameA, TestFrameA>::Identity();
 

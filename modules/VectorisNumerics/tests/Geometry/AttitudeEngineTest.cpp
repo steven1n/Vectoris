@@ -509,3 +509,62 @@ TEST(C12RotationControlFlow, QuantityBranchPreservesUnitsAndFrame) {
     EXPECT_NEAR(out.y.value(),1.,1e-14);
     EXPECT_NEAR(out.z.value(),1.,1e-14);
 }
+
+namespace {
+template<class T> void C13AttitudeConversion() {
+    const auto q=Quaternion<T,FrameA,FrameB>::TryCreate(T{1},T{0},T{0},T{0});ASSERT_TRUE(q.IsSuccess());
+    const auto rotation=q.Value().ToRotationMatrix();ASSERT_TRUE(rotation.IsSuccess());
+    const auto factory=RotationMatrix3<T,FrameA,FrameB>::FromQuaternion(q.Value());ASSERT_TRUE(factory.IsSuccess());
+    const auto inverse=factory.Value().Inverse();
+    for(std::size_t axis=0;axis<3;++axis) {
+        std::array<T,3> components{T{1},T{2},T{3}};components[axis]=std::numeric_limits<T>::quiet_NaN();
+        const Vector3<T,FrameA> v{components[0],components[1],components[2]};
+        const auto out=rotation.Value()*v;
+        static_assert(std::same_as<std::remove_cvref_t<decltype(out)>,Vector3<T,FrameB>>);
+        EXPECT_TRUE(std::isnan(out.x));EXPECT_TRUE(std::isnan(out.y));EXPECT_TRUE(std::isnan(out.z));
+        const auto factory_out=factory.Value()*v;
+        EXPECT_TRUE(std::isnan(factory_out.x));EXPECT_TRUE(std::isnan(factory_out.y));EXPECT_TRUE(std::isnan(factory_out.z));
+        const auto reversed=inverse*Vector3<T,FrameB>{components[0],components[1],components[2]};
+        static_assert(std::same_as<std::remove_cvref_t<decltype(reversed)>,Vector3<T,FrameA>>);
+        EXPECT_TRUE(std::isnan(reversed.x));EXPECT_TRUE(std::isnan(reversed.y));EXPECT_TRUE(std::isnan(reversed.z));
+    }
+}
+template<class T> void C13AttitudeQuantity() {
+    using Q=vectoris::numerics::units::Quantity<T,vectoris::numerics::units::MeterUnit>;
+    const auto rotation=Quaternion<T,FrameA,FrameB>::TryCreate(T{1},T{0},T{0},T{0}).Value().ToRotationMatrix().Value();
+    for(std::size_t axis=0;axis<3;++axis) {
+        std::array<T,3> components{T{1},T{2},T{3}};components[axis]=std::numeric_limits<T>::quiet_NaN();
+        const Vector3<Q,FrameA> v{Q{components[0]},Q{components[1]},Q{components[2]}};
+        const auto out=rotation*v;static_assert(std::same_as<std::remove_cvref_t<decltype(out)>,Vector3<Q,FrameB>>);
+        EXPECT_TRUE(std::isnan(out.x.value()));EXPECT_TRUE(std::isnan(out.y.value()));EXPECT_TRUE(std::isnan(out.z.value()));
+    }
+    const auto inf=rotation*Vector3<Q,FrameA>{Q{std::numeric_limits<T>::infinity()},Q{T{1}},Q{T{2}}};
+    EXPECT_TRUE(std::isinf(inf.x.value()));EXPECT_FALSE(std::signbit(inf.x.value()));
+    EXPECT_TRUE(std::isnan(inf.y.value()));EXPECT_TRUE(std::isnan(inf.z.value()));
+
+    // Preserve the finite overflow-boundary path alongside the NaN guard:
+    // this rotation has one unrepresentable row and two representable rows.
+    const auto boundary=Quaternion<T,FrameA,FrameB>::TryCreate(T{0},T{1},T{1},T{1}).Value().ToRotationMatrix().Value();
+    const T max=std::numeric_limits<T>::max();
+    const auto out=boundary*Vector3<Q,FrameA>{Q{max},Q{-max},Q{-max}};
+    EXPECT_TRUE(std::isinf(out.x.value()));EXPECT_TRUE(std::signbit(out.x.value()));
+    const std::array<T,2> finite{out.y.value(),out.z.value()};
+    for(std::size_t i=1;i<3;++i) {
+        const auto& m=boundary.ToMatrix();
+        // Normalize the analytic oracle before rescaling, including platforms
+        // where long double has the same range as double.
+        const long double fraction=static_cast<long double>(m(i,0))-
+            static_cast<long double>(m(i,1))-static_cast<long double>(m(i,2));
+        ASSERT_LT(std::abs(fraction),1.L);
+        const long double expected=fraction*static_cast<long double>(max);
+        ASSERT_TRUE(std::isfinite(finite[i-1]));
+        EXPECT_LE(std::abs(static_cast<long double>(finite[i-1])-expected),
+            8.L*std::numeric_limits<T>::epsilon()*static_cast<long double>(max));
+    }
+}
+
+}
+TEST(C13AttitudeNonFinite,FloatQuaternionConversion){C13AttitudeConversion<float>();}
+TEST(C13AttitudeNonFinite,DoubleQuaternionConversion){C13AttitudeConversion<double>();}
+TEST(C13AttitudeNonFinite,FloatQuantityAdapter){C13AttitudeQuantity<float>();}
+TEST(C13AttitudeNonFinite,DoubleQuantityAdapter){C13AttitudeQuantity<double>();}

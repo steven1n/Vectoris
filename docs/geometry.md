@@ -554,6 +554,16 @@ outputs may be Inf. NaN/Inf inputs are outside the finite-input guarantee and re
 IEEE propagation. Round-to-nearest, gradual underflow and no fast-math remain required.
 This is rotation-specific; raw Matrix3 multiplication remains unchecked arithmetic.
 
+Candidate #13 makes the existing nonfinite rule explicit: each output row uses
+`(r0*x + r1*y) + r2*z` for a vector containing NaN or infinity, before any
+comparison-based reduction. Thus `0 * Inf` and opposite infinities may produce
+NaN, while another row may preserve signed infinity; there is no all-NaN sentinel
+or finite replacement. No NaN payload/sign, signaling-NaN, or floating-point
+exception-flag guarantee is added. The application operator still returns a
+vector, not Result; checked rotation construction still rejects nonfinite
+matrix/quaternion coefficients. Finite arithmetic and zero-sign behavior are
+unchanged, under the existing floating-point environment assumptions.
+
 | Matrix3 operation | Numeric integral scalar (`Concepts::NumericInteger`) | float/double |
 | --- | --- | --- |
 | Construction, indexing, basic arithmetic | Supported; index and arithmetic representability preconditions apply | Supported |

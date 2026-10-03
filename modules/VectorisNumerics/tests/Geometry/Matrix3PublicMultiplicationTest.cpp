@@ -2,7 +2,11 @@
 #include <concepts>
 #include <type_traits>
 #include <utility>
+#include <array>
+#include <cmath>
+#include <limits>
 #include "Vectoris/Numerics/Geometry/Matrix3.h"
+#include "Vectoris/Numerics/Geometry/RotationMatrix3.h"
 #include "Vectoris/Numerics/Geometry/Point3.h"
 #include "Vectoris/Numerics/Units/Quantity.h"
 #include "Vectoris/Numerics/Units/BaseUnits/Length.h"
@@ -134,3 +138,139 @@ TEST(Matrix3MixedMultiplicationTest, PreservesUnitValuedComponents) {
     EXPECT_NEAR(result.z.value(), 50.0, 0.0);
 }
 } // namespace
+
+namespace {
+struct C13RotationFrame {};
+template<class T> using C13Vector = G::Vector3<T,C13RotationFrame>;
+template<class T> using C13Rotation = G::RotationMatrix3<T,C13RotationFrame,C13RotationFrame>;
+
+template<class T> void C13ExpectNaN(const C13Vector<T>& v) {
+    EXPECT_TRUE(std::isnan(v.x)); EXPECT_TRUE(std::isnan(v.y)); EXPECT_TRUE(std::isnan(v.z));
+}
+template<class T> void C13NaNPositions() {
+    const T nan=std::numeric_limits<T>::quiet_NaN();
+    const auto r=C13Rotation<T>::Identity();
+    for(std::size_t axis=0;axis<3;++axis) {
+        std::array<T,3> components{T{1},T{2},T{3}};components[axis]=nan;
+        const C13Vector<T> v{components[0],components[1],components[2]};
+        SCOPED_TRACE(axis);C13ExpectNaN(r*v); // Every row includes a product with NaN.
+    }
+}
+template<class T> void C13MixedNaN() {
+    const T nan=std::numeric_limits<T>::quiet_NaN(),inf=std::numeric_limits<T>::infinity();
+    const T max=std::numeric_limits<T>::max();const auto r=C13Rotation<T>::Identity();
+    const std::array<C13Vector<T>,5> inputs{{{nan,nan,nan},{T{0},nan,-T{0}},
+        {max,-max,nan},{inf,nan,-inf},{nan,T{0},T{0}}}};
+    for(const auto& v:inputs) C13ExpectNaN(r*v);
+}
+template<class T> void C13InfinityRows() {
+    const auto r=C13Rotation<T>::Identity();
+    for(const T inf:{std::numeric_limits<T>::infinity(),-std::numeric_limits<T>::infinity()}) {
+        for(std::size_t axis=0;axis<3;++axis) {
+            std::array<T,3> components{T{1},T{2},T{3}};components[axis]=inf;
+            const auto out=r*C13Vector<T>{components[0],components[1],components[2]};
+            const std::array<T,3> values{out.x,out.y,out.z};
+            for(std::size_t row=0;row<3;++row) {
+                SCOPED_TRACE(row);
+                if(row==axis) {EXPECT_TRUE(std::isinf(values[row]));EXPECT_EQ(std::signbit(values[row]),std::signbit(inf));}
+                else EXPECT_TRUE(std::isnan(values[row])); // The off-axis row contains 0 * Inf.
+            }
+        }
+    }
+}
+template<class T> void C13InfinityCancellation() {
+    // Exact quarter-turn: x'=-y, y'=x, z'=z. Rows still evaluate zero products.
+    const G::Matrix3<T> raw{T{0},T{-1},T{0},T{1},T{0},T{0},T{0},T{0},T{1}};
+    const auto result=C13Rotation<T>::TryCreate(raw);ASSERT_TRUE(result.IsSuccess());
+    const T inf=std::numeric_limits<T>::infinity();
+    C13ExpectNaN(result.Value()*C13Vector<T>{inf,-inf,T{0}});
+    // General rotation has negative diagonals and positive off-diagonals.
+    const G::Matrix3<T> general{T{-1}/T{3},T{2}/T{3},T{2}/T{3},
+        T{2}/T{3},T{-1}/T{3},T{2}/T{3},T{2}/T{3},T{2}/T{3},T{-1}/T{3}};
+    const auto rotation=C13Rotation<T>::TryCreate(general);ASSERT_TRUE(rotation.IsSuccess());
+    const auto same=rotation.Value()*C13Vector<T>{inf,inf,T{0}};
+    EXPECT_TRUE(std::isnan(same.x));EXPECT_TRUE(std::isnan(same.y));
+    EXPECT_TRUE(std::isinf(same.z));EXPECT_FALSE(std::signbit(same.z));
+    const auto opposite=rotation.Value()*C13Vector<T>{inf,-inf,T{0}};
+    EXPECT_TRUE(std::isinf(opposite.x));EXPECT_TRUE(std::signbit(opposite.x));
+    EXPECT_TRUE(std::isinf(opposite.y));EXPECT_FALSE(std::signbit(opposite.y));
+    EXPECT_TRUE(std::isnan(opposite.z));
+}
+template<class T> void C13SignedZeros() {
+    const auto r=C13Rotation<T>::Identity();
+    for(unsigned mask=0;mask<8;++mask) {
+        const C13Vector<T> v{mask&1U?-T{0}:T{0},mask&2U?-T{0}:T{0},mask&4U?-T{0}:T{0}};
+        const auto out=r*v;
+        const std::array<T,3> reference{{(v.x+T{0}*v.y)+T{0}*v.z,
+            (T{0}*v.x+v.y)+T{0}*v.z,(T{0}*v.x+T{0}*v.y)+v.z}};
+        const std::array<T,3> values{out.x,out.y,out.z};
+        for(std::size_t i=0;i<3;++i) {EXPECT_NEAR(values[i],T{0},T{0});EXPECT_EQ(std::signbit(values[i]),std::signbit(reference[i]));}
+    }
+}
+template<class T> void C13FiniteBoundaryControls() {
+    const auto r=C13Rotation<T>::Identity();
+    for(const T scale:{std::numeric_limits<T>::denorm_min(),std::numeric_limits<T>::min(),
+        T{1},std::numeric_limits<T>::max()}) {
+        const auto out=r*C13Vector<T>{scale,-scale,scale};
+        EXPECT_TRUE(std::isfinite(out.x));EXPECT_TRUE(std::isfinite(out.y));EXPECT_TRUE(std::isfinite(out.z));
+        EXPECT_NEAR(out.x,scale,T{0});EXPECT_NEAR(out.y,-scale,T{0});EXPECT_NEAR(out.z,scale,T{0});
+    }
+}
+}
+TEST(C13RotationNonFinite,FloatNaNPositions){C13NaNPositions<float>();}
+TEST(C13RotationNonFinite,DoubleNaNPositions){C13NaNPositions<double>();}
+TEST(C13RotationNonFinite,FloatMixedNaN){C13MixedNaN<float>();}
+TEST(C13RotationNonFinite,DoubleMixedNaN){C13MixedNaN<double>();}
+TEST(C13RotationNonFinite,FloatInfinityRows){C13InfinityRows<float>();}
+TEST(C13RotationNonFinite,DoubleInfinityRows){C13InfinityRows<double>();}
+TEST(C13RotationNonFinite,FloatInfinityCancellation){C13InfinityCancellation<float>();}
+TEST(C13RotationNonFinite,DoubleInfinityCancellation){C13InfinityCancellation<double>();}
+TEST(C13RotationNonFinite,FloatSignedZeros){C13SignedZeros<float>();}
+TEST(C13RotationNonFinite,DoubleSignedZeros){C13SignedZeros<double>();}
+TEST(C13RotationNonFinite,FloatFiniteBoundaryControls){C13FiniteBoundaryControls<float>();}
+TEST(C13RotationNonFinite,DoubleFiniteBoundaryControls){C13FiniteBoundaryControls<double>();}
+
+namespace {
+template<class T> void C13CheckedConstructionNonFinite() {
+    const auto identity=G::Matrix3<T>::Identity();
+    auto unchanged=C13Rotation<T>::Identity();
+    for(const T invalid:{std::numeric_limits<T>::quiet_NaN(),std::numeric_limits<T>::infinity(),
+                         -std::numeric_limits<T>::infinity()}) {
+        for(std::size_t component=0;component<9;++component) {
+            auto raw=identity;raw.m[component]=invalid;
+            const auto result=C13Rotation<T>::TryCreate(raw);
+            ASSERT_FALSE(result.IsSuccess());
+            EXPECT_EQ(result.error(),vectoris::numerics::core::MathError::non_finite_input);
+            EXPECT_FALSE(C13Rotation<T>::TryCreate(raw,unchanged));
+            EXPECT_TRUE(unchanged.ToMatrix().AlmostEqual(identity));
+        }
+    }
+    EXPECT_TRUE(C13Rotation<T>::TryCreate(identity,unchanged));
+    EXPECT_TRUE(unchanged.ToMatrix().AlmostEqual(identity));
+}
+}
+TEST(C13RotationNonFinite,FloatCheckedConstructionRejectsNonFinite){C13CheckedConstructionNonFinite<float>();}
+TEST(C13RotationNonFinite,DoubleCheckedConstructionRejectsNonFinite){C13CheckedConstructionNonFinite<double>();}
+
+namespace {
+template<class Coefficient,class Component> void C13MixedPrecisionNonFinite() {
+    const auto r=C13Rotation<Coefficient>::Identity();
+    for(std::size_t axis=0;axis<3;++axis) {
+        std::array<Component,3> values{Component{1},Component{2},Component{3}};
+        values[axis]=std::numeric_limits<Component>::quiet_NaN();
+        const auto out=r*C13Vector<Component>{values[0],values[1],values[2]};
+        static_assert(std::same_as<std::remove_cvref_t<decltype(out)>,C13Vector<double>>);
+        C13ExpectNaN(out);
+    }
+    const auto inf=r*C13Vector<Component>{std::numeric_limits<Component>::infinity(),Component{1},Component{2}};
+    EXPECT_TRUE(std::isinf(inf.x));EXPECT_FALSE(std::signbit(inf.x));
+    EXPECT_TRUE(std::isnan(inf.y));EXPECT_TRUE(std::isnan(inf.z));
+    const Component max=std::numeric_limits<Component>::max();
+    const auto finite=r*C13Vector<Component>{max,-max,max};
+    EXPECT_NEAR(finite.x,static_cast<double>(max),0.);
+    EXPECT_NEAR(finite.y,-static_cast<double>(max),0.);
+    EXPECT_NEAR(finite.z,static_cast<double>(max),0.);
+}
+}
+TEST(C13RotationNonFinite,FloatRotationDoubleComponents){C13MixedPrecisionNonFinite<float,double>();}
+TEST(C13RotationNonFinite,DoubleRotationFloatComponents){C13MixedPrecisionNonFinite<double,float>();}
