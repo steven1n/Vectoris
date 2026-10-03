@@ -16,6 +16,7 @@ import shutil
 import subprocess
 import sys
 from positive_probe_contract import verify_source, verify_ctest
+from verify_core_include_contract import read_contracts, compile_contracts
 
 def resolve_compiler(explicit_cxx, build_dir):
     # 1. Explicit argument
@@ -396,6 +397,19 @@ def main():
             sys.exit(1)
 
         print(f"  [PASS] Invalid probe rejected with expected diagnostic: {os.path.basename(invalid_file)} ({desc})")
+
+    # AFA3-001: the documentation itself supplies the source, rather than a
+    # separately maintained consumer with unrelated umbrella includes.
+    try:
+        core_sources = read_contracts(repo_root, manifest=manifest_path)
+        if not args.skip_build_exec:
+            compiler_style = "MSVC" if os.path.basename(compiler_bin).lower() in ("cl", "cl.exe") else "GNU"
+            compile_contracts(repo_root, compiler_bin, compiler_style, core_sources)
+        else:
+            print("Core documented consumers: SOURCE VALIDATED; execution NOT VERIFIED (--skip-build-exec)")
+    except (OSError, ValueError, IndexError, subprocess.SubprocessError) as exc:
+        print(f"ERROR: Core documented include contract: {exc}", file=sys.stderr)
+        sys.exit(1)
 
     print("\n" + "=" * 80)
     print("Public API Surface Verification Summary")

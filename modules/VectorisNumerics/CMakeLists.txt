@@ -148,6 +148,18 @@ if(BUILD_TESTING)
 
     gtest_discover_tests(VectorisNumerics_Tests)
 
+    # AFA3-001: execute the actual documented consumers on every qualification
+    # compiler. Keep Python and these gates inside BUILD_TESTING only.
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    add_test(NAME Core.DocumentedIncludeContract
+        COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/api_surface/verify_core_include_contract.py
+            --repo-root ${PROJECT_SOURCE_DIR} --cxx ${CMAKE_CXX_COMPILER}
+            --compiler-id ${CMAKE_CXX_COMPILER_ID})
+    add_test(NAME Core.DocumentedIncludeContractSelfTests
+        COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/api_surface/test_core_include_contract.py)
+    set_tests_properties(Core.DocumentedIncludeContract Core.DocumentedIncludeContractSelfTests
+        PROPERTIES LABELS "PublicConsumerContract")
+
     # ==============================================================================
     # Public Header Standalone Isolation Qualification
     # ==============================================================================

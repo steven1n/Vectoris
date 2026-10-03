@@ -8,6 +8,20 @@ from verify_pipeline_gate import audit_workflow_file, workflow_run_blocks
 
 SAFE='set -euo pipefail\nfalse | tee /dev/null'
 CHECK='if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }'
+EXPECTED_HISTORICAL_FIXTURES = frozenset({
+    'afa004-last-bash-block.yml', 'afa004-masked-windows-command.yml',
+})
+
+def historical_fixtures(directory):
+    directory = Path(directory)
+    actual = {path.name for path in directory.iterdir()}
+    if actual != EXPECTED_HISTORICAL_FIXTURES:
+        raise ValueError(f'historical fixture inventory mismatch: expected={sorted(EXPECTED_HISTORICAL_FIXTURES)}, actual={sorted(actual)}')
+    paths = [directory / name for name in sorted(EXPECTED_HISTORICAL_FIXTURES)]
+    if not all(path.is_file() for path in paths):
+        raise ValueError('historical fixture inventory contains a non-file')
+    return paths
+
 class AFA004PipelineContract(unittest.TestCase):
     def audit(self, scripts):
         with tempfile.TemporaryDirectory() as tmp:
@@ -94,9 +108,24 @@ class AFA004PipelineContract(unittest.TestCase):
         self.assertFalse(self.audit([('bash','set -euo pipefail\nCC=clang-22 set -e +o pipefail')]))
         self.assertFalse(self.audit([('bash','set -euo pipefail\nCC=clang-22 $POLICY +e')]))
     def test_astra_originals(self):
-        for path in (Path(__file__).parent/'fixtures').glob('*.yml'):
+        for path in historical_fixtures(Path(__file__).parent/'fixtures'):
             with self.subTest(path=path.name),contextlib.redirect_stdout(io.StringIO()):
                 self.assertFalse(audit_workflow_file(path))
+    def test_historical_inventory_missing_one(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp)/sorted(EXPECTED_HISTORICAL_FIXTURES)[0]).write_text('jobs: {}')
+            with self.assertRaisesRegex(ValueError, 'inventory mismatch'):
+                historical_fixtures(tmp)
+    def test_historical_inventory_empty(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(ValueError, 'inventory mismatch'):
+                historical_fixtures(tmp)
+    def test_historical_inventory_unexpected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for name in EXPECTED_HISTORICAL_FIXTURES | {'duplicate.yml'}:
+                (Path(tmp)/name).write_text('jobs: {}')
+            with self.assertRaisesRegex(ValueError, 'inventory mismatch'):
+                historical_fixtures(tmp)
     def test_missing_malformed_duplicate(self):
         with self.assertRaises(Exception): workflow_run_blocks('jobs: [unterminated')
         with self.assertRaisesRegex(ValueError,'duplicate YAML key'): workflow_run_blocks('jobs: {}\njobs: {}')

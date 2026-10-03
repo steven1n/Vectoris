@@ -76,20 +76,33 @@ Vectoris/
   `147731efa0ff6ea14de52ceba456e54c384cd219`; its cross-platform remediation CI
   passed, but Fresh Independent Final Audit #2 found five MAJOR issues. It remains
   unchanged. Full Final Requalification #2 was explicitly skipped.
-- **Latest qualification candidate:** Candidate #9 on
-  `qualification/vectoris-remediation-candidate-9`, containing the five post-C8
-  fixes. Its exact commit SHA, local execution results and cross-platform CI
-  disposition belong to the external Candidate #9 qualification report; this
-  README does not grant qualification or independent-audit PASS.
-- **Latest independent audit:** Candidate #8 audit FAIL. Candidate #9 requires a
-  fresh independent final audit after exact-SHA qualification. AFA / VRT findings
-  remain NOT CLOSED. Historical R1 qualification is not qualification of C9.
-- **Test-count provenance:** C8 had 311 Debug / 309 Release registered tests;
-  the post-C8 patch adds 64 regressions (375 Debug / 373 Release). These are
-  source-registration counts relative to the recorded C8 SHA, not proof of
-  execution. Actual pass counts are bound to the exact frozen C9 SHA in its
-  qualification evidence. No new frozen release is asserted; `VERSION`'s RC1
-  label is a development label, not release authorization.
+- **Latest frozen independently audited candidate:** Candidate #13,
+  `60264514522cd22b1725b9918662a6d397e1ab24`. Local validation and exact-SHA CI
+  passed (run `37094734809`); Fresh Independent Release Audit **FAILED**:
+  0 BLOCKER, 1 MAJOR (AFA3-001 Core include-contract documentation),
+  3 MINOR, 4 OBSERVATION. AFA2-009, AFA2-010 and C13 nonfinite AFA2-011 were
+  independently verified remediated; the new MAJOR still blocks release.
+- **Current remediation candidate:** Candidate #14 on
+  `qualification/vectoris-remediation-candidate-14`, addressing AFA3-001 and the
+  three nonblocking MINORs. Exact frozen SHA, local results and CI disposition
+  belong to its external qualification report. C14 has **no independent re-audit
+  PASS**; targeted independent confirmation requires separate authorization.
+- **Historical qualification outcomes (preserved):**
+
+  | Candidate / exact SHA | Cross-platform CI | Independent release audit |
+  | --- | --- | --- |
+  | C9 `da5018d06e41051ceefc85ade18d108b377e5abf` | FAIL (MSVC C7602) | Not performed for the invalidated candidate |
+  | C10 `7d0c07137edc886f228c2c4ff2e0ac6b3ca6bb0c` | PASS | FAIL |
+  | C11 `c57d3010c3df77e3a680ae20ad86c55d23decebe` | FAIL | Not performed for the invalidated candidate |
+  | C12 `c553ad168f392b1ceb857329d275c3af5ffb076a` | FAIL | Not performed for the invalidated candidate |
+  | C13 `60264514522cd22b1725b9918662a6d397e1ab24` | PASS | FAIL (AFA3-001) |
+
+- **Test-count provenance:** Exact C13 CI executed 425/425 Debug, 423/423 Release
+  and 425/425 per sanitizer configuration. These are historical C13 results, not
+  C14 evidence. C14 adds mandatory documentation-consumer and validator controls;
+  its actual counts are recorded against its frozen SHA. AFA / VRT remain
+  **NOT CLOSED**. Historical R1 qualification does not qualify a later candidate.
+  No frozen release is asserted; `VERSION`'s RC1 label is a development label.
 
 ### Numerical support boundaries
 

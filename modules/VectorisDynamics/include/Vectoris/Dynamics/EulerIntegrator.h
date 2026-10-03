@@ -12,7 +12,8 @@
 
 namespace vectoris::dynamics {
 
-    // 确定性一阶欧拉积分器（支持硬实时无堆分配，强类型物理量推进，强事务状态一致性保证）
+    // 一阶欧拉积分器：固定状态维度下结构工作量有界，推进路径无堆分配，强类型且事务性提交。
+    // 不保证 WCET、可调度性或硬实时安全；这些性质需要目标平台上的单独资格验证。
     class EulerIntegrator final {
     private:
         template <DynamicsScalar T, Geometry::FrameTag RefFrame, Geometry::FrameTag BodyFrame>

@@ -4,9 +4,9 @@
 > **Document**: Core Module Specification  
 > **Document Version**: 1.0  
 > **Status**: Authoritative Module Specification  
-> **Reviewed Starting HEAD**: `cfbecc6390fb30d857f10f2516f39bb2ef75f996` (working tree contains uncommitted remediations)
-> **Last Updated**: 2026-09-23
-> **Current Qualification**: NOT REQUALIFIED / Experimental
+> **C14 Remediation Base**: `60264514522cd22b1725b9918662a6d397e1ab24` (frozen Candidate #13)
+> **Last Updated**: 2026-10-03
+> **Current Qualification**: NOT FINALIZED / Experimental; independent confirmation pending
 > **Authority**: [`docs/ENGINEERING_STANDARD_V1.md`](ENGINEERING_STANDARD_V1.md)
 
 ---
@@ -73,13 +73,66 @@ The `Core` module exposes exactly **11 public headers** under `include/Vectoris/
 | [`Compiler.h`](../modules/VectorisNumerics/include/Vectoris/Numerics/Core/Compiler.h) | Standard compliance detection and compiler-specific attribute abstractions (`VECTORIS_CPLUSPLUS`). |
 | [`Concepts.h`](../modules/VectorisNumerics/include/Vectoris/Numerics/Core/Concepts.h) | C++20 concepts (`Concepts::FloatingPoint`, `Concepts::NumericInteger`, `Concepts::SupportedSqrtScalar`). |
 | [`Constants.h`](../modules/VectorisNumerics/include/Vectoris/Numerics/Core/Constants.h) | Mathematical constants ($\pi$, $e$, $\sqrt{2}$, $\ln 2$, machine epsilons) with full 64-bit precision. |
-| [`Math.h`](../modules/VectorisNumerics/include/Vectoris/Numerics/Core/Math.h) | Root namespace umbrella including `MathFunctions.h`, `NumericTraits.h`, and `Constants.h`. |
 | [`MathError.h`](../modules/VectorisNumerics/include/Vectoris/Numerics/Core/MathError.h) | Strongly typed error enum `MathError` and string converter `to_string(MathError)`. |
-| [`Math.h`](../modules/VectorisNumerics/include/Vectoris/Numerics/Core/Math.h) | Canonical `core::sqrt` and existing `core::abs`. |
+| [`Math.h`](../modules/VectorisNumerics/include/Vectoris/Numerics/Core/Math.h) | Primitive entry: canonical `core::sqrt` and existing `core::abs`; include `MathFunctions.h` explicitly for wrappers. |
 | [`MathFunctions.h`](../modules/VectorisNumerics/include/Vectoris/Numerics/Core/MathFunctions.h) | `core::Math::{abs,sin,cos,acos}` and compatibility `sqrt`. |
 | [`NumericTraits.h`](../modules/VectorisNumerics/include/Vectoris/Numerics/Core/NumericTraits.h) | Compile-time IEEE-754 traits: `AlmostEqual`, `IsZero`, `IsFinite`, `IsNaN`. |
 | [`Precision.h`](../modules/VectorisNumerics/include/Vectoris/Numerics/Core/Precision.h) | Default floating-point scalar alias `Scalar = double;`. |
 | [`Result.h`](../modules/VectorisNumerics/include/Vectoris/Numerics/Core/Result.h) | `std::variant`-backed error container `Result<T, MathError>`. |
+
+### Documented Core consumer entrances (AFA3-001)
+
+`Math.h` is a narrow primitive header, not a Core umbrella. It does not export
+`core::Math::sin` or `core::Math::cos`. Include `MathFunctions.h` explicitly for
+the wrappers, `NumericTraits.h` for traits/comparisons, and `Constants.h` for
+constants. This preserves the dependency direction `MathFunctions.h -> Math.h`
+and Engineering Standard sections 7 and 55 (one major concept and minimal,
+self-contained dependencies). No production include graph or function changes.
+
+These complete consumer examples are extracted, compiled with strict warnings,
+and executed by the mandatory Core include-contract CTest/API gate. Each example
+includes only its documented Vectoris entrance. The manifest records their exact
+identities; missing, duplicate, unexpected or failing examples fail the gate.
+
+<!-- vectoris-core-contract: primitives -->
+```cpp
+#include <Vectoris/Numerics/Core/Math.h>
+static_assert(vectoris::numerics::core::sqrt(4.0) == 2.0);
+static_assert(vectoris::numerics::core::abs(-2.0) == 2.0);
+int main() { return 0; }
+```
+
+<!-- vectoris-core-contract: wrappers -->
+```cpp
+#include <Vectoris/Numerics/Core/MathFunctions.h>
+template <typename T> bool wrappers_work() {
+    const T epsilon = vectoris::numerics::Traits::NumericTraits<T>::epsilon();
+    return vectoris::numerics::core::AlmostEqual(
+               vectoris::numerics::core::Math::sin(T{0}), T{0}, epsilon, epsilon) &&
+           vectoris::numerics::core::AlmostEqual(
+               vectoris::numerics::core::Math::cos(T{0}), T{1}, epsilon, epsilon) &&
+           vectoris::numerics::core::AlmostEqual(
+               vectoris::numerics::core::Math::sqrt(T{4}), T{2}, epsilon, epsilon);
+}
+int main() { return wrappers_work<float>() && wrappers_work<double>() ? 0 : 1; }
+```
+
+<!-- vectoris-core-contract: traits -->
+```cpp
+#include <Vectoris/Numerics/Core/NumericTraits.h>
+static_assert(vectoris::numerics::Traits::NumericTraits<double>::epsilon() > 0.0);
+int main() {
+    return vectoris::numerics::core::AlmostEqual(1.0, 1.0, 0.0, 0.0) ? 0 : 1;
+}
+```
+
+<!-- vectoris-core-contract: constants -->
+```cpp
+#include <Vectoris/Numerics/Core/Constants.h>
+static_assert(vectoris::numerics::Constants::Pi<double> > 3.0);
+static_assert(vectoris::numerics::Constants::Pi<double> < 4.0);
+int main() { return 0; }
+```
 
 ---
 

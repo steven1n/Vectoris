@@ -1,4 +1,10 @@
 {
+  "documented_core_include_contracts": {
+    "primitives": "Math.h",
+    "wrappers": "MathFunctions.h",
+    "traits": "NumericTraits.h",
+    "constants": "Constants.h"
+  },
   "version": "2.0",
   "description": "Vectoris Numerics Public API and Template Instantiation Surface Manifest with declared Dynamics semantic contracts",
   "scope": "All ISO C++20 pure-mathematics production headers for VectorisNumerics",
