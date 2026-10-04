@@ -86,7 +86,7 @@ TEST(MathFunctionsTest, AdditionalRuntimeWrappers) {
     EXPECT_DOUBLE_EQ(Core::abs(runtime_input), 0.0);
 
     // 1. Math::abs negative branch
-    EXPECT_EQ(Core::Math::abs(-42), 42);
+    EXPECT_EQ(Core::Math::abs(-42), 42u);
     EXPECT_DOUBLE_EQ(Core::Math::abs(-3.14159), 3.14159);
     EXPECT_FLOAT_EQ(Core::Math::abs(-2.718f), 2.718f);
 
@@ -102,3 +102,95 @@ TEST(MathFunctionsTest, AdditionalRuntimeWrappers) {
     EXPECT_DOUBLE_EQ(Core::Math::cos(0.0), 1.0);
     EXPECT_FLOAT_EQ(Core::Math::cos(0.0f), 1.0f);
 }
+
+namespace {
+template <typename T>
+concept HasCoreAbs = requires(T value) { Core::abs(value); Core::Math::abs(value); };
+
+// Independent oracle: shift negative values one step toward zero before negation.
+template <typename T>
+constexpr std::make_unsigned_t<T> SignedMagnitudeReference(T value) noexcept {
+    using UInt = std::make_unsigned_t<T>;
+    return value < T{0}
+        ? static_cast<UInt>(static_cast<UInt>(-(value + T{1})) + UInt{1})
+        : static_cast<UInt>(value);
+}
+
+template <typename T>
+class CoreAbsSigned : public ::testing::Test {};
+using AbsSignedTypes = ::testing::Types<signed char, short, int, long, long long>;
+TYPED_TEST_SUITE(CoreAbsSigned, AbsSignedTypes);
+TYPED_TEST(CoreAbsSigned, SignedBoundaryMagnitude) {
+    using T = TypeParam;
+    using UInt = std::make_unsigned_t<T>;
+    constexpr T minimum = std::numeric_limits<T>::min();
+    constexpr T maximum = std::numeric_limits<T>::max();
+    static_assert(std::same_as<decltype(Core::abs(T{})), UInt>);
+    static_assert(std::same_as<decltype(Core::Math::abs(T{})), UInt>);
+    static_assert(noexcept(Core::abs(T{})) && noexcept(Core::Math::abs(T{})));
+    static_assert(Core::abs(minimum) == static_cast<UInt>(static_cast<UInt>(maximum) + UInt{1}));
+    static_assert(Core::Math::abs(minimum) == Core::abs(minimum));
+    static_assert(Core::abs(T{-2}) == UInt{2} && Core::abs(T{2}) == UInt{2});
+    static_assert(Core::abs(T{0}) == UInt{0});
+    const T inputs[] = {minimum, static_cast<T>(minimum + T{1}), T{-2}, T{-1},
+                        T{0}, T{1}, T{2}, static_cast<T>(maximum - T{1}), maximum};
+    for (const T input : inputs) {
+        volatile T runtime_input = input;
+        const UInt expected = SignedMagnitudeReference(input);
+        EXPECT_EQ(Core::abs(runtime_input), expected);
+        EXPECT_EQ(Core::Math::abs(runtime_input), expected);
+    }
+}
+
+template <typename T>
+class CoreAbsUnsigned : public ::testing::Test {};
+using AbsUnsignedTypes = ::testing::Types<unsigned char, unsigned short, unsigned int,
+                                         unsigned long, unsigned long long>;
+TYPED_TEST_SUITE(CoreAbsUnsigned, AbsUnsignedTypes);
+TYPED_TEST(CoreAbsUnsigned, UnsignedIdentity) {
+    using T = TypeParam;
+    static_assert(std::same_as<decltype(Core::abs(T{})), T>);
+    static_assert(std::same_as<decltype(Core::Math::abs(T{})), T>);
+    static_assert(Core::abs(std::numeric_limits<T>::max()) == std::numeric_limits<T>::max());
+    for (const T input : {T{0}, T{1}, std::numeric_limits<T>::max()}) {
+        volatile T runtime_input = input;
+        EXPECT_EQ(Core::abs(runtime_input), input);
+        EXPECT_EQ(Core::Math::abs(runtime_input), input);
+    }
+}
+
+template <typename T>
+class CoreAbsFloating : public ::testing::Test {};
+using AbsFloatingTypes = ::testing::Types<float, double, long double>;
+TYPED_TEST_SUITE(CoreAbsFloating, AbsFloatingTypes);
+TYPED_TEST(CoreAbsFloating, FloatingContractPreserved) {
+    using T = TypeParam;
+    static_assert(std::same_as<decltype(Core::abs(T{})), T>);
+    static_assert(Core::abs(T{-2}) == T{2} && Core::Math::abs(T{-2}) == T{2});
+    for (const T input : {T{-2}, T{0}, -T{0}, T{2}, std::numeric_limits<T>::max(),
+                          -std::numeric_limits<T>::max(), std::numeric_limits<T>::denorm_min(),
+                          -std::numeric_limits<T>::denorm_min(), std::numeric_limits<T>::infinity(),
+                          -std::numeric_limits<T>::infinity(), std::numeric_limits<T>::quiet_NaN()}) {
+        volatile T runtime_input = input;
+        const T primitive = Core::abs(runtime_input);
+        const T wrapper = Core::Math::abs(runtime_input);
+        if (std::isnan(input)) {
+            EXPECT_TRUE(std::isnan(primitive));
+            EXPECT_TRUE(std::isnan(wrapper));
+        } else if (input == T{0}) { // Exact signed-zero classification, not a numerical comparison.
+            EXPECT_EQ(std::signbit(primitive), std::signbit(input));
+            EXPECT_EQ(std::signbit(wrapper), std::signbit(input));
+        } else {
+            EXPECT_EQ(primitive, std::fabs(input)); // Exact magnitude, no arithmetic rounding.
+            EXPECT_EQ(wrapper, std::fabs(input));
+        }
+    }
+}
+
+TEST(CoreAbsContract, NonNumericIntegralTypesRejected) {
+    static_assert(!HasCoreAbs<bool> && !HasCoreAbs<char> && !HasCoreAbs<wchar_t>);
+    static_assert(!HasCoreAbs<char8_t> && !HasCoreAbs<char16_t> && !HasCoreAbs<char32_t>);
+    EXPECT_FALSE(HasCoreAbs<bool>);
+    EXPECT_FALSE(HasCoreAbs<char>);
+}
+} // namespace

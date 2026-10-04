@@ -73,6 +73,17 @@
       "special_values": "signed zero and +Inf preserved; negative nonzero and NaN inputs produce NaN",
       "accuracy_validation": "<=1 ULP against independent std::sqrt in round-to-nearest; no cross-platform bit-identity or NaN-payload guarantee"
     },
+    "abs": {
+      "canonical": "vectoris::numerics::core::abs",
+      "wrapper": "vectoris::numerics::core::Math::abs",
+      "floating_point": "float, double, long double; original same-type behavior retained",
+      "signed_integer": "signed char, short, int, long, long long; exact std::make_unsigned_t<T> magnitude, including min(T)",
+      "unsigned_integer": "unsigned char, unsigned short, unsigned int, unsigned long, unsigned long long; same-type identity",
+      "rejected_deduced_arguments": "bool, char, wchar_t, char8_t, char16_t, char32_t, user-defined scalar conversions",
+      "constexpr_and_noexcept": true,
+      "detailed_tests": "modules/VectorisNumerics/tests/Core/MathFunctionsTest.cpp",
+      "compatibility": "Signed return type changed from v1.0.0; version-policy review required before a patch release"
+    },
     "matrix3_integer": {
       "storage_and_basic_arithmetic": "Supported; callers keep intermediate basic arithmetic representable in T.",
       "determinant": "For Concepts::NumericInteger (excludes bool/characters), det() returns Result<T,MathError>; domain_error on an out-of-range checked intermediate.",

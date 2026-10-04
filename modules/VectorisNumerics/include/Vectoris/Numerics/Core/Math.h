@@ -22,9 +22,25 @@ static_assert(sizeof(double) == 8, "[VectorisNumerics] sizeof(double) must be ex
 namespace vectoris::numerics::Core {
 
     // 绝对值
-    template<typename T>
+    template<Concepts::FloatingPoint T>
     constexpr T abs(T v) noexcept {
         return v < T{} ? -v : v;
+    }
+
+    // Exact magnitude across the signed domain, including min(T).
+    // Conversion yields the residue modulo 2^N; never negate T.
+    // Narrow UInt subtraction may promote to int, where its full range fits;
+    // the final UInt cast yields the same modular magnitude.
+    template<Concepts::SignedInteger T>
+    constexpr std::make_unsigned_t<T> abs(T v) noexcept {
+        using UInt = std::make_unsigned_t<T>;
+        const UInt bits = static_cast<UInt>(v);
+        return v < T{0} ? static_cast<UInt>(UInt{0} - bits) : bits;
+    }
+
+    template<Concepts::UnsignedInteger T>
+    constexpr T abs(T v) noexcept {
+        return v;
     }
 
     namespace Detail {

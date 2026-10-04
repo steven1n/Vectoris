@@ -14,11 +14,17 @@ namespace vectoris::numerics::Core::Math {
     // =========================================================================
 
     // 绝对值
-    template <typename T>
+    template <Concepts::FloatingPoint T>
     [[nodiscard]] inline constexpr T abs(T value) noexcept {
         // 对于浮点数，在 C++20 中 std::abs 尚非完全 constexpr
         // 这里提供一个简单的安全分支，支持编译期计算
         return (value >= T{0}) ? value : -value;
+    }
+
+    // Integer magnitudes share the canonical total-domain contract.
+    template <Concepts::NumericInteger T>
+    [[nodiscard]] inline constexpr auto abs(T value) noexcept {
+        return ::vectoris::numerics::Core::abs(value);
     }
 
     // Compatibility spelling; all type/domain/constexpr semantics come from core::sqrt.

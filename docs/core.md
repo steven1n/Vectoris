@@ -153,6 +153,40 @@ int main() { return 0; }
 
 ---
 
+### Absolute-value scalar contract (NR-001 / Candidate #16)
+
+Both `core::abs` (Math.h) and `core::Math::abs` (MathFunctions.h) support built-in
+floating-point types and `Concepts::NumericInteger` types. Numeric integers include
+signed/unsigned char, short, int, long and long long; bool and the character types
+char, wchar_t, char8_t, char16_t and char32_t are excluded, as in the existing Core
+concept policy. User-defined scalar conversion sources are not implicitly accepted.
+
+Floating inputs retain their original same-type, constexpr, noexcept behavior,
+including signed zero, infinities and NaNs. Signed numeric integers return
+`std::make_unsigned_t<T>`: the exact nonnegative magnitude, including `min(T)`.
+Unsigned numeric integers return the original type and value. Integer overloads
+are constexpr and noexcept; their computation never negates a signed minimum.
+For an N-bit signed integer, `abs(min(T)) = 2^(N-1)` cannot fit in T; returning an
+unsigned magnitude avoids both undefined overflow and silent saturation.
+
+```cpp
+#include <Vectoris/Numerics/Core/Math.h>
+#include <limits>
+#include <type_traits>
+static_assert(std::is_same_v<decltype(vectoris::numerics::core::abs(-1)), unsigned int>);
+static_assert(vectoris::numerics::core::abs(std::numeric_limits<int>::min()) ==
+              static_cast<unsigned int>(std::numeric_limits<int>::max()) + 1u);
+```
+
+Compatibility: v1.0.0 accepted signed integers and returned T; NR-001 was found in
+that release. Candidate #16 changes the signed return type and constrains previously
+unconstrained templates to numeric scalar types. External callers relying on signed
+return deduction, function pointers, overload selection or conversions must review
+this change. Patch-release compatibility requires version-policy review; this is
+not a claim of ABI compatibility or an authorization to release v1.0.1.
+
+---
+
 ## 6. Error Model
 
 Vectoris enforces a strict **zero-exception** policy across all mathematical kernels (Rule 6 and Section 36 of Engineering Standard V1). Errors are represented as strongly typed enumerators in `Core::MathError`:
