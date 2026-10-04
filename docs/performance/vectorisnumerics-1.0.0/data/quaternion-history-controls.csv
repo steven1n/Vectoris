@@ -1,0 +1,3 @@
+control,clock,median_ns,samples
+original_retest_all_four,cpu,39.888540985898736,30
+original_retest_public_only,cpu,40.101966162246335,30

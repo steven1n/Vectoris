@@ -1,0 +1,428 @@
+{
+  "source": "Approved Performance Publication #1",
+  "tag": "v1.0.0",
+  "release_sha": "be678b17a9ba58c9be5bca5ab59112fe74d9a83b",
+  "scope": "Only path, hosting-availability and GitHub formatting integration; no remeasurement or numerical changes",
+  "files": [
+    {
+      "file": "charts/00-benchmark-at-a-glance-dark.svg",
+      "original_sha256": "8190799d7d0e792889740191dcf6a37d257fa7dfa5d6f84a02e9f6a7518c7c55",
+      "public_sha256": "7cbd25ab99984319ecf8dc84fd1a4656bbdb4df573f089f76c1a12455b6538e2",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "charts/00-benchmark-at-a-glance.svg",
+      "original_sha256": "210f6b3b685054c34a2c387bcfafcb44c3c09a4dddb35173bb12c708704d3285",
+      "public_sha256": "1a0fc2aecb480d2c3d92572b7f01ffdec1a316c66b40a13a04fa41d79ff70d38",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "charts/01-fixed-size-latency-dark.svg",
+      "original_sha256": "913552118be4d017efa8ebd92d0c305995d50878e72f61e65b21c711d2a76658",
+      "public_sha256": "7ab07ad6167fed0e58284d5d4f1e2b7697fa055beef48abb70d3aed721d8994e",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "charts/01-fixed-size-latency.svg",
+      "original_sha256": "9bb40caf8419a6c306139ee3bc630262e0f8b4710227edaae3e09e78ba89fe37",
+      "public_sha256": "b8c6e2879e81dd48262e8186dc7dbaa075e26956060642bf8e251a93a33942ea",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "charts/02-matrix-hot-path-dark.svg",
+      "original_sha256": "7cde6911a366d5850fd90dcfc3aac3de9027a156308393d36edd3607e55562d5",
+      "public_sha256": "e40ed1b6f6ec9b702af736081a37629bfb3451fce3c0db3bdd429160d85302ff",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "charts/02-matrix-hot-path.svg",
+      "original_sha256": "5b6ae054a2d96bf258512ccac2418d821980cbf94bbc6eca0d9eaf6438f59b03",
+      "public_sha256": "7dbc2e461286e01e1d9ce71f87564deb6e979db1c3ff115321c84f6bd983f49a",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "charts/03-quaternion-cost-decomposition-dark.svg",
+      "original_sha256": "bf8ea04256cadfbebd3afc86f75fe58a6adf2c733ac603ce227c28b5278a5168",
+      "public_sha256": "9f5b3e100d04f1313c278ef912008cc0651104f20eb39eb6755629963b6512d9",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "charts/03-quaternion-cost-decomposition.svg",
+      "original_sha256": "f5c330f2ad536877dea3b2809d1954fe111db1f4c2c48253cca3ac4296d292d0",
+      "public_sha256": "e1c5c2f652720a071ec6f9f1ab05191846f0e2eb18e396a45f783a3d63b06e1e",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "charts/04-direct-vs-cached-rotation-dark.svg",
+      "original_sha256": "86026612654ed6c2e13ce4550da459a93c23f2181d263606a0f9be4a30bbda74",
+      "public_sha256": "d3b77c9672984e011be145694c6b41c4be66bbd3d95ee27832bafcef02ea6a0b",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "charts/04-direct-vs-cached-rotation.svg",
+      "original_sha256": "6e69e5284ba73be89f94f4c99f180d586c7316b032a621eec0b100135dcbea13",
+      "public_sha256": "d42c7aaa226706be885e56c3f72db3f1cb1525da2d0b78d0e6f0b1278acc2f9d",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "charts/05-amortized-rotation-cost-dark.svg",
+      "original_sha256": "d308d8da864883fb44fd848fde47126c1eb54150b6b781b8ccfee640f46eee10",
+      "public_sha256": "cfc791d90791e3760f1bb444a4123b045268a19f19c24d767d9c51fa2f8df9ce",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "charts/05-amortized-rotation-cost.svg",
+      "original_sha256": "dffb2e30d6be67c37a33f85e73e79eb3c0477c5e148ec996d83baf5a42e10170",
+      "public_sha256": "d9a5181c1152447b15e99a516316779a8a60c196c639c8c606f3286322bf41de",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "charts/06-compiler-optimization-comparison-dark.svg",
+      "original_sha256": "b75026f0cdd8c22023d3bb156c4172ce98c26c4207190fa195e1640819d9066d",
+      "public_sha256": "577349753b62cb6618adf0b66ec5738e4d26e4109084db18cb356c4fd5293d09",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "charts/06-compiler-optimization-comparison.svg",
+      "original_sha256": "5784e0c5dc35b58b0c07c0c2168a80b99bfae716a72beff6c0563ac04d09a948",
+      "public_sha256": "30277ce18b7af7f2cbd89dc91e1dfd692e3db2517263991c5e59e3cfd3ef70bb",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "charts/07-latency-distribution-dark.svg",
+      "original_sha256": "18ce071828400ef8c30ebb81570a7b23e4e9f907f5cc42472e0345c15d7540a6",
+      "public_sha256": "1d7701f7d90a21810ed4042fcea6c4818cbb7cf9800f5590fc298fc600a22cc9",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "charts/07-latency-distribution.svg",
+      "original_sha256": "8e3a1c469ee8bcbf677a64c7084b073260d2ca66778fd305f624be0001b47d01",
+      "public_sha256": "ce4da4a9a32e02b448f70be128542bc5267d64168475996b4a38d3e2dcc7670a",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "charts/08-correctness-evidence-dark.svg",
+      "original_sha256": "ecf3ff3071c9f865df6620817a05f14aa8ca573734062534531cb74759853645",
+      "public_sha256": "d2f910f3440f7d02497b7102b5e094a9b4c45e49d5b2dbf9522323b68d6b7e30",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "charts/08-correctness-evidence.svg",
+      "original_sha256": "77941f49ce59e43303361992055d8d5885470bdfe7443b2e92f1f62e0c185e5a",
+      "public_sha256": "b08843d8ff008344d70eb5cf802355cfd560b5a89a68855e88c14ac0cafacbfb",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "charts/09-social-performance-summary-dark.svg",
+      "original_sha256": "df656ed9e26e367f7bf61227fb4e66b6c00cff5e3d1a635adbd45b733cc311c4",
+      "public_sha256": "65a293513dd32b15846ab60593f6b2699c569e8b16cff4ae954f704dc82cc9e0",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "charts/09-social-performance-summary.svg",
+      "original_sha256": "c0bca3e114e9f775ba8f04b2ce3e02fc0c30750c5bc35602f22dc0d856bc9593",
+      "public_sha256": "64b9585fdbee1fe5912bcdbebdb7fcca8dccc2b3867f30bd1409d5d704c5b60e",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "data/claim-audit.json",
+      "original_sha256": "a7dea7fe19b89979e282244f7bca95d000300cd33a4ea5db04ef2815565308a7",
+      "public_sha256": "a7dea7fe19b89979e282244f7bca95d000300cd33a4ea5db04ef2815565308a7",
+      "mode": "byte-identical"
+    },
+    {
+      "file": "data/compiler-results.csv",
+      "original_sha256": "8ee91a2a74dd47e0ef6f76bcb50c0070d99c23cd7759adc9b1ccb05682e1b22f",
+      "public_sha256": "8fda792fae6ae9f1da9b543c23f42d53eae5191a4d4c557c54fbe8e517695c79",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "data/descriptive-comparisons.csv",
+      "original_sha256": "7cfc7efb997ff586775c4e87f19d2a4c0678cee76bf7ee70ae57396d3f1c92f2",
+      "public_sha256": "35f5a878ed8b0bfa3c006cb18e585c8d0fdaa9ed1a48b91c70f471dce041555a",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "data/headline-results.csv",
+      "original_sha256": "df80cb87e7e712ca27b1d21a62b486fc9b95d4f9ac41cde47d90e71b01707cda",
+      "public_sha256": "80bd2c12574f69306b09a2611e007d4b7d21cf2c9ebf3b060f00f353dc3299dd",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "data/latency-distribution.csv",
+      "original_sha256": "ec948d5c198d3d2f9494a6d4429a7b3e5104fa0153ba98091180a2d6b10281fd",
+      "public_sha256": "fc8851abbbc71d94296254eab553c3561c3943802c7776d38fcbdc921738cfbd",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "data/provenance.json",
+      "original_sha256": "a4396fe0447e55d124af3dc0b11880c04ca53ebc64a9706387bcee512957994c",
+      "public_sha256": "a4396fe0447e55d124af3dc0b11880c04ca53ebc64a9706387bcee512957994c",
+      "mode": "byte-identical"
+    },
+    {
+      "file": "data/quaternion-decomposition.csv",
+      "original_sha256": "3395ea0c0872baaef4d8688a753176fab7c1f86b3d912158e09c04762592fc5f",
+      "public_sha256": "021438331bd6096607da178e45544f81e137f5a37df5552fd445523e130de14f",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "data/quaternion-history-controls.csv",
+      "original_sha256": "a3d8df5acb88f3b8b6c88da4b62efea453e3109eec2acbf9a9af0477583914d7",
+      "public_sha256": "e9534fe0df72d792beb1865f230be27c98f603e383011742b677a747e6e85449",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "data/rotation-amortization.csv",
+      "original_sha256": "7487cae3a4c5c49c7ea0b2529bcff63218195683c5ca61aa93d22400436fadd4",
+      "public_sha256": "56107ead7fa388c205c7a64a8fc50d3acc33e4dac583904717808127e2e155b4",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "data/verification.json",
+      "original_sha256": "41ea89709d07d243d1f9bc88033c02a639a50235a38e331a5ff1330599b85b37",
+      "public_sha256": "41ea89709d07d243d1f9bc88033c02a639a50235a38e331a5ff1330599b85b37",
+      "mode": "byte-identical"
+    },
+    {
+      "file": "generate_publication_charts.py",
+      "original_sha256": "909d5ecb91058485fd9f4e46579607fd721afe73e8d9d2c56ad96359f313e2cf",
+      "public_sha256": "909d5ecb91058485fd9f4e46579607fd721afe73e8d9d2c56ad96359f313e2cf",
+      "mode": "byte-identical"
+    },
+    {
+      "file": "evidence/primary/VectorisNumerics_1.0.0_Performance_Report.md",
+      "original_sha256": "f6a98d0c4447ebe14625b40cf1b871dd92d08c94104789b189f1ebae0d64fc3d",
+      "public_sha256": "f6a98d0c4447ebe14625b40cf1b871dd92d08c94104789b189f1ebae0d64fc3d",
+      "mode": "byte-identical"
+    },
+    {
+      "file": "evidence/primary/raw.csv",
+      "original_sha256": "09a07a44c84916922af74b4aa0c9fff3a6035a156f4a2e41a1d96ddfb0eaab51",
+      "public_sha256": "d520899a6f8a578a75b87838ea37010fe81223d60c939c8feed561e5d501987d",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/primary/summary.csv",
+      "original_sha256": "0eaada8d69d4e13175b9dd07ee477379d9e693fbb241d1549569dcee86c6c2ed",
+      "public_sha256": "15f3910eaa5ae93b3891b1af0ac545da760c8fa4b32c54fe12d2ceb9b2cd5f18",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/primary/input-output-examples.csv",
+      "original_sha256": "986f8a77bdc095baae05ad844ff18a268bba9a407646f0f0e6bb39aa363bc5d7",
+      "public_sha256": "9c7abc68f56fc791b027599943da3e9da5293ba1699a4f488bf79da1cf6270e8",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/primary/accuracy.csv",
+      "original_sha256": "774125ab77155f1a0ca3735b3c985a96396e36b4c68d6c0054e8e1ec33c0eb60",
+      "public_sha256": "6bf27f75f93357ae21c0e6f01bccad0b0d1c81096bddcd2f1fcd2d7fecebd6d7",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/primary/reliability.csv",
+      "original_sha256": "0d0d04de6af95616c2b9b2bb932d797e8afa7897fa2c51a6fb0e1a5c7080a74c",
+      "public_sha256": "a762a2058d1475db6a5d69c328ddfc503b74267ff5b4539d08524f742cb994ca",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/primary/operation_manifest.json",
+      "original_sha256": "6cddeaa109b2ad37595570a1ba34da4e273a98f184b706e9f8af388bda17092c",
+      "public_sha256": "6cddeaa109b2ad37595570a1ba34da4e273a98f184b706e9f8af388bda17092c",
+      "mode": "byte-identical"
+    },
+    {
+      "file": "evidence/primary/software.json",
+      "original_sha256": "bba519455b16538fd926021abcd2b70024a72b57401d9fa88e2a1706be21bb68",
+      "public_sha256": "bba519455b16538fd926021abcd2b70024a72b57401d9fa88e2a1706be21bb68",
+      "mode": "byte-identical"
+    },
+    {
+      "file": "evidence/primary/analysis-checks.json",
+      "original_sha256": "c703a2303a62ffd5500d2719b840e79fc14011bbd4ac1e6696f5e77aead26974",
+      "public_sha256": "c703a2303a62ffd5500d2719b840e79fc14011bbd4ac1e6696f5e77aead26974",
+      "mode": "byte-identical"
+    },
+    {
+      "file": "evidence/focused/VectorisNumerics_1.0.0_Quaternion_Rotation_Performance_Investigation.md",
+      "original_sha256": "6477c694348e29602ee34f57dec04e6aefb6931148449328800b03a05d4f4898",
+      "public_sha256": "e0396df08e15edd06a24890d9e2d4b530e8d3aa7a8d109360a7381b24dcf94f8",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/focused/raw.csv",
+      "original_sha256": "e59644ae13309b96256ae3bd45f5074bba113d8e1439ce5ba0fb9fae5dcbf57d",
+      "public_sha256": "31ee66cd8975692b091b1324028fd924b20a86d092e0e42074bcf68429ee50aa",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/focused/summary.csv",
+      "original_sha256": "078fee3103eefe665bf3b8b7ba54d97dc84411e9a96e2e5155b53b5459fec848",
+      "public_sha256": "b4cbf41550c7942b73e6e130a3da15857627adcc4dfb29e6dc749d2118e4e755",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/focused/break-even.json",
+      "original_sha256": "bbb7aa11478aa5153d80e069abac1bd3439c9299893bef7fafd52b480c9b0705",
+      "public_sha256": "bbb7aa11478aa5153d80e069abac1bd3439c9299893bef7fafd52b480c9b0705",
+      "mode": "byte-identical"
+    },
+    {
+      "file": "evidence/focused/analysis-checks.json",
+      "original_sha256": "c97860f2112282d5ebd7890a106b589e281ca80964579892e6dfc86e1305f78f",
+      "public_sha256": "c97860f2112282d5ebd7890a106b589e281ca80964579892e6dfc86e1305f78f",
+      "mode": "byte-identical"
+    },
+    {
+      "file": "evidence/focused/environment.json",
+      "original_sha256": "c353eb5a72f3dd66bad7157458846a9deb738930f9661de68c717fe815745d8f",
+      "public_sha256": "c353eb5a72f3dd66bad7157458846a9deb738930f9661de68c717fe815745d8f",
+      "mode": "byte-identical"
+    },
+    {
+      "file": "evidence/focused/timing-provenance.json",
+      "original_sha256": "8cb78be907fa1d87c061f575867f17496c024d3660017ffeb26f29ef022787e2",
+      "public_sha256": "8cb78be907fa1d87c061f575867f17496c024d3660017ffeb26f29ef022787e2",
+      "mode": "byte-identical"
+    },
+    {
+      "file": "evidence/release/release-notes.md",
+      "original_sha256": "cf2b1fdcbd2f96a9ebc369cb5c13c70cc00557bf38f7be1fa5168ecf2bd652ff",
+      "public_sha256": "8763a312925a645d1213bfebf7b1a752fa7fb9f6b42bb9ddfc56c121709bfaa1",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/release/formal-closure.md",
+      "original_sha256": "ca1fc49c3dedd036b8439c78b3c0c107dd29184da815beec6c04759cf88ce1fd",
+      "public_sha256": "12f8aff4d7ed3f86c5047c16f77a6ca020155fad4ca0111afb7c70999dcb62ea",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/release/ENGINEERING_STANDARD_V1.md",
+      "original_sha256": "800341f5629bd094034e69069d06c920ca1be308d6369350833e5ee6fd90bbee",
+      "public_sha256": "cde863cc41a99dcd76b540e4c554d733768226ce89471761e048e6716d973dcd",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/primary/charts/code-size.svg",
+      "original_sha256": "b630bc28916f298d1aa37e15007056edc9e19306dea0a2a45d3b0f1b777f5c0a",
+      "public_sha256": "cbb6579aad79f9a190f96e0cc178096f73b6b2c6a9d2f7695b362b74feba49f5",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/primary/charts/compile-time.svg",
+      "original_sha256": "9f9f989d42a8857ae5edd74c32f2c854fe71f74564a9e50fe6b91ea7b0fc6ad2",
+      "public_sha256": "c432a8645043a4eefbbbabdc47a06b7349098566ebf8d4cc51c1cc98c4362eff",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/primary/charts/compiler-comparison.svg",
+      "original_sha256": "bba23169e2ec9b47050a50100c7efc05b31a201ca9de1ad5a65565e2b2d4c641",
+      "public_sha256": "618f873f48cdcc725fdaf60e4811ab254d302e437d17b793259fc31cd82e0ca7",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/primary/charts/distribution.svg",
+      "original_sha256": "546cc8260ead693694df045b2e6a157001e56c7b718497adfa791eb2fc20435e",
+      "public_sha256": "a3980afcd0e2713455fac4d917c019889eeb9be7f72df54cc2a295c7baacab23",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/primary/charts/latency.svg",
+      "original_sha256": "3985267793af4df311869cb29d89a8823c988a685505859b0e2c800cbc09e66e",
+      "public_sha256": "ad5322e0a32a5a8da206b683fc53b789c709192f942f24077b71a46cfe2105e8",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/primary/charts/object-size.svg",
+      "original_sha256": "6c900bbab29ddb08781adc79eaa03eb03c4dc624871e79788f1d308570e4e091",
+      "public_sha256": "75fb62df31cfb44ae11af5bec99d45a466cdd68f3589333cdca889cbc5d83e33",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/primary/charts/reliability.svg",
+      "original_sha256": "7a0fb0066dc73712a66b20e2bc65e918ca06ed90cc2c0c363f51bce6d2e8be8b",
+      "public_sha256": "9d5519df4f5864b65f7b4ab42019d304b48add79b18c0758eb5df1c4a3e27bc1",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/primary/charts/stability.svg",
+      "original_sha256": "761075f177f600b1967abff811cc09b437adc45600e815763097cc4700afb365",
+      "public_sha256": "55da3d19d34473898c217258791b577b46509afa30abce264638148cfcf77f3c",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/primary/charts/throughput.svg",
+      "original_sha256": "ea2ee0d2036bc3f1c166d9f8d9a3b3f7b69694e1b6a6779a10022d07881c523b",
+      "public_sha256": "e770da00e94fb8aefcc2c41b663a6f42d22bcc3b43ed33cfb9b0544d756fb2ef",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/primary/charts/units-overhead.svg",
+      "original_sha256": "c9ac64c2703d6fde272002f6e7306517dfd6b2d8aa268e400eadf6ea450458f0",
+      "public_sha256": "0aeceb3f742b34aa629e8542591c68098d78f949a0ae518d2ae05d4c59fe3a9f",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/focused/charts/01-quaternion-rotation-decomposition.svg",
+      "original_sha256": "3d880e494f58098743fda32478c397512a084ac6fdd0bd4285a6eb6f76c5e6bc",
+      "public_sha256": "f73a60209ad6ea3ac10e90052687e29e3624f0eba15e4ace4b4d80cfc3b524ad",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/focused/charts/02-quaternion-rotation-compiler-comparison.svg",
+      "original_sha256": "add882f139dc9a2c1ed77f75bbb3c54cc806dd96d47ab3bdf27bc68f5af31fbd",
+      "public_sha256": "ff394446b0e38e2f888670763b4701b72ff71911cd6eeec5a0a8173bc9b3b949",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/focused/charts/03-direct-vs-cached-total-time.svg",
+      "original_sha256": "6bb9acf658c13b992fcbaf47dae43c9dc826e7312b6c21f0b7824cda45642579",
+      "public_sha256": "2d62608e6fc9ba59a8c3646afbd215eea188b3cba7a93db454d65f80eaa5126c",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/focused/charts/04-direct-vs-cached-amortized-time.svg",
+      "original_sha256": "306e277c50d14a6f814d30bf6089952f8e99273c5cc67be76a0dd67fbb545512",
+      "public_sha256": "3b243f96b3165f51670aa611c67f93d08f7081403c569d7a45f59f365ea125f6",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/focused/charts/05-quaternion-latency-distribution.svg",
+      "original_sha256": "ab1bc968cf20a4a3cfccb71c654810d20d97a3f432ffa3861cfa6808e3839fd0",
+      "public_sha256": "e8c358e1b4e4b0ef9981e0e81e372d1ef63c9b124d89226589449620746ea5c6",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/primary/hardware.json",
+      "original_sha256": "44abb053f630353f8c93a85331acbd72d668af3401701680854f6298be0b7497",
+      "public_sha256": "f1fbd416ae9f856822aae3c320b683d7aee61ad6ae9c8e1292a55e2685fc38a5",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/primary/builds.json",
+      "original_sha256": "22e90f94826183800bb35c0092bd6fb4d376baf3396678d120c4664050bf32fd",
+      "public_sha256": "3c96fc743e0a07b12df5a3f8d46f8d38a44845a92f49cc85f5e2caa22f8cea79",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/primary/timing-provenance.json",
+      "original_sha256": "ce62ad69a82564d0fa7a59bcc5970cd61f39b89a5a0791e62cec2ada6da3172d",
+      "public_sha256": "c9b090e21e89bdb8e2e97cd2d750cb93a420342b2e79bd462d4db38e12deeeb9",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/focused/final-verification.json",
+      "original_sha256": "a29b9c7ac3ee4bcc311856c63b2414432f116763707e0497a5d0512ddfc03311",
+      "public_sha256": "387b161523ba8ebae4a59ffc3173362cc43f4341d7355bccec5a772f483111de",
+      "mode": "integration-only link/local-path/hostname or nonsemantic whitespace/line-ending normalization"
+    },
+    {
+      "file": "evidence/primary/performance.html",
+      "original_sha256": "4c5b73cafd748992312be6fbc31310e6f635bd1afc5f46ca3a852125bdd02998",
+      "public_sha256": "4c5b73cafd748992312be6fbc31310e6f635bd1afc5f46ca3a852125bdd02998",
+      "mode": "byte-identical"
+    }
+  ]
+}

@@ -1,0 +1,114 @@
+{
+  "status": "COMPLETE",
+  "native_suite_sha256": "f289c371851f4d0016359058fd97c0981647fe11d12a515ed3c90317944bf40c",
+  "files": {
+    "source/CMakeLists.txt": "004bccf39690c956845f72428213d2088fd4ff9fcc5101ebe07056459b21a358",
+    "source/allocation.cpp": "1843873aac0a65f7c202a95727ef12d95fad32832f5578700615ebd445a5745e",
+    "source/assembly.cpp": "d46960a536d250f1aa9756f0eea0b659fed1f69136630e79ee9656411d927091",
+    "source/reliability.inc": "fb44a15f81af2fc4db0f8f5f04afbf01676851a56671e5d9c2e6b85238274556",
+    "source/suite.cpp": "a29e70f1142d8f03a03fc19290ce299162c10e2c12f428d82eb2fc787440db3a",
+    "source/tiny_consumer.cpp": "ca5992bcd5b793268d208e7f91b924ff7d3c9fd6c23104356751e2b99e347f09"
+  },
+  "commands": [
+    {
+      "key": "clang-O3",
+      "command": [
+        "$BENCHMARK_ROOT/builds/clang-O3/vectoris_bench",
+        "--evidence=$BENCHMARK_ROOT/raw/clang-O3",
+        "--benchmark_min_time=0.04s",
+        "--benchmark_min_warmup_time=0.01",
+        "--benchmark_repetitions=30",
+        "--benchmark_display_aggregates_only=true",
+        "--benchmark_out=$BENCHMARK_ROOT/raw/clang-O3/timing.json",
+        "--benchmark_out_format=json",
+        "--benchmark_color=false"
+      ],
+      "start_utc": "2026-10-03T13:46:04.797657+00:00",
+      "source_tree_sha256": "f289c371851f4d0016359058fd97c0981647fe11d12a515ed3c90317944bf40c",
+      "profile": "publication",
+      "exit": 0,
+      "wall_elapsed_s": 360.1699299812317,
+      "output": "$BENCHMARK_ROOT/raw/clang-O3/timing.json",
+      "log": "$BENCHMARK_ROOT/logs/clang-O3-timing.log",
+      "cases": 204,
+      "repetitions": 30,
+      "measured_records": 6120
+    },
+    {
+      "key": "gcc-O2",
+      "command": [
+        "$BENCHMARK_ROOT/builds/gcc-O2/vectoris_bench",
+        "--evidence=$BENCHMARK_ROOT/raw/gcc-O2",
+        "--benchmark_min_time=0.04s",
+        "--benchmark_min_warmup_time=0.01",
+        "--benchmark_repetitions=30",
+        "--benchmark_display_aggregates_only=true",
+        "--benchmark_out=$BENCHMARK_ROOT/raw/gcc-O2/timing.json",
+        "--benchmark_out_format=json",
+        "--benchmark_color=false"
+      ],
+      "start_utc": "2026-10-03T13:52:05.093815+00:00",
+      "source_tree_sha256": "f289c371851f4d0016359058fd97c0981647fe11d12a515ed3c90317944bf40c",
+      "profile": "publication",
+      "exit": 0,
+      "wall_elapsed_s": 360.1556260585785,
+      "output": "$BENCHMARK_ROOT/raw/gcc-O2/timing.json",
+      "log": "$BENCHMARK_ROOT/logs/gcc-O2-timing.log",
+      "cases": 204,
+      "repetitions": 30,
+      "measured_records": 6120
+    },
+    {
+      "key": "clang-O2",
+      "command": [
+        "$BENCHMARK_ROOT/builds/clang-O2/vectoris_bench",
+        "--evidence=$BENCHMARK_ROOT/raw/clang-O2",
+        "--benchmark_min_time=0.04s",
+        "--benchmark_min_warmup_time=0.01",
+        "--benchmark_repetitions=30",
+        "--benchmark_display_aggregates_only=true",
+        "--benchmark_out=$BENCHMARK_ROOT/raw/clang-O2/timing.json",
+        "--benchmark_out_format=json",
+        "--benchmark_color=false"
+      ],
+      "start_utc": "2026-10-03T13:58:05.392720+00:00",
+      "source_tree_sha256": "f289c371851f4d0016359058fd97c0981647fe11d12a515ed3c90317944bf40c",
+      "profile": "publication",
+      "exit": 0,
+      "wall_elapsed_s": 360.1652479171753,
+      "output": "$BENCHMARK_ROOT/raw/clang-O2/timing.json",
+      "log": "$BENCHMARK_ROOT/logs/clang-O2-timing.log",
+      "cases": 204,
+      "repetitions": 30,
+      "measured_records": 6120
+    },
+    {
+      "key": "gcc-O3",
+      "command": [
+        "$BENCHMARK_ROOT/builds/gcc-O3/vectoris_bench",
+        "--evidence=$BENCHMARK_ROOT/raw/gcc-O3",
+        "--benchmark_min_time=0.04s",
+        "--benchmark_min_warmup_time=0.01",
+        "--benchmark_repetitions=30",
+        "--benchmark_display_aggregates_only=true",
+        "--benchmark_out=$BENCHMARK_ROOT/raw/gcc-O3/timing.json",
+        "--benchmark_out_format=json",
+        "--benchmark_color=false"
+      ],
+      "start_utc": "2026-10-03T14:04:05.800491+00:00",
+      "source_tree_sha256": "f289c371851f4d0016359058fd97c0981647fe11d12a515ed3c90317944bf40c",
+      "profile": "publication",
+      "exit": 0,
+      "wall_elapsed_s": 350.2325098514557,
+      "output": "$BENCHMARK_ROOT/raw/gcc-O3/timing.json",
+      "log": "$BENCHMARK_ROOT/logs/gcc-O3-timing.log",
+      "cases": 204,
+      "repetitions": 30,
+      "measured_records": 6120
+    }
+  ],
+  "host": "macOS Intel i9-9980HK",
+  "scope": "same-host portable -march=x86-64, no fast-math/contraction/LTO",
+  "Vectoris_sha": "be678b17a9ba58c9be5bca5ab59112fe74d9a83b",
+  "profile": "publication"
+}

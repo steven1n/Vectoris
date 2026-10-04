@@ -1,0 +1,37 @@
+{
+  "dependencies": [
+    {
+      "library": "benchmark",
+      "version": "v1.9.1",
+      "archive_sha256": "32131c08ee31eeff2c8968d7e874f3cb648034377dfc32a4c377fa8796d84981"
+    },
+    {
+      "library": "glm",
+      "version": "1.0.1",
+      "archive_sha256": "9f3174561fd26904b23f0db5e560971cbf9b3cbda0b280f04d5c379d03bf234c"
+    },
+    {
+      "library": "Eigen",
+      "version": "5.0.1",
+      "source": "Homebrew eigen 5.0.1 installed headers, snapshot copied; version macro verified",
+      "header_tree_sha256": "173c33126e7a940fa0fc93d9c7c2de46a96df5511adece248653281d97a33bbd"
+    }
+  ],
+  "compiler_versions": {
+    "Clang": "Apple clang version 21.0.0 (clang-2100.1.1.101)\nTarget: x86_64-apple-darwin25.6.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin\n",
+    "GCC": "g++-16 (Homebrew GCC 16.2.0) 16.2.0\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
+  },
+  "Vectoris_sha": "be678b17a9ba58c9be5bca5ab59112fe74d9a83b",
+  "Vectoris_tag": "v1.0.0",
+  "CMake": "cmake version 4.4.3",
+  "macro_policy": {
+    "Eigen": "default release assertions (NDEBUG), native default alignment/vectorization; no EIGEN_DONT_VECTORIZE or alignment suppression",
+    "GLM": "default configuration; no GLM_FORCE_PURE or GLM_FORCE_INTRINSICS; compiler auto-vectorization allowed",
+    "Scalar": "double only; no float competitor mixed in",
+    "LTO": false,
+    "architecture": "portable x86-64 baseline (-march=x86-64)",
+    "FP_contraction": "off across all libraries",
+    "fast_math": false
+  },
+  "analysis_versions": "2.5.3 3.11.2"
+}

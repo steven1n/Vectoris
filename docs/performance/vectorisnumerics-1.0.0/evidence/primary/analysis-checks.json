@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "native_cases_per_config": 204,
+  "samples_per_case": 30,
+  "configurations": 4,
+  "raw_timing_samples": 24480,
+  "extra_core_samples_collected": 720,
+  "original_core_latency_samples_superseded": 720,
+  "summary_rows": 816,
+  "identity_sets_match": true,
+  "minimum_aggregate_seconds": 1.1115610000000036,
+  "oracle_checks_per_config": 6528,
+  "reliability_supported_cases": 79,
+  "bootstrap_resamples": 5000,
+  "percentile_note": "Percentiles describe repetitions of averaged operations; not per-call tail latency or WCET.",
+  "statistical_note": "Within-process repetitions are not established statistically independent; descriptive bootstrap does not remove thermal/OS/compiler systematic effects."
+}

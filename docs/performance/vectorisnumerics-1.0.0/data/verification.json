@@ -1,0 +1,56 @@
+{
+  "status": "PASS",
+  "native_record_crosscheck": "ALL 28,320 selected records match native JSON",
+  "primary_scenarios": 816,
+  "primary_records": 24480,
+  "focused_scenarios": 128,
+  "focused_records": 3840,
+  "repetitions": 30,
+  "summary_statistic_crosschecks": 944,
+  "primary_clock": "wall",
+  "focused_clock": "cpu",
+  "extra_core_records": 720,
+  "superseded_core_records": 720,
+  "controls_excluded_from_primary": true,
+  "checks_per_configuration": {
+    "clang-O2": 6528,
+    "clang-O3": 6528,
+    "gcc-O2": 6528,
+    "gcc-O3": 6528
+  },
+  "boundary_checks_per_configuration": {
+    "clang-O2": 79,
+    "clang-O3": 79,
+    "gcc-O2": 79,
+    "gcc-O3": 79
+  },
+  "max_observed_vectoris_scaled_error": 6.419863297741686e-16,
+  "break_even": [
+    {
+      "compiler": "clang",
+      "optimization": "O2",
+      "first_tested_median_win": 1,
+      "first_tested_p10_p90_separation": 1
+    },
+    {
+      "compiler": "clang",
+      "optimization": "O3",
+      "first_tested_median_win": 1,
+      "first_tested_p10_p90_separation": 1
+    },
+    {
+      "compiler": "gcc",
+      "optimization": "O2",
+      "first_tested_median_win": 4,
+      "first_tested_p10_p90_separation": 4
+    },
+    {
+      "compiler": "gcc",
+      "optimization": "O3",
+      "first_tested_median_win": 2,
+      "first_tested_p10_p90_separation": 4
+    }
+  ],
+  "headline_rounding_checks": 16,
+  "decomposition_rounding_checks": 5
+}

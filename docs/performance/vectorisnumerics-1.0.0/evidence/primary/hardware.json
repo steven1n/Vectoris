@@ -1,0 +1,64 @@
+{
+  "cpu": {
+    "exit": 0,
+    "output": "Intel(R) Core(TM) i9-9980HK CPU @ 2.40GHz"
+  },
+  "cores": {
+    "exit": 0,
+    "output": "8\n16"
+  },
+  "ram": {
+    "exit": 0,
+    "output": "34359738368"
+  },
+  "microarchitecture": {
+    "exit": 0,
+    "output": "machdep.cpu.family: 6\nmachdep.cpu.model: 158\nmachdep.cpu.stepping: 13"
+  },
+  "os": {
+    "exit": 0,
+    "output": "ProductName:\t\tmacOS\nProductVersion:\t\t26.7\nBuildVersion:\t\t25G229"
+  },
+  "kernel": {
+    "exit": 0,
+    "output": "Darwin [hostname omitted] 25.6.0 Darwin Kernel Version 25.6.0: Tue Aug 18 17:46:40 PDT 2026; root:xnu-12377.161.15.700.19~2/RELEASE_X86_64 x86_64"
+  },
+  "power": {
+    "exit": 0,
+    "output": "Battery Power:\n lidwake              1\n lowpowermode         0\n standbydelayhigh     86400\n proximitywake        0\n standby              1\n standbydelaylow      10800\n ttyskeepawake        1\n hibernatemode        3\n powernap             0\n gpuswitch            2\n hibernatefile        /var/vm/sleepimage\n highstandbythreshold 50\n displaysleep         2\n womp                 1\n networkoversleep     0\n sleep                0\n tcpkeepalive         1\n halfdim              1\n acwake               0\n lessbright           1\n disksleep            10\nAC Power:\n lidwake              1\n lowpowermode         0\n standbydelayhigh     86400\n proximitywake        1\n standby              1\n standbydelaylow      10800\n ttyskeepawake        1\n highstandbythreshold 50\n powernap             1\n gpuswitch            2\n hibernatefile        /var/vm/sleepimage\n hibernatemode        3\n displaysleep         10\n womp                 1\n networkoversleep     0\n sleep                0\n tcpkeepalive         1\n halfdim              1\n acwake               0\n disksleep            10"
+  },
+  "thermal": {
+    "exit": 0,
+    "output": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\n2026-10-03 21:05:09 +0800 CPU Power notify\n\tCPU_Scheduler_Limit \t= 100\n\tCPU_Available_CPUs \t= 16\n\tCPU_Speed_Limit \t= 100"
+  },
+  "clock": {
+    "exit": 0,
+    "output": "hw.cpufrequency: 2400000000\nhw.cpufrequency_max: 2400000000\nhw.cpufrequency_min: 2400000000"
+  },
+  "machine_id": "local-intel-i9-9980HK-20261003",
+  "Vectoris_tag": "v1.0.0",
+  "Vectoris_sha": "be678b17a9ba58c9be5bca5ab59112fe74d9a83b",
+  "affinity": "NOT AVAILABLE: macOS lacks Linux taskset hard pinning; no affinity claimed",
+  "frequency_control": "NOT LOCKED; owner power profile preserved",
+  "thermal_sensor": "No calibrated temperature sensor readout; pmset thermal limit snapshot only",
+  "background": "Desktop OS/app shared host, background not fully controlled; no user applications killed",
+  "loadavg": [
+    2.94677734375,
+    3.52587890625,
+    3.32763671875
+  ],
+  "profile": "local engineering characterization; GCC/AppleClang same Intel macOS host",
+  "flags": [
+    "C++20",
+    "-O2 or -O3",
+    "-DNDEBUG",
+    "-march=x86-64",
+    "-fno-fast-math",
+    "-ffp-contract=off",
+    "-fno-lto"
+  ],
+  "Linux": "NOT RUN",
+  "MSVC": "NOT RUN",
+  "native_target": "NOT RUN optional",
+  "seed": "0x564543544F524953"
+}

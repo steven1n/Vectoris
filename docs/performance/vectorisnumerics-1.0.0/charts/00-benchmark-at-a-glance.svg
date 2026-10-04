@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="864pt" height="388.8pt" viewBox="0 0 864 388.8" xmlns="http://www.w3.org/2000/svg" version="1.1" role="img" aria-labelledby="chart-title chart-desc">
+<title id="chart-title">Benchmark at a Glance</title><desc id="chart-desc">macOS Intel · GCC / Clang · O2 / O3 · double; 816 primary and 128 focused scenarios · 30 repetitions each · no aggregate performance score.</desc>
+ <title>Benchmark at a Glance</title>
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:title>Benchmark at a Glance</dc:title>
+    <dc:description>macOS Intel · GCC / Clang · O2 / O3 · double; 816 primary and 128 focused scenarios · 30 repetitions each · no aggregate performance score.</dc:description>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 388.8
+L 864 388.8
+L 864 0
+L 0 0
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="text_1">
+    <text style="font-weight: 700; font-size: 26px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #172a3a" x="71.9712" y="163.60704" transform="rotate(-0 71.9712 163.60704)">24,480</text>
+   </g>
+   <g id="text_2">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans'; fill: #43596b" transform="translate(71.9712 231.805404)">Primary benchmark</text>
+    <text style="font-size: 11px; font-family: 'DejaVu Sans'; fill: #43596b" transform="translate(71.9712 250.15392)">measurements</text>
+   </g>
+   <g id="text_3">
+    <text style="font-weight: 700; font-size: 26px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #172a3a" x="269.6112" y="163.60704" transform="rotate(-0 269.6112 163.60704)">3,840</text>
+   </g>
+   <g id="text_4">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans'; fill: #43596b" transform="translate(269.6112 231.805404)">Quaternion investigation</text>
+    <text style="font-size: 11px; font-family: 'DejaVu Sans'; fill: #43596b" transform="translate(269.6112 250.15392)">measurements</text>
+   </g>
+   <g id="text_5">
+    <text style="font-weight: 700; font-size: 26px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #172a3a" x="467.2512" y="163.60704" transform="rotate(-0 467.2512 163.60704)">6,528</text>
+   </g>
+   <g id="text_6">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans'; fill: #43596b" transform="translate(467.2512 232.55392)">Independent reference checks</text>
+    <text style="font-size: 11px; font-family: 'DejaVu Sans'; fill: #43596b" transform="translate(467.2512 250.15392)">per build configuration</text>
+   </g>
+   <g id="text_7">
+    <text style="font-weight: 700; font-size: 26px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #172a3a" x="664.8912" y="163.60704" transform="rotate(-0 664.8912 163.60704)">~6.42e−16</text>
+   </g>
+   <g id="text_8">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans'; fill: #43596b" transform="translate(664.8912 213.888295)">Max observed component-scaled</text>
+    <text style="font-size: 11px; font-family: 'DejaVu Sans'; fill: #43596b" transform="translate(664.8912 232.55392)">relative error</text>
+    <text style="font-size: 11px; font-family: 'DejaVu Sans'; fill: #43596b" transform="translate(664.8912 250.15392)">in the tested dataset</text>
+   </g>
+  </g>
+  <g id="text_9">
+   <text style="font-weight: 700; font-size: 20px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #172a3a" x="56.16" y="33.470475" transform="rotate(-0 56.16 33.470475)">Benchmark at a Glance</text>
+  </g>
+  <g id="text_10">
+   <text style="font-size: 11px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #43596b" x="56.16" y="51.126281" transform="rotate(-0 56.16 51.126281)">macOS Intel · GCC / Clang · O2 / O3 · double</text>
+  </g>
+  <g id="text_11">
+   <text style="font-size: 9px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #43596b" x="56.16" y="373.029891" transform="rotate(-0 56.16 373.029891)">816 primary and 128 focused scenarios · 30 repetitions each · no aggregate performance score.</text>
+  </g>
+ </g>
+</svg>
