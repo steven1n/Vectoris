@@ -1,0 +1,162 @@
+[
+  {
+    "claim": "Competitive fixed-size matrix performance in measured macOS Intel workloads.",
+    "evidence": "primary report: Results; headline-results.csv",
+    "exact_data": "Matrix-vector 10.743; matrix-matrix 10.888 ns/op for Vectoris",
+    "scope": "Clang O3 / double / dependency chain / wall-time",
+    "caveat": "Matrix-vector trails all references here; not a universal win.",
+    "approved": "YES"
+  },
+  {
+    "claim": "Cached RotationMatrix closely tracks Raw.",
+    "evidence": "primary report: Results; headline-results.csv",
+    "exact_data": "9.492 vs 9.538 ns/op",
+    "scope": "macOS Intel / Clang O3 / double / wall-time",
+    "caveat": "Below 3%; comparable, not a definitive lead.",
+    "approved": "YES"
+  },
+  {
+    "claim": "Direct quaternion rotation has substantial additional cost relative to minimal arithmetic paths.",
+    "evidence": "both reports; headline and decomposition CSV",
+    "exact_data": "Original Vectoris 39.672 vs Raw 12.433; focused Public 45.247 vs Minimal 12.657",
+    "scope": "Separate original wall-time and focused CPU-time harnesses",
+    "caveat": "Safety semantics differ; cannot isolate an individual mechanism.",
+    "approved": "YES"
+  },
+  {
+    "claim": "Caching can amortize quickly for repeated orientation on this system.",
+    "evidence": "focused report: batch amortization; rotation-amortization.csv",
+    "exact_data": "First median win: Clang O2/O3 N=1; GCC O2 N=4; GCC O3 N=2",
+    "scope": "Measured N={1,2,4,8,16,32,64,128}, CPU-time",
+    "caveat": "GCC O3 p10\u2013p90 separation N=4; no universal threshold.",
+    "approved": "YES"
+  },
+  {
+    "claim": "Measurements were paired with independent reference and boundary checks.",
+    "evidence": "primary raw validation/reliability; verification.json",
+    "exact_data": "6,528 reference-result and 79 supported boundary checks per configuration",
+    "scope": "Four measured configurations",
+    "caveat": "Finite sampled checks, not full-domain proof.",
+    "approved": "YES"
+  },
+  {
+    "claim": "24,480 primary measurements.",
+    "evidence": "primary raw.csv + native JSON; verification.json",
+    "exact_data": "816 \u00d7 30 = 24,480",
+    "scope": "Selected primary repetitions",
+    "caveat": "720 Core replacements replace original rows; no double counting.",
+    "approved": "YES"
+  },
+  {
+    "claim": "3,840 focused measurements.",
+    "evidence": "focused raw.csv + native JSON; verification.json",
+    "exact_data": "128 \u00d7 30 = 3,840",
+    "scope": "Focused-primary repetitions",
+    "caveat": "Controls, warmup and retests are separate.",
+    "approved": "YES"
+  },
+  {
+    "claim": "Maximum observed scaled relative error was approximately 6.42e-16 in the tested dataset.",
+    "evidence": "primary accuracy.csv and native validation JSONL",
+    "exact_data": "6.419863297741686e-16",
+    "scope": "Observed Vectoris outputs across four configurations",
+    "caveat": "Component error / payload scale; near-zero relative component errors can be masked.",
+    "approved": "YES"
+  },
+  {
+    "claim": "Original quaternion value remains 39.672; retests 39.889 and 40.102.",
+    "evidence": "primary report plus focused reproduction/controls JSON",
+    "exact_data": "39.672 wall-time; 39.889 / 40.102 CPU-time",
+    "scope": "Original workload and separate retests",
+    "caveat": "Not interchangeable statistics; no overwrite.",
+    "approved": "YES"
+  },
+  {
+    "claim": "Focused public-path median is 45.247.",
+    "evidence": "focused raw.csv; quaternion-decomposition.csv",
+    "exact_data": "45.247 CPU ns/op",
+    "scope": "Focused Clang O3 / double / dependency chain",
+    "caveat": "Higher timing not independently isolated, despite consistent kernel instruction sequence.",
+    "approved": "YES"
+  },
+  {
+    "claim": "No per-call factory normalization or sqrt in built-in double direct rotation.",
+    "evidence": "focused report: actual source path and assembly",
+    "exact_data": "Factory setup separate; squared-norm correction and nine divisions remain",
+    "scope": "Source semantics: valid unit quaternion + finite vector",
+    "caveat": "Does not imply zero norm correction or arbitrary-invalid-input validation.",
+    "approved": "YES"
+  },
+  {
+    "claim": "Clang generated calls, register pressure and stack traffic.",
+    "evidence": "focused report: assembly inspection; original assembly in ZIP",
+    "exact_data": "Out-of-line public body; temporaries and stack references",
+    "scope": "Inspected Clang executable only",
+    "caveat": "Not a portable instruction/cycle guarantee or proven cause of timing delta.",
+    "approved": "YES"
+  },
+  {
+    "claim": "Quaternion controls passed O0, contraction-off and ASan+UBSan.",
+    "evidence": "focused analysis-checks/final verification + logs in ZIP",
+    "exact_data": "884 numerical checks/config; O0 and combined control failed=0",
+    "scope": "Recorded focused correctness controls",
+    "caveat": "Not a fresh independent audit in this publication.",
+    "approved": "YES"
+  },
+  {
+    "claim": "Linux performance was not measured.",
+    "evidence": "primary hardware manifest and both reports",
+    "exact_data": "Linux NOT RUN",
+    "scope": "This publication",
+    "caveat": "Cross-platform qualification CI is separate evidence.",
+    "approved": "YES"
+  },
+  {
+    "claim": "Release is unchanged and qualification debt remains deferred.",
+    "evidence": "frozen release notes/closure; Git identity check",
+    "exact_data": "v1.0.0 be678b17\u2026; AFA5-001/002 OPEN-DEFERRED",
+    "scope": "Release context only",
+    "caveat": "C15 independent re-audit FAIL preserved.",
+    "approved": "YES"
+  },
+  {
+    "claim": "Vectoris quaternion rotation is faster than Eigen.",
+    "evidence": "headline-results.csv",
+    "exact_data": "39.672 vs 11.902 ns/op",
+    "scope": "Clang O3 / double",
+    "caveat": "Contradicted by this measurement; not used.",
+    "approved": "NO"
+  },
+  {
+    "claim": "Vectoris has a maximum numerical error of 6.42e-16.",
+    "evidence": "accuracy.csv",
+    "exact_data": "Observed sample maximum only",
+    "scope": "Tested dataset",
+    "caveat": "Replace with maximum observed component-scaled error in tested dataset.",
+    "approved": "NO"
+  },
+  {
+    "claim": "Vectoris spends exactly 27 ns on safety.",
+    "evidence": "quaternion-decomposition.csv",
+    "exact_data": "Aggregate path medians only",
+    "scope": "Focused harness",
+    "caveat": "Full-domain reference equivalence and isolated check costs not established.",
+    "approved": "NO"
+  },
+  {
+    "claim": "p99 is WCET.",
+    "evidence": "raw repetitions and methodology",
+    "exact_data": "p99 of 30 repetition means",
+    "scope": "Local observed distribution",
+    "caveat": "Not single-call tails or worst-case execution time.",
+    "approved": "NO"
+  },
+  {
+    "claim": "All independent audits passed / zero known findings.",
+    "evidence": "release notes/closure",
+    "exact_data": "C15 FAIL; two accepted-deferred MAJOR qualification findings",
+    "scope": "Release history",
+    "caveat": "False; explicitly excluded from publication claims.",
+    "approved": "NO"
+  }
+]

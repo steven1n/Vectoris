@@ -1,8 +1,8 @@
 # Vectoris
 
-Vectoris is a modular, deterministic, header-only ISO C++20 numerical computing and engineering simulation framework for high-reliability applications, scientific computation, and spatial dynamics.
+Vectoris is a modular, header-only ISO C++20 numerical computing and engineering simulation framework for high-reliability applications, scientific computation, and spatial dynamics.
 
-The framework prioritizes compile-time dimensional safety, coordinate frame safety, zero-overhead abstraction, standard-layout ABI stability, and verifiable numerical contracts without runtime exceptions or dynamic heap allocations.
+The framework prioritizes compile-time dimensional safety, coordinate frame safety, fixed-size data structures, and explicit numerical contracts. Performance results and qualification evidence are scoped to their recorded software baseline.
 
 > [!NOTE]
 > **Modular Architecture**: Vectoris enforces a strict separation between pure mathematics ([`VectorisNumerics`](modules/VectorisNumerics/)) and domain-specific physical mechanics ([`VectorisDynamics`](modules/VectorisDynamics/)). See [`docs/PURE_MATH_SCOPE.md`](docs/PURE_MATH_SCOPE.md) and [`docs/VECTORIS_RENAME_MIGRATION.md`](docs/VECTORIS_RENAME_MIGRATION.md).
@@ -68,7 +68,15 @@ Vectoris/
 
 ---
 
-## Current Status
+## Release and Mainline Status
+
+VectorisNumerics **v1.0.0** is published at release SHA `be678b17a9ba58c9be5bca5ab59112fe74d9a83b`: [release notes](https://github.com/steven1n/Vectoris/releases/tag/v1.0.0), [frozen source](https://github.com/steven1n/Vectoris/tree/v1.0.0). The benchmarks below measure that tag, not the older R1 implementation currently on main. This documentation commit does not merge or alter the released runtime implementation.
+
+The release records preserve Release 425/425, Debug 427/427 and 36 focused historical regressions PASS. Candidate #15’s targeted independent re-audit remains **FAIL**; AFA5-001 and AFA5-002 remain **OPEN-DEFERRED / OWNER ACCEPTED RELEASE DEBT**. Performance publication does not change these dispositions. [Release context and limitations](docs/performance/vectorisnumerics-1.0.0/methodology-and-evidence.md#release-and-accepted-debt).
+
+### Historical R1 Mainline Snapshot
+
+The table and R1 qualification statement below describe the mainline snapshot at `0c9971244b830c6edf31fc3cefe6cf90ae6c6989`. Its 136-test counts and finding categories are historical and are **not** the v1.0.0 release status or a claim that all later independent audits passed.
 
 | Metric | Status |
 | :--- | :--- |
@@ -85,7 +93,7 @@ Vectoris/
 | **VectorisDynamics Migration** | **Migration Integrity: PASS** |
 
 > [!NOTE]
-> **Internal Qualification Baseline**: Current project status:
+> **Historical R1 Internal Qualification Baseline**: Recorded snapshot status:
 >
 > ```text
 > Vectoris
@@ -104,7 +112,29 @@ Vectoris/
 
 ---
 
+## Measured Performance
+
+**Engineering math without surrendering performance.** VectorisNumerics 1.0 targets small, fixed-size engineering mathematics where numerical behavior, explicit units and coordinate frames matter alongside speed. Its published benchmark includes 24,480 primary measurement records and a separate 3,840-record quaternion investigation. Both use the frozen v1.0.0 release.
+
+![Measured fixed-size operation latency, including the direct quaternion trade-off](docs/performance/vectorisnumerics-1.0.0/charts/01-fixed-size-latency.svg)
+
+Three findings from the tested macOS Intel system:
+
+- **Competitive fixed-size matrix performance.** In the Clang O3, double, dependency-chain workload, Matrix3 × Matrix3 measured 10.888 ns/op for Vectoris, 9.480 for Eigen, 12.655 for GLM and 8.413 for Raw. Matrix3 × Vector3 measured 10.743 ns/op for Vectoris, above the three reference medians. The result is a workload comparison, not a universal ranking.
+- **Near-raw cached rotation.** Cached RotationMatrix × Vector3 measured 9.492 ns/op for Vectoris and 9.538 for Raw. These are comparable results. Measured batches show that converting once can amortize quickly when vectors share an orientation; test your own workload before choosing a path.
+- **A visible direct-rotation trade-off.** Direct quaternion rotation measured 39.672 ns/op in the original publication workload. The protected path was substantially slower than minimal arithmetic alternatives. A separate focused harness measured 45.247 ns/op; its result is retained separately, not substituted for the original number. The investigation does not assign an exact nanosecond cost to individual safety checks.
+
+Performance was paired with 6,528 independent reference-result checks and 79 supported boundary checks **per build configuration**. Maximum observed component-scaled relative error was approximately 6.42e-16 **in the tested dataset**, not a theoretical error bound.
+
+**Scope:** Measured on macOS Intel with GCC and Clang, O2/O3 configurations; double. Linux x86-64 was not measured. Core, clock and thermal state were not locked. Percentiles describe repetition averages, not individual-call tails or WCET. Benchmarking does not change qualification status or historical findings; two owner-accepted qualification-tooling findings, AFA5-001/002, remain deferred.
+
+Read the [methodology and limitations](docs/performance/vectorisnumerics-1.0.0/README.md#methodology), [full publication](docs/performance/vectorisnumerics-1.0.0/README.md), [technical deep dive](docs/performance/vectorisnumerics-1.0.0/deep-dive.md) and [raw evidence index](docs/performance/vectorisnumerics-1.0.0/methodology-and-evidence.md).
+
+---
+
 ## Architecture & Subsystems
+
+This overview describes the R1 mainline source snapshot identified above. For the released implementation and its contracts, use the [v1.0.0 documentation](https://github.com/steven1n/Vectoris/tree/v1.0.0/docs). The v1.0.0 sqrt implementation is digit-by-digit/restoring-style; the R1 description below is retained as historical source context.
 
 Vectoris enforces a strict **one-way downward dependency hierarchy** across its layers:
 
@@ -218,6 +248,7 @@ cmake --build .build/debug --target VectorisNumerics_HeaderIsolation VectorisDyn
 
 | Authority Classification | File | Description / Scope |
 | :--- | :--- | :--- |
+| **Performance / Evidence** | [VectorisNumerics 1.0.0 Performance](docs/performance/vectorisnumerics-1.0.0/) | Approved macOS Intel v1.0.0 measurements, transparent trade-offs, methodology and claim audit. |
 | **Entry Point** | [`README.md`](README.md) | Repository overview, subsystem architecture, build commands, and documentation index. |
 | **Normative (SSOT)** | [`docs/ENGINEERING_STANDARD_V1.md`](docs/ENGINEERING_STANDARD_V1.md) | Authoritative Single Source of Truth for engineering rules and coding standards. |
 | **Governance** | [`docs/DEVIATIONS.md`](docs/DEVIATIONS.md) | Formal deviation ledger tracking intentional, scoped exceptions to normative rules. |

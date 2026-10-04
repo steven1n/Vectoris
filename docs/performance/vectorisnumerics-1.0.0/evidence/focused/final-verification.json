@@ -1,0 +1,46 @@
+{
+  "primary_cases": 128,
+  "primary_repetitions": 3840,
+  "per_case_repetitions": 30,
+  "all_oracle_controls_pass": true,
+  "analytic_controls_per_config": 69,
+  "batch_pair_controls_per_config": 12288,
+  "original_release_headers_byte_equal_count": 58,
+  "production_changed": false,
+  "main_changed": false,
+  "tag_changed": false,
+  "final_compile_diagnostics": [],
+  "all_five_charts_visually_inspected": true,
+  "optimization_authorized": false,
+  "sampling_exit": 0,
+  "baseline_repo_states": {
+    "main": {
+      "path": "[local worktree path omitted]",
+      "HEAD": "0c9971244b830c6edf31fc3cefe6cf90ae6c6989",
+      "status": "",
+      "branch": "main",
+      "tag_target": "be678b17a9ba58c9be5bca5ab59112fe74d9a83b",
+      "tag_object": "2f0b2671c30035556115b376b5b544e584861e83",
+      "diff_check_exit": 0
+    },
+    "investigation": {
+      "path": "[local worktree path omitted]",
+      "HEAD": "be678b17a9ba58c9be5bca5ab59112fe74d9a83b",
+      "status": "",
+      "branch": "",
+      "tag_target": "be678b17a9ba58c9be5bca5ab59112fe74d9a83b",
+      "tag_object": "2f0b2671c30035556115b376b5b544e584861e83",
+      "diff_check_exit": 0
+    },
+    "release": {
+      "path": "[local worktree path omitted]",
+      "HEAD": "be678b17a9ba58c9be5bca5ab59112fe74d9a83b",
+      "status": "",
+      "branch": "release/vectoris-numerics-1.0",
+      "tag_target": "be678b17a9ba58c9be5bca5ab59112fe74d9a83b",
+      "tag_object": "2f0b2671c30035556115b376b5b544e584861e83",
+      "diff_check_exit": 0
+    },
+    "checked_utc": "2026-10-03T16:10:41.635821+00:00"
+  }
+}

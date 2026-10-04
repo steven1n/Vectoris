@@ -1,0 +1,369 @@
+{
+  "publication": "VectorisNumerics 1.0 Performance Publication #1",
+  "release_sha": "be678b17a9ba58c9be5bca5ab59112fe74d9a83b",
+  "tag": "v1.0.0",
+  "platform": "macOS Intel",
+  "charts": {
+    "00-benchmark-at-a-glance.svg": {
+      "title": "Benchmark at a Glance",
+      "data_file": "data/verification.json",
+      "filters": {
+        "statistic": "factual counts and observed error, not comparable measures"
+      },
+      "environment": "macOS Intel i9-9980HK",
+      "scalar": "double",
+      "source_report": "evidence/primary/VectorisNumerics_1.0.0_Performance_Report.md",
+      "note": "816 primary and 128 focused scenarios \u00b7 30 repetitions each \u00b7 no aggregate performance score.",
+      "zero_baseline": "not applicable: factual cards",
+      "derived_data_sha256": "41ea89709d07d243d1f9bc88033c02a639a50235a38e331a5ff1330599b85b37",
+      "raw_data_files": [
+        "evidence/primary/accuracy.csv",
+        "evidence/primary/raw/*/validation.jsonl",
+        "evidence/primary/raw/*/reliability.jsonl"
+      ],
+      "variants": [
+        "00-benchmark-at-a-glance.svg",
+        "00-benchmark-at-a-glance-dark.svg"
+      ],
+      "rendered_preview": "00-benchmark-at-a-glance.png"
+    },
+    "01-fixed-size-latency.svg": {
+      "title": "Fixed-Size Operation Latency",
+      "data_file": "data/headline-results.csv",
+      "filters": {
+        "configuration": "clang-O3",
+        "operations": [
+          "matrix_vector",
+          "matrix_matrix",
+          "quaternion_rotate",
+          "rotation_matrix_vector"
+        ],
+        "libraries": [
+          "Vectoris",
+          "Eigen",
+          "GLM",
+          "Raw"
+        ],
+        "workload": "dependency_chain",
+        "statistic": "median",
+        "clock": "wall"
+      },
+      "environment": "macOS Intel i9-9980HK",
+      "scalar": "double",
+      "source_report": "evidence/primary/VectorisNumerics_1.0.0_Performance_Report.md",
+      "note": "30 repetition means per scenario \u00b7 includes input/observation overhead \u00b7 core/clock/thermal state not locked.\nLocal workload measurements; not universal rankings or WCET.",
+      "zero_baseline": true,
+      "derived_data_sha256": "df80cb87e7e712ca27b1d21a62b486fc9b95d4f9ac41cde47d90e71b01707cda",
+      "raw_data_files": [
+        "evidence/primary/raw.csv"
+      ],
+      "variants": [
+        "01-fixed-size-latency.svg",
+        "01-fixed-size-latency-dark.svg"
+      ],
+      "rendered_preview": "01-fixed-size-latency.png"
+    },
+    "02-matrix-hot-path.svg": {
+      "title": "Fixed-Size Matrix Hot Paths",
+      "data_file": "data/headline-results.csv",
+      "filters": {
+        "configuration": "clang-O3",
+        "operations": [
+          "matrix_vector",
+          "matrix_matrix",
+          "rotation_matrix_vector"
+        ],
+        "libraries": [
+          "Vectoris",
+          "Eigen",
+          "GLM",
+          "Raw"
+        ],
+        "workload": "dependency_chain",
+        "statistic": "median",
+        "clock": "wall"
+      },
+      "environment": "macOS Intel i9-9980HK",
+      "scalar": "double",
+      "source_report": "evidence/primary/VectorisNumerics_1.0.0_Performance_Report.md",
+      "note": "30 repetition means per scenario \u00b7 includes input/observation overhead \u00b7 core/clock/thermal state not locked.\nLocal workload measurements; not universal rankings or WCET.",
+      "zero_baseline": true,
+      "derived_data_sha256": "df80cb87e7e712ca27b1d21a62b486fc9b95d4f9ac41cde47d90e71b01707cda",
+      "raw_data_files": [
+        "evidence/primary/raw.csv"
+      ],
+      "variants": [
+        "02-matrix-hot-path.svg",
+        "02-matrix-hot-path-dark.svg"
+      ],
+      "rendered_preview": "02-matrix-hot-path.png"
+    },
+    "03-quaternion-cost-decomposition.svg": {
+      "title": "Quaternion Rotation Cost Decomposition",
+      "data_file": "data/quaternion-decomposition.csv",
+      "filters": {
+        "configuration": "clang-O3",
+        "variants": [
+          "Public",
+          "Checked_reference",
+          "Minimal",
+          "Cached_matrix",
+          "Conversion_per_call"
+        ],
+        "workload": "dependency_chain",
+        "statistic": "median",
+        "clock": "cpu"
+      },
+      "environment": "macOS Intel i9-9980HK",
+      "scalar": "double",
+      "source_report": "evidence/focused/VectorisNumerics_1.0.0_Quaternion_Rotation_Performance_Investigation.md",
+      "note": "*Relevant finite-input protections; full-domain semantic equivalence is not established.\nDifferences are aggregate measurements, not isolated costs of individual safety checks.",
+      "zero_baseline": true,
+      "derived_data_sha256": "3395ea0c0872baaef4d8688a753176fab7c1f86b3d912158e09c04762592fc5f",
+      "raw_data_files": [
+        "evidence/focused/raw.csv"
+      ],
+      "variants": [
+        "03-quaternion-cost-decomposition.svg",
+        "03-quaternion-cost-decomposition-dark.svg"
+      ],
+      "rendered_preview": "03-quaternion-cost-decomposition.png"
+    },
+    "04-direct-vs-cached-rotation.svg": {
+      "title": "Direct vs Cached Rotation: Total Batch Time",
+      "data_file": "data/rotation-amortization.csv",
+      "filters": {
+        "configurations": [
+          "clang-O2",
+          "clang-O3",
+          "gcc-O2",
+          "gcc-O3"
+        ],
+        "vectors": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          64,
+          128
+        ],
+        "variants": [
+          "Direct",
+          "Convert_once"
+        ],
+        "workload": "batch",
+        "statistic": "median with p10-p90 band",
+        "clock": "cpu",
+        "conversion_included": true,
+        "normalization": "none"
+      },
+      "environment": "macOS Intel i9-9980HK",
+      "scalar": "double",
+      "source_report": "evidence/focused/VectorisNumerics_1.0.0_Quaternion_Rotation_Performance_Investigation.md",
+      "note": "30 repetitions per batch \u00b7 shading: p10\u2013p90 of repetition means \u00b7 conversion included inside every cached batch.\nFirst measured break-even is host/workload dependent; not an API rule or WCET.",
+      "zero_baseline": true,
+      "derived_data_sha256": "7487cae3a4c5c49c7ea0b2529bcff63218195683c5ca61aa93d22400436fadd4",
+      "raw_data_files": [
+        "evidence/focused/raw.csv"
+      ],
+      "variants": [
+        "04-direct-vs-cached-rotation.svg",
+        "04-direct-vs-cached-rotation-dark.svg"
+      ],
+      "rendered_preview": "04-direct-vs-cached-rotation.png"
+    },
+    "05-amortized-rotation-cost.svg": {
+      "title": "Amortized Rotation Cost",
+      "data_file": "data/rotation-amortization.csv",
+      "filters": {
+        "configurations": [
+          "clang-O2",
+          "clang-O3",
+          "gcc-O2",
+          "gcc-O3"
+        ],
+        "vectors": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          64,
+          128
+        ],
+        "variants": [
+          "Direct",
+          "Convert_once"
+        ],
+        "workload": "batch",
+        "statistic": "median with p10-p90 band",
+        "clock": "cpu",
+        "conversion_included": true,
+        "normalization": "divide total batch median by N"
+      },
+      "environment": "macOS Intel i9-9980HK",
+      "scalar": "double",
+      "source_report": "evidence/focused/VectorisNumerics_1.0.0_Quaternion_Rotation_Performance_Investigation.md",
+      "note": "30 repetitions per batch \u00b7 shading: p10\u2013p90 of repetition means \u00b7 conversion included inside every cached batch.\nFirst measured break-even is host/workload dependent; not an API rule or WCET.",
+      "zero_baseline": true,
+      "derived_data_sha256": "7487cae3a4c5c49c7ea0b2529bcff63218195683c5ca61aa93d22400436fadd4",
+      "raw_data_files": [
+        "evidence/focused/raw.csv"
+      ],
+      "variants": [
+        "05-amortized-rotation-cost.svg",
+        "05-amortized-rotation-cost-dark.svg"
+      ],
+      "rendered_preview": "05-amortized-rotation-cost.png"
+    },
+    "06-compiler-optimization-comparison.svg": {
+      "title": "Compiler / Optimization Comparison",
+      "data_file": "data/compiler-results.csv",
+      "filters": {
+        "configurations": [
+          "clang-O2",
+          "clang-O3",
+          "gcc-O2",
+          "gcc-O3"
+        ],
+        "operations": [
+          "matrix_vector",
+          "matrix_matrix",
+          "quaternion_rotate",
+          "rotation_matrix_vector"
+        ],
+        "library": "Vectoris",
+        "statistic": "median",
+        "clock": "wall"
+      },
+      "environment": "macOS Intel i9-9980HK",
+      "scalar": "double",
+      "source_report": "evidence/primary/VectorisNumerics_1.0.0_Performance_Report.md",
+      "note": "Same host and matching flags across libraries within each configuration \u00b7 no fast-math, contraction or LTO.\nO3 is not assumed universally faster than O2.",
+      "zero_baseline": true,
+      "derived_data_sha256": "8ee91a2a74dd47e0ef6f76bcb50c0070d99c23cd7759adc9b1ccb05682e1b22f",
+      "raw_data_files": [
+        "evidence/primary/raw.csv"
+      ],
+      "variants": [
+        "06-compiler-optimization-comparison.svg",
+        "06-compiler-optimization-comparison-dark.svg"
+      ],
+      "rendered_preview": "06-compiler-optimization-comparison.png"
+    },
+    "07-latency-distribution.svg": {
+      "title": "Latency Distribution",
+      "data_file": "data/latency-distribution.csv",
+      "filters": {
+        "configuration": "clang-O3",
+        "operations": [
+          "quaternion_rotate",
+          "rotation_matrix_vector",
+          "matrix_vector"
+        ],
+        "library": "Vectoris",
+        "statistics": [
+          "median",
+          "p90",
+          "p99"
+        ],
+        "clock": "wall",
+        "percentile_method": "linear interpolation over 30 repetition means"
+      },
+      "environment": "macOS Intel i9-9980HK",
+      "scalar": "double",
+      "source_report": "evidence/primary/VectorisNumerics_1.0.0_Performance_Report.md",
+      "note": "Observed percentiles of 30 repetition means, not individual-call tail latency.\np99 is not worst-case execution time (WCET); host state was not locked.",
+      "zero_baseline": true,
+      "derived_data_sha256": "ec948d5c198d3d2f9494a6d4429a7b3e5104fa0153ba98091180a2d6b10281fd",
+      "raw_data_files": [
+        "evidence/primary/raw.csv"
+      ],
+      "variants": [
+        "07-latency-distribution.svg",
+        "07-latency-distribution-dark.svg"
+      ],
+      "rendered_preview": "07-latency-distribution.png"
+    },
+    "08-correctness-evidence.svg": {
+      "title": "Correctness Alongside Speed",
+      "data_file": "data/verification.json",
+      "filters": {
+        "configurations": [
+          "clang-O2",
+          "clang-O3",
+          "gcc-O2",
+          "gcc-O3"
+        ],
+        "statistic": "factual counts and maximum observed Vectoris component-scaled relative error"
+      },
+      "environment": "macOS Intel i9-9980HK",
+      "scalar": "double",
+      "source_report": "evidence/primary/VectorisNumerics_1.0.0_Performance_Report.md",
+      "note": "Checks and error magnitude use different units: no accuracy score or normalized ranking.\nFinite sampling is not a global error bound, formal verification or independent certification.",
+      "zero_baseline": "not applicable: factual cards",
+      "derived_data_sha256": "41ea89709d07d243d1f9bc88033c02a639a50235a38e331a5ff1330599b85b37",
+      "raw_data_files": [
+        "evidence/primary/accuracy.csv",
+        "evidence/primary/raw/*/validation.jsonl",
+        "evidence/primary/raw/*/reliability.jsonl"
+      ],
+      "variants": [
+        "08-correctness-evidence.svg",
+        "08-correctness-evidence-dark.svg"
+      ],
+      "rendered_preview": "08-correctness-evidence.png"
+    },
+    "09-social-performance-summary.svg": {
+      "title": "VectorisNumerics 1.0: Measured Performance",
+      "data_file": "data/headline-results.csv",
+      "filters": {
+        "configuration": "clang-O3",
+        "operations": [
+          "matrix_vector",
+          "quaternion_rotate",
+          "rotation_matrix_vector"
+        ],
+        "libraries": [
+          "Vectoris",
+          "Eigen",
+          "GLM",
+          "Raw"
+        ],
+        "workload": "dependency_chain",
+        "statistic": "median",
+        "clock": "wall"
+      },
+      "environment": "macOS Intel i9-9980HK",
+      "scalar": "double",
+      "source_report": "evidence/primary/VectorisNumerics_1.0.0_Performance_Report.md",
+      "note": "30 repetition means per scenario \u00b7 includes input/observation overhead \u00b7 core/clock/thermal state not locked.\nLocal workload measurements; not universal rankings or WCET.",
+      "zero_baseline": true,
+      "derived_data_sha256": "df80cb87e7e712ca27b1d21a62b486fc9b95d4f9ac41cde47d90e71b01707cda",
+      "raw_data_files": [
+        "evidence/primary/raw.csv"
+      ],
+      "variants": [
+        "09-social-performance-summary.svg",
+        "09-social-performance-summary-dark.svg"
+      ],
+      "rendered_preview": "09-social-performance-summary.png"
+    }
+  },
+  "primary_statistic": "wall-time",
+  "focused_statistic": "CPU-time",
+  "scalar": "double",
+  "charts_generator": "generate_publication_charts.py",
+  "raw_crosscheck": "data/verification.json",
+  "original_source_hash_snapshot": "qa/source-hashes-before.json",
+  "dependencies": {
+    "matplotlib": "3.11.2",
+    "numpy": "2.5.3"
+  },
+  "percentiles": "linear interpolation, 30 repetition means; not per-call percentiles or WCET",
+  "network_access": "none",
+  "statistical_scope": "descriptive local measurements; no core/frequency/thermal lock"
+}

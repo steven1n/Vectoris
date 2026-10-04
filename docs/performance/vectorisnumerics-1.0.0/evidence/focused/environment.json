@@ -1,0 +1,46 @@
+{
+  "CPU": "Intel(R) Core(TM) i9-9980HK CPU @ 2.40GHz",
+  "cores": "8\n16",
+  "ram": "34359738368",
+  "os": "ProductName:\t\tmacOS\nProductVersion:\t\t26.7\nBuildVersion:\t\t25G229",
+  "machine": "x86_64",
+  "clang": "Apple clang version 21.0.0 (clang-2100.1.1.101)\nTarget: x86_64-apple-darwin25.6.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin",
+  "gcc": "g++-16 (Homebrew GCC 16.2.0) 16.2.0\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+  "cmake": "cmake version 4.4.3\n\nCMake suite maintained and supported by Kitware (kitware.com/cmake).",
+  "Vectoris_SHA": "be678b17a9ba58c9be5bca5ab59112fe74d9a83b",
+  "tag": "v1.0.0",
+  "flags": "-std=c++20 -O2 or -O3 -DNDEBUG -march=x86-64 -fno-fast-math -ffp-contract=off -fno-lto",
+  "strict_warnings": "-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror",
+  "seed": "0x564543544F524953",
+  "scalar": "double",
+  "sample_count": 30,
+  "affinity": "NOT LOCKED",
+  "frequency": "NOT LOCKED",
+  "source_hashes": {
+    "assembly.cpp": "d8c9664725a9dc897831609a9835da604601bc2ce5929265234e8309451794bf",
+    "CMakeLists.txt": "e11afb9506f5254e09614df4c245757a774da30de3e3a04120e11230d81e40ef",
+    "kernels.h": "d52982c8d9ce512808836e9d4ae4e2b3736998e8ee525019484f49a3f9afb590",
+    "dataset.h": "9513a5f30902dbddabdc9474dfa0d4cbe3248d7c74071b6ad3762718844f8e37",
+    "investigate.cpp": "6c199f4065029f1475ca6e8caa3761763a7ed727928ec2a391a0cd0ab8b8b630",
+    "batch-correctness.cpp": "6eb8c4c05767206275c8974f3ac378b4c76985998b7a49e4b4d558b5d7963ba1"
+  },
+  "recorded_utc": "2026-10-03T15:35:45.221924+00:00",
+  "google_benchmark": "1.9.1",
+  "Eigen": "5.0.1",
+  "GLM": "1.0.1",
+  "loadavg": [
+    3.70947265625,
+    3.5458984375,
+    3.35986328125
+  ],
+  "final_source_hashes": {
+    "assembly.cpp": "d8c9664725a9dc897831609a9835da604601bc2ce5929265234e8309451794bf",
+    "CMakeLists.txt": "e11afb9506f5254e09614df4c245757a774da30de3e3a04120e11230d81e40ef",
+    "kernels.h": "d52982c8d9ce512808836e9d4ae4e2b3736998e8ee525019484f49a3f9afb590",
+    "dataset.h": "9513a5f30902dbddabdc9474dfa0d4cbe3248d7c74071b6ad3762718844f8e37",
+    "analytic-controls.cpp": "921c62aa03c01b41b73f022d8a04350873f5875966bd9343447db064ae31096e",
+    "semantic-gap.cpp": "44857f35930d5d6e9186bd1f3ceede40af436a02d744c1bf362e76080a6f92c6",
+    "investigate.cpp": "6c199f4065029f1475ca6e8caa3761763a7ed727928ec2a391a0cd0ab8b8b630",
+    "batch-correctness.cpp": "6eb8c4c05767206275c8974f3ac378b4c76985998b7a49e4b4d558b5d7963ba1"
+  }
+}

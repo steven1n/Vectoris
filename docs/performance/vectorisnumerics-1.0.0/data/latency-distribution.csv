@@ -1,0 +1,4 @@
+operation,library,configuration,scalar,workload,clock,samples,median_ns,p10_ns,p90_ns,p99_ns
+matrix_vector,Vectoris,clang-O3,double,dependency_chain,wall,30,10.742842401537779,10.509502666336333,10.936819795378392,11.006380410877368
+quaternion_rotate,Vectoris,clang-O3,double,dependency_chain,wall,30,39.672213415565544,38.784500021726956,46.02830438676465,46.30361040012781
+rotation_matrix_vector,Vectoris,clang-O3,double,dependency_chain,wall,30,9.492026226447393,9.30678382443501,9.695579471558567,10.953829537168518

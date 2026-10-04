@@ -1,0 +1,13 @@
+operation,reference,latency_improvement_percent,classification
+matrix_vector,Eigen,-23.60789909024578,descriptive difference; no universal ranking
+matrix_vector,GLM,-24.305335295815762,descriptive difference; no universal ranking
+matrix_vector,Raw,-15.042146369025513,descriptive difference; no universal ranking
+matrix_matrix,Eigen,-14.856810681684598,descriptive difference; no universal ranking
+matrix_matrix,GLM,13.964962530458836,descriptive difference; no universal ranking
+matrix_matrix,Raw,-29.416849467144797,descriptive difference; no universal ranking
+quaternion_rotate,Eigen,-233.33394055443551,descriptive difference; no universal ranking
+quaternion_rotate,GLM,-205.66787106703788,descriptive difference; no universal ranking
+quaternion_rotate,Raw,-219.08056198171906,descriptive difference; no universal ranking
+rotation_matrix_vector,Eigen,-1.7471448458997194,comparable
+rotation_matrix_vector,GLM,7.205245629542513,descriptive difference; no universal ranking
+rotation_matrix_vector,Raw,0.477321558542043,comparable

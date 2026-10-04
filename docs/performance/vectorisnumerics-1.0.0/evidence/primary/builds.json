@@ -1,0 +1,162 @@
+[
+  {
+    "key": "clang-O3",
+    "commands": [
+      {
+        "cmd": [
+          "cmake",
+          "-S",
+          "$BENCHMARK_ROOT/source",
+          "-B",
+          "$BENCHMARK_ROOT/builds/clang-O3",
+          "-DCMAKE_CXX_COMPILER=/usr/bin/clang++",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_CXX_FLAGS_RELEASE=-O3 -DNDEBUG -march=x86-64 -fno-fast-math -ffp-contract=off -fno-lto",
+          "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+        ],
+        "exit": 0,
+        "log": "$BENCHMARK_ROOT/logs/clang-O3-final-0.log"
+      },
+      {
+        "cmd": [
+          "cmake",
+          "--build",
+          "$BENCHMARK_ROOT/builds/clang-O3",
+          "--parallel",
+          "3"
+        ],
+        "exit": 0,
+        "log": "$BENCHMARK_ROOT/logs/clang-O3-final-1.log"
+      },
+      {
+        "cmd": [
+          "$BENCHMARK_ROOT/builds/clang-O3/vectoris_bench",
+          "--validate-only",
+          "--evidence=$BENCHMARK_ROOT/raw/clang-O3"
+        ],
+        "exit": 0,
+        "log": "$BENCHMARK_ROOT/logs/clang-O3-final-2.log"
+      }
+    ]
+  },
+  {
+    "key": "gcc-O2",
+    "commands": [
+      {
+        "cmd": [
+          "cmake",
+          "-S",
+          "$BENCHMARK_ROOT/source",
+          "-B",
+          "$BENCHMARK_ROOT/builds/gcc-O2",
+          "-DCMAKE_CXX_COMPILER=/usr/local/bin/g++-16",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_CXX_FLAGS_RELEASE=-O2 -DNDEBUG -march=x86-64 -fno-fast-math -ffp-contract=off -fno-lto",
+          "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+        ],
+        "exit": 0,
+        "log": "$BENCHMARK_ROOT/logs/gcc-O2-final-0.log"
+      },
+      {
+        "cmd": [
+          "cmake",
+          "--build",
+          "$BENCHMARK_ROOT/builds/gcc-O2",
+          "--parallel",
+          "3"
+        ],
+        "exit": 0,
+        "log": "$BENCHMARK_ROOT/logs/gcc-O2-final-1.log"
+      },
+      {
+        "cmd": [
+          "$BENCHMARK_ROOT/builds/gcc-O2/vectoris_bench",
+          "--validate-only",
+          "--evidence=$BENCHMARK_ROOT/raw/gcc-O2"
+        ],
+        "exit": 0,
+        "log": "$BENCHMARK_ROOT/logs/gcc-O2-final-2.log"
+      }
+    ]
+  },
+  {
+    "key": "clang-O2",
+    "commands": [
+      {
+        "cmd": [
+          "cmake",
+          "-S",
+          "$BENCHMARK_ROOT/source",
+          "-B",
+          "$BENCHMARK_ROOT/builds/clang-O2",
+          "-DCMAKE_CXX_COMPILER=/usr/bin/clang++",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_CXX_FLAGS_RELEASE=-O2 -DNDEBUG -march=x86-64 -fno-fast-math -ffp-contract=off -fno-lto",
+          "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+        ],
+        "exit": 0,
+        "log": "$BENCHMARK_ROOT/logs/clang-O2-final-0.log"
+      },
+      {
+        "cmd": [
+          "cmake",
+          "--build",
+          "$BENCHMARK_ROOT/builds/clang-O2",
+          "--parallel",
+          "3"
+        ],
+        "exit": 0,
+        "log": "$BENCHMARK_ROOT/logs/clang-O2-final-1.log"
+      },
+      {
+        "cmd": [
+          "$BENCHMARK_ROOT/builds/clang-O2/vectoris_bench",
+          "--validate-only",
+          "--evidence=$BENCHMARK_ROOT/raw/clang-O2"
+        ],
+        "exit": 0,
+        "log": "$BENCHMARK_ROOT/logs/clang-O2-final-2.log"
+      }
+    ]
+  },
+  {
+    "key": "gcc-O3",
+    "commands": [
+      {
+        "cmd": [
+          "cmake",
+          "-S",
+          "$BENCHMARK_ROOT/source",
+          "-B",
+          "$BENCHMARK_ROOT/builds/gcc-O3",
+          "-DCMAKE_CXX_COMPILER=/usr/local/bin/g++-16",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_CXX_FLAGS_RELEASE=-O3 -DNDEBUG -march=x86-64 -fno-fast-math -ffp-contract=off -fno-lto",
+          "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+        ],
+        "exit": 0,
+        "log": "$BENCHMARK_ROOT/logs/gcc-O3-final-0.log"
+      },
+      {
+        "cmd": [
+          "cmake",
+          "--build",
+          "$BENCHMARK_ROOT/builds/gcc-O3",
+          "--parallel",
+          "3"
+        ],
+        "exit": 0,
+        "log": "$BENCHMARK_ROOT/logs/gcc-O3-final-1.log"
+      },
+      {
+        "cmd": [
+          "$BENCHMARK_ROOT/builds/gcc-O3/vectoris_bench",
+          "--validate-only",
+          "--evidence=$BENCHMARK_ROOT/raw/gcc-O3"
+        ],
+        "exit": 0,
+        "log": "$BENCHMARK_ROOT/logs/gcc-O3-final-2.log"
+      }
+    ]
+  }
+]

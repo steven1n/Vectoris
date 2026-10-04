@@ -1,0 +1,32 @@
+{
+  "summary_rows": 128,
+  "raw_records": 3840,
+  "repetitions_per_scenario": 30,
+  "minimum_summed_measurement_seconds": 1.1031630000000074,
+  "all_four_configs_correctness": [
+    {
+      "checks": 884,
+      "failed": 0
+    },
+    {
+      "checks": 884,
+      "failed": 0
+    },
+    {
+      "checks": 884,
+      "failed": 0
+    },
+    {
+      "checks": 884,
+      "failed": 0
+    }
+  ],
+  "O0": {
+    "checks": 884,
+    "failed": 0
+  },
+  "ASan_UBSan": {
+    "checks": 884,
+    "failed": 0
+  }
+}

@@ -1,0 +1,70 @@
+[
+  {
+    "compiler": "clang",
+    "optimization": "O2",
+    "first_tested_median_win": 1,
+    "first_tested_p10_p90_separation": 1,
+    "rule": "first tested N; not an interpolated universal threshold",
+    "all_ns": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128
+    ]
+  },
+  {
+    "compiler": "clang",
+    "optimization": "O3",
+    "first_tested_median_win": 1,
+    "first_tested_p10_p90_separation": 1,
+    "rule": "first tested N; not an interpolated universal threshold",
+    "all_ns": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128
+    ]
+  },
+  {
+    "compiler": "gcc",
+    "optimization": "O2",
+    "first_tested_median_win": 4,
+    "first_tested_p10_p90_separation": 4,
+    "rule": "first tested N; not an interpolated universal threshold",
+    "all_ns": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128
+    ]
+  },
+  {
+    "compiler": "gcc",
+    "optimization": "O3",
+    "first_tested_median_win": 2,
+    "first_tested_p10_p90_separation": 4,
+    "rule": "first tested N; not an interpolated universal threshold",
+    "all_ns": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128
+    ]
+  }
+]
